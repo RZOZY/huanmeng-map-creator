@@ -1,0 +1,121 @@
+{
+  "profile": "xuanhuan",
+  "version": "2.0.0",
+  "description": "玄幻异世风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "celestial-dynasty": {
+      "name": "仙界天朝",
+      "description": "正统仙界风格，帝国/王朝 → 界/域/天 → 城/镇/关/堡",
+      "stateSuffixes": [
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "界",
+        "域",
+        "土",
+        "天"
+      ],
+      "burgSuffixes": [
+        "城",
+        "镇",
+        "关",
+        "驿",
+        "集",
+        "堡"
+      ]
+    },
+    "demon-realm": {
+      "name": "魔界诸界",
+      "description": "邪恶势力风格，界/域/庭 → 渊/林/谷 → 寨/洞/窟/巢",
+      "stateSuffixes": [
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "渊",
+        "林",
+        "谷",
+        "界"
+      ],
+      "burgSuffixes": [
+        "寨",
+        "洞",
+        "窟",
+        "巢",
+        "营",
+        "谷"
+      ]
+    },
+    "beast-tribe": {
+      "name": "妖族蛮荒",
+      "description": "妖族部落风格，汗国/领 → 洲/地 → 寨/营/屯",
+      "stateSuffixes": [
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "洲",
+        "地",
+        "疆域",
+        "天"
+      ],
+      "burgSuffixes": [
+        "寨",
+        "营",
+        "屯",
+        "集",
+        "港",
+        "堡",
+        "岛"
+      ]
+    },
+    "human-federation": {
+      "name": "人族联邦",
+      "description": "凡人国度风格，国/联邦 → 省/州/府 → 城/县/镇",
+      "stateSuffixes": [
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "省",
+        "州",
+        "府",
+        "界",
+        "域"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "乡",
+        "关",
+        "堡"
+      ]
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import { max, mean } from "d3";
 import { requireColor } from "@/utils/colorUtils";
 import { requireName } from "@/utils/validationUtils";
-import { gauss, getAdjective, P, ra, rand, rw } from "../utils";
+import { gauss, P, ra, rand, rw } from "../utils";
 import { Population } from "./population-generator";
 
 declare global {
@@ -162,22 +162,22 @@ class ZonesModule {
     }
 
     const subtype = rw({
-      Invasion: 5,
-      Occupation: 4,
-      Conquest: 3,
-      Incursion: 2,
-      Intervention: 2,
-      Assault: 1,
-      Foray: 1,
-      Intrusion: 1,
-      Irruption: 1,
-      Offensive: 1,
-      Pillaging: 1,
-      Plunder: 1,
-      Raid: 1,
-      Skirmishes: 1
+      入侵: 5,
+      占领: 4,
+      征服: 3,
+      进犯: 2,
+      干涉: 2,
+      突袭: 1,
+      劫掠: 1,
+      侵入: 1,
+      闯入: 1,
+      攻势: 1,
+      洗劫: 1,
+      掠夺: 1,
+      袭击: 1,
+      遭遇战: 1
     });
-    const name = `${getAdjective(states[attacker].name)} ${subtype}`;
+    const name = `${states[attacker].name}${subtype}`;
 
     pack.zones.push({
       i: pack.zones.length,
@@ -220,21 +220,21 @@ class ZonesModule {
     }
 
     const rebels = rw({
-      Rebels: 5,
-      Insurrection: 2,
-      Mutineers: 1,
-      Insurgents: 1,
-      Rebellion: 1,
-      Renegades: 1,
-      Revolters: 1,
-      Revolutionaries: 1,
-      Rioters: 1,
-      Separatists: 1,
-      Secessionists: 1,
-      Conspiracy: 1
+      叛军: 5,
+      暴动: 2,
+      哗变: 1,
+      起义军: 1,
+      叛乱: 1,
+      叛党: 1,
+      反抗军: 1,
+      革命党: 1,
+      暴民: 1,
+      分裂派: 1,
+      独立派: 1,
+      阴谋团: 1
     });
 
-    const name = `${getAdjective(states[neibStateId].name)} ${rebels}`;
+    const name = `${states[neibStateId].name}${rebels}`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -280,7 +280,7 @@ class ZonesModule {
       });
     }
 
-    const name = `${getAdjective(religion.name.split(" ")[0])} Proselytism`;
+    const name = `${religion.name}传教`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -303,7 +303,7 @@ class ZonesModule {
       usedCells[i] = 1;
     }
 
-    const name = `${getAdjective(heresy.name.split(" ")[0])} Crusade`;
+    const name = `${heresy.name}讨伐`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -351,21 +351,21 @@ class ZonesModule {
     const prefix = model === "color" ? colorName : model === "animal" ? animalName : adjectiveName;
 
     const disease = rw({
-      Fever: 5,
-      Plague: 3,
-      Cough: 3,
-      Flu: 2,
-      Pox: 2,
-      Cholera: 2,
-      Typhoid: 2,
-      Leprosy: 1,
-      Smallpox: 1,
-      Pestilence: 1,
-      Consumption: 1,
-      Malaria: 1,
-      Dropsy: 1
+      热病: 5,
+      瘟疫: 3,
+      咳疾: 3,
+      流感: 2,
+      痘疮: 2,
+      霍乱: 2,
+      伤寒: 2,
+      麻风: 1,
+      天花: 1,
+      疫病: 1,
+      痨病: 1,
+      瘴气: 1,
+      水肿: 1
     });
-    const name = `${prefix} ${disease}`;
+    const name = `${prefix}${disease}`;
 
     pack.zones.push({
       i: pack.zones.length,
@@ -379,73 +379,73 @@ class ZonesModule {
   private getDiseaseName(model: "color" | "animal" | "adjective"): string {
     if (model === "color")
       return ra([
-        "Amber",
-        "Azure",
-        "Black",
-        "Blue",
-        "Brown",
-        "Crimson",
-        "Emerald",
-        "Golden",
-        "Green",
-        "Grey",
-        "Orange",
-        "Pink",
-        "Purple",
-        "Red",
-        "Ruby",
-        "Scarlet",
-        "Silver",
-        "Violet",
-        "White",
-        "Yellow"
+        "琥珀",
+        "天青",
+        "黑",
+        "蓝",
+        "褐",
+        "绯红",
+        "翠",
+        "金",
+        "绿",
+        "灰",
+        "橙",
+        "粉",
+        "紫",
+        "红",
+        "宝石红",
+        "猩红",
+        "银",
+        "紫罗兰",
+        "白",
+        "黄"
       ]);
     if (model === "animal")
       return ra([
-        "Ape",
-        "Bear",
-        "Bird",
-        "Boar",
-        "Cat",
-        "Cow",
-        "Deer",
-        "Dog",
-        "Fox",
-        "Goat",
-        "Horse",
-        "Lion",
-        "Pig",
-        "Rat",
-        "Raven",
-        "Sheep",
-        "Spider",
-        "Tiger",
-        "Viper",
-        "Wolf",
-        "Worm",
-        "Wyrm"
+        "猿",
+        "熊",
+        "鸟",
+        "野猪",
+        "猫",
+        "牛",
+        "鹿",
+        "犬",
+        "狐",
+        "山羊",
+        "马",
+        "狮",
+        "猪",
+        "鼠",
+        "渡鸦",
+        "羊",
+        "蜘蛛",
+        "虎",
+        "蝰蛇",
+        "狼",
+        "蠕虫",
+        "巨蛇"
       ]);
     return ra([
-      "Blind",
-      "Bloody",
-      "Brutal",
-      "Burning",
-      "Deadly",
-      "Fatal",
-      "Furious",
-      "Great",
-      "Grim",
-      "Horrible",
-      "Invisible",
-      "Lethal",
-      "Loud",
-      "Mortal",
-      "Savage",
-      "Severe",
-      "Silent",
-      "Unknown",
-      "Venomous",
-      "Vicious"
+      "盲目",
+      "血腥",
+      "残暴",
+      "燃烧",
+      "致命",
+      "宿命",
+      "狂怒",
+      "巨大",
+      "阴沉",
+      "可怖",
+      "无形",
+      "致死",
+      "喧响",
+      "必死",
+      "野蛮",
+      "严酷",
+      "寂静",
+      "未知",
+      "有毒",
+      "凶恶"
     ]);
   }
 
@@ -481,16 +481,16 @@ class ZonesModule {
     }
 
     const type = rw({
-      Famine: 5,
-      Drought: 3,
-      Earthquake: 3,
-      Dearth: 1,
-      Tornadoes: 1,
-      Wildfires: 1,
-      Storms: 1,
-      Blight: 1
+      饥荒: 5,
+      旱灾: 3,
+      地震: 3,
+      粮荒: 1,
+      龙卷风: 1,
+      野火: 1,
+      风暴: 1,
+      枯萎病: 1
     });
-    const name = `${getAdjective(burg.name!)} ${type}`;
+    const name = `${burg.name!}${type}`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -508,7 +508,7 @@ class ZonesModule {
     usedCells[volcanoe.cell] = 1;
 
     if (volcanoe.note) volcanoe.note = volcanoe.note.replace("Active volcano", "Erupting volcano");
-    const name = volcanoe.name ? `${volcanoe.name.replace(" Volcano", "")} Eruption` : "Volcano Eruption";
+    const name = volcanoe.name ? `${volcanoe.name}喷发` : "火山喷发";
 
     const cellsArray: number[] = [];
     const queue = [volcanoe.cell];
@@ -560,7 +560,7 @@ class ZonesModule {
       });
     }
 
-    const name = `${getAdjective(Names.getCultureShort(cells.culture[startCell]))} Avalanche`;
+    const name = `${Names.getCultureShort(cells.culture[startCell])}雪崩`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -595,7 +595,7 @@ class ZonesModule {
       });
     }
 
-    const name = `${getAdjective(Names.getCultureShort(cells.culture[startCell]))} Fault`;
+    const name = `${Names.getCultureShort(cells.culture[startCell])}断层`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -645,7 +645,7 @@ class ZonesModule {
       });
     }
 
-    const name = `${getAdjective(pack.burgs[cells.burg[startCell]].name!)} Flood`;
+    const name = `${pack.burgs[cells.burg[startCell]].name!}洪水`;
     pack.zones.push({
       i: pack.zones.length,
       name,
@@ -684,7 +684,7 @@ class ZonesModule {
       });
     }
 
-    const name = `${getAdjective(Names.getCultureShort(cells.culture[startCell]))} Tsunami`;
+    const name = `${Names.getCultureShort(cells.culture[startCell])}海啸`;
     pack.zones.push({
       i: pack.zones.length,
       name,

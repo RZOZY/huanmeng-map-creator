@@ -1,0 +1,115 @@
+{
+  "profile": "dark-fantasy",
+  "version": "2.0.0",
+  "description": "黑暗奇幻克苏鲁风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "old-one-cult": {
+      "name": "旧日教团",
+      "description": "克苏鲁旧日支配者风格，国/塔 → 领域/域/界 → 堡/塔/洞/巷/街",
+      "stateSuffixes": [
+        "王朝",
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "领域",
+        "域",
+        "界"
+      ],
+      "burgSuffixes": [
+        "堡",
+        "塔",
+        "洞",
+        "巷",
+        "街"
+      ]
+    },
+    "undead-kingdom": {
+      "name": "死灵王朝",
+      "description": "亡灵死灵军团风格，帝国/王国 → 地/原/岭 → 堡/寨/营/关/崖",
+      "stateSuffixes": [
+        "王朝",
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "地",
+        "原",
+        "岭"
+      ],
+      "burgSuffixes": [
+        "堡",
+        "寨",
+        "营",
+        "关",
+        "崖"
+      ]
+    },
+    "abyss-dominion": {
+      "name": "深渊领地",
+      "description": "深渊虚空风格，领地/巢 → 谷/域/界 → 洞/谷/崖/岛/巷",
+      "stateSuffixes": [
+        "王朝",
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "谷",
+        "域",
+        "界"
+      ],
+      "burgSuffixes": [
+        "洞",
+        "谷",
+        "崖",
+        "岛",
+        "巷"
+      ]
+    },
+    "twilight-dynasty": {
+      "name": "暮光残朝",
+      "description": "暮光衰败风格，王国/国 → 地/岭/谷 → 堡/关/寨/市/营",
+      "stateSuffixes": [
+        "王朝",
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "地",
+        "岭",
+        "谷"
+      ],
+      "burgSuffixes": [
+        "堡",
+        "关",
+        "寨",
+        "市",
+        "营"
+      ]
+    }
+  }
+}

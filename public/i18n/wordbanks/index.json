@@ -1,0 +1,86 @@
+{
+  "profiles": [
+    {
+      "id": "default",
+      "name": "中国古代历史",
+      "description": "以华夏历史地名风格为基底，通用型",
+      "icon": "🏯",
+      "tier": "free",
+      "order": 1,
+      "version": "2.2.0"
+    },
+    {
+      "id": "xianxia",
+      "name": "仙侠修真",
+      "description": "修仙宗门、飞升渡劫、三界六道",
+      "icon": "⚔️",
+      "tier": "premium",
+      "order": 2,
+      "version": "3.0.0"
+    },
+    {
+      "id": "xuanhuan",
+      "name": "玄幻异世",
+      "description": "异世大陆、种族争霸、天材地宝",
+      "icon": "🐉",
+      "tier": "premium",
+      "order": 3,
+      "version": "2.0.0"
+    },
+    {
+      "id": "wuxia",
+      "name": "武侠江湖",
+      "description": "名门正派 · 邪派魔教 · 游侠江湖 · 隐世高人",
+      "icon": "🗡️",
+      "tier": "premium",
+      "order": 4,
+      "version": "2.0.0"
+    },
+    {
+      "id": "modern-urban",
+      "name": "现代都市",
+      "description": "共和政体 · 联邦各州 · 王室领地 · 特区自治",
+      "icon": "🏙️",
+      "tier": "premium",
+      "order": 5,
+      "version": "2.0.0"
+    },
+    {
+      "id": "mythology",
+      "name": "上古神话",
+      "description": "天庭神界 · 地府冥界 · 上古部族 · 洪荒神兽",
+      "icon": "🐲",
+      "tier": "premium",
+      "order": 6,
+      "version": "2.0.0"
+    },
+    {
+      "id": "dark-fantasy",
+      "name": "黑暗奇幻",
+      "description": "旧日教团 · 死灵王朝 · 深渊领地 · 暮光残朝",
+      "icon": "🕯️",
+      "tier": "premium",
+      "order": 7,
+      "version": "2.0.0"
+    },
+    {
+      "id": "high-fantasy",
+      "name": "中土奇幻",
+      "description": "精灵、矮人、龙、西方奇幻经典",
+      "icon": "🧝",
+      "tier": "premium",
+      "order": 8,
+      "version": "2.0.0"
+    },
+    {
+      "id": "republic",
+      "name": "民国近现代",
+      "description": "北洋军阀 · 国民政府 · 苏区根据地 · 边疆自治",
+      "icon": "🎩",
+      "tier": "premium",
+      "order": 9,
+      "version": "2.0.0"
+    }
+  ],
+  "default": "default"
+}

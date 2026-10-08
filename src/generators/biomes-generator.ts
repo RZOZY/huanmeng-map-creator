@@ -18,19 +18,19 @@ export interface Biome {
 
 function getDefaultBiomes(): Biome[] {
   const name = [
-    "Marine",
-    "Hot desert",
-    "Cold desert",
-    "Savanna",
-    "Grassland",
-    "Tropical seasonal forest",
-    "Temperate deciduous forest",
-    "Tropical rainforest",
-    "Temperate rainforest",
-    "Taiga",
-    "Tundra",
-    "Glacier",
-    "Wetland"
+    "海洋",
+    "热带沙漠",
+    "寒漠",
+    "稀树草原",
+    "草原",
+    "热带季雨林",
+    "温带落叶林",
+    "热带雨林",
+    "温带雨林",
+    "针叶林",
+    "苔原",
+    "冰川",
+    "湿地"
   ];
 
   const color = [

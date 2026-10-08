@@ -1,0 +1,115 @@
+{
+  "profile": "republic",
+  "version": "2.0.0",
+  "description": "民国近现代风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "northern-warlord": {
+      "name": "北洋军阀",
+      "description": "北洋政府军阀风格，政府/军政府/军/军阀 → 省/道/盟 → 市/县/镇/街/路",
+      "stateSuffixes": [
+        "政府",
+        "军政府",
+        "共和国"
+      ],
+      "provinceSuffixes": [
+        "省",
+        "道",
+        "盟"
+      ],
+      "burgSuffixes": [
+        "市",
+        "县",
+        "镇",
+        "街",
+        "路"
+      ]
+    },
+    "nationalist-regime": {
+      "name": "国民政府",
+      "description": "国民党政府风格，政府/边区/国统区 → 省/市/行政区 → 市/镇/街/巷/中心",
+      "stateSuffixes": [
+        "政府",
+        "军政府",
+        "共和国"
+      ],
+      "provinceSuffixes": [
+        "省",
+        "市",
+        "行政区"
+      ],
+      "burgSuffixes": [
+        "市",
+        "镇",
+        "街",
+        "巷",
+        "中心"
+      ]
+    },
+    "soviet-area": {
+      "name": "苏区根据地",
+      "description": "共产党根据地风格，苏区/根据地/解放区 → 省/行政区/特别区 → 镇/村/乡/县/集",
+      "stateSuffixes": [
+        "政府",
+        "军政府",
+        "共和国"
+      ],
+      "provinceSuffixes": [
+        "省",
+        "行政区",
+        "特别区"
+      ],
+      "burgSuffixes": [
+        "镇",
+        "村",
+        "乡",
+        "县",
+        "集"
+      ]
+    },
+    "autonomous-region": {
+      "name": "地方自治",
+      "description": "蒙藏等地方自治风格，盟/旗/噶厦 → 盟/旗/道 → 镇/屯/集/县/村",
+      "stateSuffixes": [
+        "政府",
+        "军政府",
+        "共和国"
+      ],
+      "provinceSuffixes": [
+        "盟",
+        "旗",
+        "道"
+      ],
+      "burgSuffixes": [
+        "镇",
+        "屯",
+        "集",
+        "县",
+        "村"
+      ]
+    }
+  }
+}

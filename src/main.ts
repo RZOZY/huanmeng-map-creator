@@ -1,6 +1,7 @@
 // Azgaar and contributors, 2017-2026. MIT License
 // https://github.com/Azgaar/Fantasy-Map-Generator
 
+import "@/i18n"; // 幻梦地图生成器：中文化与美化层
 import "@/services/logging";
 import "@/components/globals";
 import "@/components/options/tabs";

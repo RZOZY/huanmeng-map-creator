@@ -1,0 +1,115 @@
+{
+  "profile": "mythology",
+  "version": "2.0.0",
+  "description": "上古神话山海经封神风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "celestial-court": {
+      "name": "天庭神界",
+      "description": "天庭神界风格，庭/天 → 天/界/境 → 宫/观/台/府/门",
+      "stateSuffixes": [
+        "天",
+        "界",
+        "域"
+      ],
+      "provinceSuffixes": [
+        "天",
+        "界",
+        "境"
+      ],
+      "burgSuffixes": [
+        "宫",
+        "观",
+        "台",
+        "府",
+        "门"
+      ]
+    },
+    "underground-world": {
+      "name": "地府冥界",
+      "description": "地府冥界风格，庭/地/国 → 地/界/境 → 宫/洞/门/殿/桥",
+      "stateSuffixes": [
+        "天",
+        "界",
+        "域"
+      ],
+      "provinceSuffixes": [
+        "地",
+        "界",
+        "境"
+      ],
+      "burgSuffixes": [
+        "宫",
+        "洞",
+        "门",
+        "殿",
+        "桥"
+      ]
+    },
+    "ancient-tribe": {
+      "name": "上古部族",
+      "description": "上古部族方国风格，国/族 → 洲/海/域 → 墟/城/关/庄/道",
+      "stateSuffixes": [
+        "天",
+        "界",
+        "域"
+      ],
+      "provinceSuffixes": [
+        "洲",
+        "海",
+        "域"
+      ],
+      "burgSuffixes": [
+        "墟",
+        "城",
+        "关",
+        "庄",
+        "道"
+      ]
+    },
+    "great-beast": {
+      "name": "洪荒神兽",
+      "description": "洪荒神兽风格，域/界 → 海/洲/界 → 岛/山/洞/谷/林",
+      "stateSuffixes": [
+        "天",
+        "界",
+        "域"
+      ],
+      "provinceSuffixes": [
+        "海",
+        "洲",
+        "界"
+      ],
+      "burgSuffixes": [
+        "岛",
+        "山",
+        "洞",
+        "谷",
+        "林"
+      ]
+    }
+  }
+}

@@ -1,0 +1,108 @@
+{
+  "profile": "xianxia",
+  "version": "3.0.0",
+  "description": "仙侠修真·皇朝制风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "celestial-dynasty": {
+      "name": "天仙皇朝",
+      "description": "天界皇朝风格，皇朝/天朝 → 郡/州/府 → 城/镇/关/堡/寨",
+      "stateSuffixes": [
+        "皇朝",
+        "朝"
+      ],
+      "provinceSuffixes": [
+        "郡",
+        "州",
+        "府"
+      ],
+      "burgSuffixes": [
+        "城",
+        "镇",
+        "关",
+        "堡",
+        "寨"
+      ]
+    },
+    "demon-realm": {
+      "name": "魔域帝国",
+      "description": "邪魔帝国风格，帝国 → 郡/道 → 城/寨/关/堡/营",
+      "stateSuffixes": [
+        "帝国",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "郡",
+        "道"
+      ],
+      "burgSuffixes": [
+        "城",
+        "寨",
+        "关",
+        "堡",
+        "营"
+      ]
+    },
+    "beast-tribe": {
+      "name": "灵兽部族",
+      "description": "灵兽部族风格，皇朝/帝国 → 州/路 → 镇/集/渡/驿/城",
+      "stateSuffixes": [
+        "皇朝",
+        "宗门"
+      ],
+      "provinceSuffixes": [
+        "州",
+        "路"
+      ],
+      "burgSuffixes": [
+        "镇",
+        "集",
+        "渡",
+        "驿",
+        "城"
+      ]
+    },
+    "human-sect": {
+      "name": "人族宗门",
+      "description": "人族宗门风格，皇朝/宗门 → 府/省 → 城/县/镇/里/坊",
+      "stateSuffixes": [
+        "皇朝",
+        "宗门"
+      ],
+      "provinceSuffixes": [
+        "府",
+        "省"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "里",
+        "坊"
+      ]
+    }
+  }
+}

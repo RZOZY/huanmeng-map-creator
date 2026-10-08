@@ -1,0 +1,157 @@
+{
+  "profile": "high-fantasy",
+  "version": "2.0.0",
+  "description": "中土奇幻精灵矮人龙风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "kingdom": {
+      "name": "王国制",
+      "description": "精灵/矮人等长寿种族的传统王国，君主世袭",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "森林",
+        "山脉",
+        "领地",
+        "峡谷"
+      ],
+      "burgSuffixes": [
+        "城",
+        "堡",
+        "村",
+        "宫",
+        "窟"
+      ]
+    },
+    "empire": {
+      "name": "帝国制",
+      "description": "人类/兽人等扩张种族的大帝国",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "行省",
+        "领地",
+        "疆域",
+        "藩地"
+      ],
+      "burgSuffixes": [
+        "城",
+        "要塞",
+        "营",
+        "镇",
+        "港"
+      ]
+    },
+    "tribal-confederacy": {
+      "name": "部落联盟制",
+      "description": "游牧/蛮荒种族的部落联盟，无统一君主",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "草场",
+        "猎场",
+        "领地",
+        "雪原"
+      ],
+      "burgSuffixes": [
+        "营",
+        "寨",
+        "帐",
+        "集",
+        "哨"
+      ]
+    },
+    "city-state": {
+      "name": "城邦联盟制",
+      "description": "自由城邦组成的松散联盟，各城邦自治",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "教区",
+        "行省",
+        "辖区",
+        "商路"
+      ],
+      "burgSuffixes": [
+        "城",
+        "港",
+        "集",
+        "站",
+        "关"
+      ]
+    },
+    "magic-council": {
+      "name": "魔法议会制",
+      "description": "法师/德鲁伊/牧师等施法种族的议会统治",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "塔区",
+        "学院",
+        "圣地",
+        "秘域"
+      ],
+      "burgSuffixes": [
+        "塔",
+        "殿",
+        "院",
+        "林",
+        "坛"
+      ]
+    },
+    "dragon-kingdom": {
+      "name": "龙族领地制",
+      "description": "龙或其下属种族建立的领地，以巢穴为中心",
+      "stateSuffixes": [
+        "王国",
+        "公国"
+      ],
+      "provinceSuffixes": [
+        "巢穴",
+        "山脉",
+        "疆域",
+        "熔域"
+      ],
+      "burgSuffixes": [
+        "巢",
+        "窟",
+        "堡",
+        "岭",
+        "宫"
+      ]
+    }
+  }
+}

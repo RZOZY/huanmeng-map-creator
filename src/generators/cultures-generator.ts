@@ -1048,7 +1048,7 @@ class CulturesGenerator {
         WARN && console.warn(`There are no populated cells. Cannot generate cultures`);
         pack.cultures = [
           {
-            name: "Wildlands",
+            name: "未开发地",
             i: 0,
             base: 1,
             shield: "round",
@@ -1203,7 +1203,7 @@ class CulturesGenerator {
 
     // the first culture with id 0 is for wildlands
     cultures.unshift({
-      name: "Wildlands",
+      name: "未开发地",
       i: 0,
       base: 1,
       origins: [null],

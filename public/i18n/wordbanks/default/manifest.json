@@ -1,0 +1,150 @@
+{
+  "profile": "default",
+  "version": "2.2.0",
+  "description": "中国古代历史风格默认名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "prefecture-county": {
+      "name": "郡县制",
+      "description": "秦→汉初，中央集权，郡→县两级",
+      "stateSuffixes": [
+        "朝",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "郡",
+        "州",
+        "道",
+        "路"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "乡",
+        "里",
+        "关",
+        "堡",
+        "寨"
+      ]
+    },
+    "zhou-jun": {
+      "name": "州郡制",
+      "description": "汉→魏晋，州→郡→县三级，郡国并行",
+      "stateSuffixes": [
+        "朝",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "州",
+        "郡",
+        "府",
+        "军"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "乡",
+        "坊",
+        "集",
+        "店",
+        "驿"
+      ]
+    },
+    "dao-lu": {
+      "name": "道路制",
+      "description": "唐→宋，道/路→府/州→县三级",
+      "stateSuffixes": [
+        "朝",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "道",
+        "路",
+        "府",
+        "州",
+        "郡"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "乡",
+        "坊",
+        "集",
+        "店",
+        "驿",
+        "铺"
+      ]
+    },
+    "xing-sheng": {
+      "name": "行省制",
+      "description": "元→明→清，省→府/州→县三级",
+      "stateSuffixes": [
+        "朝",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "省",
+        "府",
+        "州",
+        "道"
+      ],
+      "burgSuffixes": [
+        "城",
+        "县",
+        "镇",
+        "乡",
+        "堡",
+        "关",
+        "屯",
+        "营",
+        "寨"
+      ]
+    },
+    "feudal": {
+      "name": "封建制",
+      "description": "西周，诸侯分封，国→都/邑",
+      "stateSuffixes": [
+        "朝",
+        "国"
+      ],
+      "provinceSuffixes": [
+        "州",
+        "城"
+      ],
+      "burgSuffixes": [
+        "城",
+        "关",
+        "寨",
+        "镇",
+        "堡",
+        "屯"
+      ]
+    }
+  }
+}

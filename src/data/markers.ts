@@ -1,4 +1,9 @@
-// Word lists and weights for generated marker names and legends
+// 标记（marker）名称与图例的语料表 —— 幻梦地图生成器中文语料
+//
+// 本文件原为上游的英文词表。本项目在 v1.154 基线上一次性中文化，不再跟随上游更新。
+// 保留不动的部分：MARKER_PINS（图标形状 id）、STATUE_SCRIPTS（古文字字形集合）、
+// 以及 MIGRATING_ANIMALS / INN_*_BY_GOOD / INN_DRINKS_BY_GOOD 的键（与物资表对齐，
+// 物资名已在 goods-generator.ts 中同步中文化）。
 
 export const MARKER_PINS = [
   "bubble",
@@ -16,394 +21,360 @@ export const MARKER_PINS = [
   "no"
 ] as const;
 
-/** Animals that migrate across each biome, by biome id; others see no migrations */
+/** 各地貌带迁徙的动物；按生物群系 id 索引，其余地貌不产生迁徙 */
 export const MIGRATING_ANIMALS: Record<number, string[]> = {
-  1: ["Camels", "Antelopes", "Jackals", "Hyenas", "Scorpions", "Locusts"],
-  2: ["Camels", "Goats", "Wolves", "Foxes", "Eagles", "Falcons"],
-  3: ["Antelopes", "Buffalo", "Elephants", "Lions", "Hyenas", "Cranes", "Zebras"],
-  4: ["Bisons", "Horses", "Deer", "Hares", "Geese", "Larks", "Wolves"],
-  5: ["Apes", "Elephants", "Leopards", "Tigers", "Parrots", "Mantises"],
-  6: ["Deer", "Boars", "Badgers", "Foxes", "Crows", "Rooks", "Bears", "Wolves"],
-  7: ["Apes", "Jaguars", "Panthers", "Snakes", "Spiders", "Parrots"],
-  8: ["Elk", "Deer", "Bears", "Beavers", "Owls", "Ravens"],
-  9: ["Elk", "Moose", "Wolves", "Wolverines", "Martens", "Bears", "Ravens"],
-  10: ["Reindeer", "Musk oxen", "Wolves", "Foxes", "Geese", "Hares", "Owls"],
-  12: ["Herons", "Cranes", "Ibises", "Geese", "Crocodiles", "Frogs"]
+  1: ["骆驼", "羚羊", "胡狼", "鬣狗", "蝎", "蝗虫"],
+  2: ["骆驼", "山羊", "狼", "狐", "鹰", "隼"],
+  3: ["羚羊", "水牛", "象", "狮", "鬣狗", "鹤", "斑马"],
+  4: ["野牛", "马", "鹿", "野兔", "鹅", "云雀", "狼"],
+  5: ["猿", "象", "豹", "虎", "鹦鹉", "螳螂"],
+  6: ["鹿", "野猪", "獾", "狐", "乌鸦", "山鸦", "熊", "狼"],
+  7: ["猿", "美洲豹", "黑豹", "蛇", "蜘蛛", "鹦鹉"],
+  8: ["麋鹿", "鹿", "熊", "河狸", "猫头鹰", "渡鸦"],
+  9: ["麋鹿", "驼鹿", "狼", "貂熊", "貂", "熊", "渡鸦"],
+  10: ["驯鹿", "麝牛", "狼", "狐", "鹅", "野兔", "猫头鹰"],
+  12: ["鹭", "鹤", "朱鹭", "鹅", "鳄", "蛙"]
 };
 
 export const WATER_SOURCE_TYPES = {
-  "Healing Spring": 5,
-  "Purifying Well": 2,
-  "Enchanted Reservoir": 1,
-  "Creek of Luck": 1,
-  "Fountain of Youth": 1,
-  "Wisdom Spring": 1,
-  "Spring of Life": 1,
-  "Spring of Youth": 1,
-  "Healing Stream": 1
+  疗愈之泉: 5,
+  净罪之井: 2,
+  附魔水库: 1,
+  幸运溪: 1,
+  青春之泉: 1,
+  智慧之泉: 1,
+  生命之泉: 1,
+  少年之泉: 1,
+  疗愈溪流: 1
 };
 
 export const BRIDGE_ADJECTIVES = {
-  stone: 10,
-  wooden: 1,
-  lengthy: 2,
-  formidable: 2,
-  rickety: 1,
-  beaten: 1,
-  weathered: 1
+  石: 10,
+  木: 1,
+  长: 2,
+  险峻: 2,
+  破败: 1,
+  陈旧: 1,
+  风蚀: 1
 };
 
 export const BRIDGE_DECLINE_REASONS = [
-  "its collapse during the flood",
-  "being rumoured to attract trolls",
-  "the drying up of local trade",
-  "banditry infested the area",
-  "the old waypoints crumbled"
+  "它在洪水中坍塌",
+  "传闻它会招来巨魔",
+  "当地贸易逐渐凋敝",
+  "盗匪盘踞了此地",
+  "旧日的路标尽数崩坏"
 ];
 
 export const INN_COLORS = [
-  "Dark",
-  "Light",
-  "Bright",
-  "Golden",
-  "White",
-  "Black",
-  "Red",
-  "Pink",
-  "Purple",
-  "Blue",
-  "Green",
-  "Yellow",
-  "Amber",
-  "Orange",
-  "Brown",
-  "Grey"
+  "暗",
+  "浅",
+  "明",
+  "金",
+  "白",
+  "黑",
+  "红",
+  "粉",
+  "紫",
+  "蓝",
+  "绿",
+  "黄",
+  "琥珀",
+  "橙",
+  "褐",
+  "灰"
 ];
 
 export const INN_ANIMALS = [
-  "Antelope",
-  "Ape",
-  "Badger",
-  "Bear",
-  "Beaver",
-  "Bison",
-  "Boar",
-  "Buffalo",
-  "Cat",
-  "Crane",
-  "Crocodile",
-  "Crow",
-  "Deer",
-  "Dog",
-  "Eagle",
-  "Elk",
-  "Fox",
-  "Goat",
-  "Goose",
-  "Hare",
-  "Hawk",
-  "Heron",
-  "Horse",
-  "Hyena",
-  "Ibis",
-  "Jackal",
-  "Jaguar",
-  "Lark",
-  "Leopard",
-  "Lion",
-  "Mantis",
-  "Marten",
-  "Moose",
-  "Mule",
-  "Narwhal",
-  "Owl",
-  "Panther",
-  "Rat",
-  "Raven",
-  "Rook",
-  "Scorpion",
-  "Shark",
-  "Sheep",
-  "Snake",
-  "Spider",
-  "Swan",
-  "Tiger",
-  "Turtle",
-  "Wolf",
-  "Wolverine",
-  "Camel",
-  "Falcon",
-  "Hound",
-  "Ox"
+  "羚羊",
+  "猿",
+  "獾",
+  "熊",
+  "河狸",
+  "野牛",
+  "野猪",
+  "水牛",
+  "猫",
+  "鹤",
+  "鳄",
+  "乌鸦",
+  "鹿",
+  "犬",
+  "鹰",
+  "麋鹿",
+  "狐",
+  "山羊",
+  "鹅",
+  "野兔",
+  "隼",
+  "鹭",
+  "马",
+  "鬣狗",
+  "朱鹭",
+  "胡狼",
+  "美洲豹",
+  "云雀",
+  "豹",
+  "狮",
+  "螳螂",
+  "貂",
+  "驼鹿",
+  "骡",
+  "独角鲸",
+  "猫头鹰",
+  "黑豹",
+  "鼠",
+  "渡鸦",
+  "山鸦",
+  "蝎",
+  "鲨",
+  "羊",
+  "蛇",
+  "蜘蛛",
+  "天鹅",
+  "虎",
+  "龟",
+  "狼",
+  "貂熊",
+  "骆驼",
+  "隼",
+  "猎犬",
+  "牛"
 ];
 
 export const INN_ADJECTIVES = [
-  "New",
-  "Good",
-  "High",
-  "Old",
-  "Great",
-  "Big",
-  "Major",
-  "Happy",
-  "Main",
-  "Huge",
-  "Far",
-  "Beautiful",
-  "Fair",
-  "Prime",
-  "Ancient",
-  "Golden",
-  "Proud",
-  "Lucky",
-  "Fat",
-  "Honest",
-  "Giant",
-  "Distant",
-  "Friendly",
-  "Loud",
-  "Hungry",
-  "Magical",
-  "Superior",
-  "Peaceful",
-  "Frozen",
-  "Divine",
-  "Favorable",
-  "Brave",
-  "Sunny",
-  "Flying"
+  "新",
+  "好",
+  "高",
+  "老",
+  "大",
+  "巨",
+  "要",
+  "乐",
+  "主",
+  "庞",
+  "远",
+  "美",
+  "公",
+  "首",
+  "古",
+  "金",
+  "傲",
+  "幸",
+  "肥",
+  "诚",
+  "巨人",
+  "遥",
+  "友善",
+  "喧",
+  "饥",
+  "魔法",
+  "优越",
+  "安宁",
+  "冰封",
+  "神圣",
+  "祥瑞",
+  "勇",
+  "晴",
+  "飞"
 ];
 
 export const INN_COOKING_METHODS = [
-  "Boiled",
-  "Grilled",
-  "Roasted",
-  "Spit-roasted",
-  "Stewed",
-  "Stuffed",
-  "Jugged",
-  "Mashed",
-  "Baked",
-  "Braised",
-  "Poached",
-  "Marinated",
-  "Pickled",
-  "Smoked",
-  "Dried",
-  "Dry-aged",
-  "Corned",
-  "Fried",
-  "Pan-fried",
-  "Deep-fried",
-  "Dressed",
-  "Steamed",
-  "Cured",
-  "Syrupped",
-  "Flame-Broiled"
+  "水煮",
+  "炙烤",
+  "烘烤",
+  "叉烤",
+  "炖煮",
+  "填馅",
+  "焖烧",
+  "捣泥",
+  "烘焙",
+  "红烧",
+  "水波",
+  "腌渍",
+  "泡制",
+  "熏制",
+  "风干",
+  "熟成",
+  "盐渍",
+  "油炸",
+  "煎制",
+  "深炸",
+  "凉拌",
+  "清蒸",
+  "腊制",
+  "糖渍",
+  "明火炙"
 ];
 
-/** Inn fare by good name, served only where the inn's market has the good */
+/** 客栈供应的菜色，按物资名索引；仅当客栈所在市场有该物资时供应 */
 export const INN_COURSES_BY_GOOD: Record<string, string[]> = {
-  Cattle: ["beef", "veal"],
-  Sheep: ["lamb", "mutton"],
-  Game: ["hare", "rabbit", "hart", "deer", "antlers", "bear", "buffalo", "badger", "beaver", "boar", "pheasant"],
-  Fish: ["carp", "bass", "pike", "catfish", "sturgeon", "escallop", "eel"],
-  Whales: ["whale", "seal"],
-  Camels: ["camel"],
-  Grain: ["bread", "pie", "cake", "pottage", "pudding", "pasta"],
-  Olives: ["olives"],
-  Dates: ["dates"],
-  Cheese: ["cheese"]
+  牛: ["牛肉", "小牛肉"],
+  羊: ["羔羊肉", "羊肉"],
+  野味: ["野兔", "兔子", "鹿肉", "鹿", "鹿角", "熊掌", "水牛肉", "獾肉", "河狸肉", "野猪", "雉鸡"],
+  鱼: ["鲤鱼", "鲈鱼", "狗鱼", "鲶鱼", "鲟鱼", "扇贝", "鳝"],
+  鲸: ["鲸肉", "海豹肉"],
+  骆驼: ["骆驼肉"],
+  谷物: ["面包", "馅饼", "糕饼", "浓粥", "布丁", "面条"],
+  橄榄: ["橄榄"],
+  椰枣: ["椰枣"],
+  奶酪: ["奶酪"]
 };
 
 export const INN_COMMON_COURSES = [
-  "pork",
-  "bacon",
-  "chicken",
-  "goose",
-  "duck",
-  "pigeon",
-  "chevon",
-  "eggs",
-  "onions",
-  "carrot",
-  "potato",
-  "beet",
-  "garlic",
-  "cabbage",
-  "spinach",
-  "peas",
-  "beans",
-  "pumpkin",
-  "apples",
-  "pears",
-  "rat tails",
-  "pig ears"
+  "猪肉",
+  "培根",
+  "鸡肉",
+  "鹅肉",
+  "鸭肉",
+  "鸽肉",
+  "山羊肉",
+  "蛋",
+  "洋葱",
+  "胡萝卜",
+  "土豆",
+  "甜菜",
+  "蒜",
+  "卷心菜",
+  "菠菜",
+  "豌豆",
+  "豆子",
+  "南瓜",
+  "苹果",
+  "梨",
+  "鼠尾",
+  "猪耳"
 ];
 
-/** Served only where it is 18°C or warmer */
-export const INN_WARM_COURSES = [
-  "rice",
-  "chickpea",
-  "eggplant",
-  "zucchini",
-  "pepper",
-  "tomatoes",
-  "melon",
-  "oranges",
-  "mango"
-];
+/** 仅在气温 18°C 以上供应 */
+export const INN_WARM_COURSES = ["米饭", "鹰嘴豆", "茄子", "西葫芦", "辣椒", "番茄", "甜瓜", "橙", "芒果"];
 
-export const INN_DRINK_KINDS = [
-  "hot",
-  "cold",
-  "fire",
-  "ice",
-  "smoky",
-  "misty",
-  "shiny",
-  "sweet",
-  "bitter",
-  "salty",
-  "sour",
-  "sparkling",
-  "smelly"
-];
+export const INN_DRINK_KINDS = ["热", "冷", "火", "冰", "烟熏", "雾状", "闪亮", "甜", "苦", "咸", "酸", "气泡", "腥"];
 
 export const INN_DRINKS_BY_GOOD: Record<string, string[]> = {
-  Wine: ["wine", "brandy"],
-  Beer: ["beer", "ale"],
-  Liquor: ["gin", "whisky", "rum", "vodka", "tequila", "absinthe", "liquor", "spirits"],
-  Grain: ["kvass"],
-  Honey: ["mead", "nectar"],
-  Sugarcane: ["rum"],
-  Tea: ["tea"],
-  Cattle: ["milk"],
-  Horses: ["kumis"]
+  葡萄酒: ["葡萄酒", "白兰地"],
+  啤酒: ["啤酒", "麦酒"],
+  烈酒: ["金酒", "威士忌", "朗姆酒", "伏特加", "龙舌兰", "苦艾酒", "烈酒", "烧酒"],
+  谷物: ["格瓦斯"],
+  蜂蜜: ["蜜酒", "花蜜"],
+  甘蔗: ["朗姆酒"],
+  茶: ["茶"],
+  牛: ["奶"],
+  马: ["马奶酒"]
 };
 
-export const INN_COMMON_DRINKS = ["water", "cider", "juice", "sap"];
+export const INN_COMMON_DRINKS = ["水", "苹果酒", "果汁", "树汁"];
 
 export const WATERFALL_DESCRIPTIONS = [
-  "A gorgeous waterfall flows here.",
-  "The rapids of an exceptionally beautiful waterfall.",
-  "An impressive waterfall has cut through the land.",
-  "The cascades of a stunning waterfall.",
-  "A river drops down from a great height forming a wondrous waterfall.",
-  "A breathtaking waterfall cuts through the landscape."
+  "一道绚丽的瀑布自此处倾泻而下。",
+  "极美瀑布的湍流。",
+  "一道壮观的瀑布劈开了大地。",
+  "令人惊叹的瀑布层叠而下。",
+  "河水自高处跌落，化作一道奇美的瀑布。",
+  "一道惊心动魄的瀑布切开了这片风光。"
 ];
 
-export const RUMOR_SOURCES = [
-  "Locals",
-  "Elders",
-  "Inscriptions",
-  "Tipplers",
-  "Legends",
-  "Whispers",
-  "Rumors",
-  "Journeying folk",
-  "Tales"
-];
+export const RUMOR_SOURCES = ["当地人", "长者", "碑铭", "酒客", "传说", "低语", "流言", "旅人", "故事"];
 
 export const HILL_MONSTER_ADJECTIVES = [
-  "great",
-  "big",
-  "huge",
-  "prime",
-  "golden",
-  "proud",
-  "lucky",
-  "fat",
-  "giant",
-  "hungry",
-  "magical",
-  "superior",
-  "terrifying",
-  "horrifying",
-  "feared"
+  "巨大的",
+  "庞大的",
+  "巍然的",
+  "元初的",
+  "金色的",
+  "骄傲的",
+  "幸运的",
+  "肥硕的",
+  "巨型的",
+  "饥饿的",
+  "有魔力的",
+  "至高无上的",
+  "骇人的",
+  "可怖的",
+  "令人胆寒的"
 ];
 
 export const HILL_MONSTER_SPECIES = [
-  "Ogre",
-  "Troll",
-  "Cyclops",
-  "Giant",
-  "Monster",
-  "Beast",
-  "Dragon",
-  "Undead",
-  "Ghoul",
-  "Vampire",
-  "Hag",
-  "Banshee",
-  "Bearded Devil",
-  "Roc",
-  "Hydra",
-  "Warg"
+  "食人魔",
+  "巨魔",
+  "独眼巨人",
+  "巨人",
+  "怪物",
+  "妖兽",
+  "龙",
+  "亡灵",
+  "食尸鬼",
+  "吸血鬼",
+  "巫婆",
+  "报丧女妖",
+  "长须恶魔",
+  "大鹏",
+  "九头蛇",
+  "座狼"
 ];
 
 export const HILL_MONSTER_HABITS = [
-  "steals cattle at night",
-  "prefers eating children",
-  "doesn't mind human flesh",
-  "keeps the region at bay",
-  "eats kids whole",
-  "abducts young women",
-  "terrorizes the region",
-  "harasses travelers in the area",
-  "snatches people from homes",
-  "attacks anyone who dares to approach its lair",
-  "attacks unsuspecting victims"
+  "夜里偷牛",
+  "爱吃小孩",
+  "不忌人肉",
+  "令此地无人敢近",
+  "整吞幼童",
+  "掳走年轻女子",
+  "肆虐此地",
+  "袭击过往行人",
+  "从家中掠人",
+  "攻击任何敢靠近其巢穴的人",
+  "偷袭毫无防备的受害者"
 ];
 
 export const BRIGAND_ANIMALS = [
-  "Apes",
-  "Badgers",
-  "Bears",
-  "Beavers",
-  "Bisons",
-  "Boars",
-  "Cats",
-  "Crows",
-  "Dogs",
-  "Foxes",
-  "Hares",
-  "Hawks",
-  "Hyenas",
-  "Jackals",
-  "Jaguars",
-  "Leopards",
-  "Lions",
-  "Owls",
-  "Panthers",
-  "Rats",
-  "Ravens",
-  "Rooks",
-  "Scorpions",
-  "Sharks",
-  "Snakes",
-  "Spiders",
-  "Tigers",
-  "Wolfs",
-  "Wolverines",
-  "Falcons"
+  "猿",
+  "獾",
+  "熊",
+  "河狸",
+  "野牛",
+  "野猪",
+  "猫",
+  "乌鸦",
+  "犬",
+  "狐",
+  "野兔",
+  "隼",
+  "鬣狗",
+  "胡狼",
+  "美洲豹",
+  "豹",
+  "狮",
+  "猫头鹰",
+  "黑豹",
+  "鼠",
+  "渡鸦",
+  "山鸦",
+  "蝎",
+  "鲨",
+  "蛇",
+  "蜘蛛",
+  "虎",
+  "狼",
+  "貂熊",
+  "隼"
 ];
 
-export const BRIGAND_TYPES = { brigands: 4, bandits: 3, robbers: 1, highwaymen: 1 };
+export const BRIGAND_TYPES = { 匪帮: 4, 强盗: 3, 劫匪: 1, 路霸: 1 };
 
 export const STATUE_VARIANTS = [
-  "Statue",
-  "Obelisk",
-  "Monument",
-  "Column",
-  "Monolith",
-  "Pillar",
-  "Megalith",
-  "Stele",
-  "Runestone",
-  "Sculpture",
-  "Effigy",
-  "Idol"
+  "雕像",
+  "方尖碑",
+  "纪念碑",
+  "石柱",
+  "独石",
+  "柱碑",
+  "巨石",
+  "石碑",
+  "符文石",
+  "塑像",
+  "人像",
+  "神像"
 ];
 
 export const STATUE_SCRIPTS = {
@@ -415,136 +386,121 @@ export const STATUE_SCRIPTS = {
 };
 
 export const RUIN_TYPES = [
-  "City",
-  "Town",
-  "Settlement",
-  "Pyramid",
-  "Fort",
-  "Stronghold",
-  "Temple",
-  "Sacred site",
-  "Mausoleum",
-  "Outpost",
-  "Fortification",
-  "Fortress",
-  "Castle"
+  "城池",
+  "城镇",
+  "聚落",
+  "金字塔",
+  "堡垒",
+  "要塞",
+  "神庙",
+  "圣地",
+  "陵墓",
+  "哨所",
+  "防御工事",
+  "要塞",
+  "城堡"
 ];
 
-export const LIBRARY_TYPES = { Library: 3, Archive: 1, Collection: 1 };
+export const LIBRARY_TYPES = { 图书馆: 3, 档案馆: 1, 文库: 1 };
 
 export const CIRCUS_ADJECTIVES = [
-  "Fantastical",
-  "Wondrous",
-  "Incomprehensible",
-  "Magical",
-  "Extraordinary",
-  "Unmissable",
-  "World-famous",
-  "Breathtaking"
+  "奇幻的",
+  "奇妙的",
+  "不可思议的",
+  "魔法的",
+  "非凡的",
+  "不可错过的",
+  "举世闻名的",
+  "惊心动魄的"
 ];
 
-export const JOUST_TYPES = ["Joust", "Competition", "Melee", "Tournament", "Contest"];
+export const JOUST_TYPES = ["马上比武", "竞赛", "混战", "锦标赛", "角斗"];
 
-export const JOUST_VIRTUES = ["cunning", "might", "speed", "the greats", "acumen", "brutality"];
+export const JOUST_VIRTUES = ["机巧", "力量", "速度", "先贤", "敏锐", "凶悍"];
 
 export const DANCE_TYPES = [
-  "gala",
-  "dance",
-  "performance",
-  "ball",
-  "soiree",
-  "jamboree",
-  "exhibition",
-  "carnival",
-  "festival",
-  "jubilee",
-  "celebration",
-  "gathering",
-  "fete"
+  "盛会",
+  "舞会",
+  "演出",
+  "舞宴",
+  "晚会",
+  "狂欢",
+  "展览",
+  "嘉年华",
+  "节庆",
+  "庆典",
+  "庆祝",
+  "集会",
+  "宴舞"
 ];
 
-export const DANCE_GUESTS = [
-  "great and the good",
-  "nobility",
-  "local elders",
-  "foreign dignitaries",
-  "spiritual leaders",
-  "suspected revolutionaries"
-];
+export const DANCE_GUESTS = ["名流显贵", "贵族", "当地长老", "外国使节", "宗教领袖", "疑似革命党人"];
 
-export const MIRAGE_ADJECTIVES = ["Entrancing", "Diaphanous", "Illusory", "Distant", "Peculiar"];
+export const MIRAGE_ADJECTIVES = ["迷人的", "朦胧的", "虚幻的", "遥远的", "奇异的"];
 
 export const CAVE_FORMATIONS = {
-  Cave: 10,
-  Cavern: 8,
-  Chasm: 6,
-  Ravine: 6,
-  Fracture: 5,
-  Grotto: 4,
-  Pit: 4,
-  Sinkhole: 2,
-  Hole: 2
+  洞穴: 10,
+  溶洞: 8,
+  裂谷: 6,
+  沟壑: 6,
+  裂隙: 5,
+  岩窟: 4,
+  深坑: 4,
+  落水洞: 2,
+  地孔: 2
 };
 
 export const CAVE_STATUSES = {
-  "a good spot to hid treasure": 5,
-  "the home of strange monsters": 5,
-  "totally empty": 4,
-  "endlessly deep and unexplored": 4,
-  "completely flooded": 2,
-  "slowly filling with lava": 1
+  藏宝的好去处: 5,
+  怪异怪物的巢穴: 5,
+  空空如也: 4,
+  深不可测且未经探索: 4,
+  完全被水淹没: 2,
+  正缓缓灌入岩浆: 1
 };
 
-export const RIFT_TYPES = [
-  "Demonic",
-  "Interdimensional",
-  "Abyssal",
-  "Cosmic",
-  "Cataclysmic",
-  "Subterranean",
-  "Ancient"
-];
+export const RIFT_TYPES = ["恶魔的", "跨维度的", "深渊的", "宇宙的", "灾变的", "地底的", "远古的"];
 
 export const RIFT_EFFECTS = [
-  "all known nearby beings to flee in terror",
-  "cracks in reality itself to form",
-  "swarms of foes to spill forth",
-  "nearby plants to wither and decay",
-  "an emmissary to step through with an all-powerful relic"
+  "周遭已知的生灵尽数惊恐逃散",
+  "现实本身裂开缝隙",
+  "成群的敌人涌出",
+  "附近的草木枯萎凋零",
+  "一位使者携着全能遗物跨门而出"
 ];
 
 export const NECROPOLIS_TYPES = {
-  Necropolis: 5,
-  Crypt: 2,
-  Tomb: 2,
-  Graveyard: 1,
-  Cemetery: 2,
-  Mausoleum: 1,
-  Sepulchre: 1
+  大墓地: 5,
+  地穴: 2,
+  陵寝: 2,
+  坟场: 1,
+  公墓: 2,
+  陵墓: 1,
+  墓葬: 1
 };
 
 export const NECROPOLIS_LEGENDS = [
-  "A foreboding necropolis shrouded in perpetual darkness, where eerie whispers echo through the winding corridors and spectral guardians stand watch over the tombs of long-forgotten souls.",
-  "A towering necropolis adorned with macabre sculptures and guarded by formidable undead sentinels. Its ancient halls house the remains of fallen heroes, entombed alongside their cherished relics.",
-  "This ethereal necropolis seems suspended between the realms of the living and the dead. Wisps of mist dance around the tombstones, while haunting melodies linger in the air, commemorating the departed.",
-  "Rising from the desolate landscape, this sinister necropolis is a testament to necromantic power. Its skeletal spires cast ominous shadows, concealing forbidden knowledge and arcane secrets.",
-  "An eerie necropolis where nature intertwines with death. Overgrown tombstones are entwined by thorny vines, and mournful spirits wander among the fading petals of once-vibrant flowers.",
-  "A labyrinthine necropolis where each step echoes with haunting murmurs. The walls are adorned with ancient runes, and restless spirits guide or hinder those who dare to delve into its depths.",
-  "This cursed necropolis is veiled in perpetual twilight, perpetuating a sense of impending doom. Dark enchantments shroud the tombs, and the moans of anguished souls resound through its crumbling halls.",
-  "A sprawling necropolis built within a labyrinthine network of catacombs. Its halls are lined with countless alcoves, each housing the remains of the departed, while the distant sound of rattling bones fills the air.",
-  "A desolate necropolis where an eerie stillness reigns. Time seems frozen amidst the decaying mausoleums, and the silence is broken only by the whispers of the wind and the rustle of tattered banners.",
-  "A foreboding necropolis perched atop a jagged cliff, overlooking a desolate wasteland. Its towering walls harbor restless spirits, and the imposing gates bear the marks of countless battles and ancient curses."
+  "一座被永恒黑暗笼罩的阴森大墓地，诡异的低语在曲折的廊道中回荡，幽灵守卫守着早已被遗忘的亡魂之墓。",
+  "一座高耸的大墓地，饰以骇人的雕塑，由强大的亡灵哨兵把守。其古老厅堂中安放着陨落英雄的遗骸，与他们珍视的遗物同葬。",
+  "这座空灵的大墓地仿佛悬于生者与死者的界域之间。薄雾在墓碑间游走，萦绕不去的旋律在空中低回，追念着逝者。",
+  "这座险恶的大墓地自荒芜的地景中拔起，是死灵之力的明证。白骨般的尖塔投下不祥的阴影，掩藏着禁忌的学识与秘法。",
+  "一座诡异的大墓地，自然与死亡在此缠绕。蔓生的墓碑被荆棘缠绕，哀伤的亡灵在凋零的花瓣间徘徊。",
+  "一座迷宫般的大墓地，每一步都与萦绕的喃喃声共鸣。墙上刻满古老符文，不安的亡灵指引或阻挠那些敢于深入的人。",
+  "这座受诅咒的大墓地笼罩在永恒的暮色中，弥漫着劫数将至的气息。黑暗的附魔遮蔽着墓室，痛苦灵魂的呻吟在崩坏的厅堂间回响。",
+  "一座建于迷宫般地下墓道之中的广阔大墓地。廊道两侧排列着无数壁龛，各自安放着逝者的遗骸，远处传来骨骸相互磕碰的声响。",
+  "一座荒凉的大墓地，诡异的寂静笼罩一切。时间仿佛凝固在朽坏的陵墓之间，唯有风的低语与破败旗帜的窸窣打破沉默。",
+  "一座阴森的大墓地踞于嶙峋断崖之上，俯瞰荒芜的废土。高耸的墙垣藏着不安的亡灵，雄伟的大门上留有无数战事与古老诅咒的痕迹。"
 ];
 
 export const ENCOUNTER_KINDS = [
-  { subject: "Bandits", verb: "have set an ambush" },
-  { subject: "Wild beasts", verb: "have been sighted" },
-  { subject: "A lone traveler", verb: "was seen wandering" },
-  { subject: "Cultists", verb: "gather in secret" },
-  { subject: "A pilgrim", verb: "walks the road" },
-  { subject: "Refugees", verb: "have made camp" },
-  { subject: "Smugglers", verb: "move under cover of night" },
-  { subject: "A hermit", verb: "dwells alone" },
-  { subject: "Mercenaries", verb: "ride through" },
-  { subject: "Poachers", verb: "have been active" }
+  { subject: "强盗", verb: "设下了埋伏" },
+  { subject: "野兽", verb: "被人目击" },
+  { subject: "一位独行旅人", verb: "被看见在游荡" },
+  { subject: "邪教徒", verb: "在暗中聚集" },
+  { subject: "一位朝圣者", verb: "走在路上" },
+  { subject: "难民", verb: "扎下了营地" },
+  { subject: "走私客", verb: "趁着夜色行动" },
+  { subject: "一位隐士", verb: "独居于此" },
+  { subject: "雇佣兵", verb: "策马经过" },
+  { subject: "偷猎者", verb: "近来活动频繁" }
 ];

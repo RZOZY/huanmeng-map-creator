@@ -1,0 +1,108 @@
+{
+  "profile": "wuxia",
+  "version": "2.0.0",
+  "description": "武侠江湖风格名称词库",
+  "buildOrder": [
+    "culture",
+    "state",
+    "burg",
+    "province",
+    "river",
+    "lake",
+    "mapName",
+    "religion",
+    "marker",
+    "zone"
+  ],
+  "typeIndex": {
+    "culture": 0,
+    "state": 1,
+    "burg": 2,
+    "province": 3,
+    "river": 4,
+    "lake": 5,
+    "mapName": 6,
+    "religion": 7,
+    "marker": 8,
+    "zone": 9
+  },
+  "regimes": {
+    "orthodox-sect": {
+      "name": "名门正派",
+      "description": "正道武林风格，国 → 州/郡/府 → 城/镇/关/堡/寨",
+      "stateSuffixes": [
+        "国",
+        "朝"
+      ],
+      "provinceSuffixes": [
+        "州",
+        "郡",
+        "府"
+      ],
+      "burgSuffixes": [
+        "城",
+        "镇",
+        "关",
+        "堡",
+        "寨"
+      ]
+    },
+    "dark-cult": {
+      "name": "邪派魔教",
+      "description": "邪派魔教风格，国 → 州/道 → 城/寨/关/堡/营",
+      "stateSuffixes": [
+        "国",
+        "朝"
+      ],
+      "provinceSuffixes": [
+        "州",
+        "道"
+      ],
+      "burgSuffixes": [
+        "城",
+        "寨",
+        "关",
+        "堡",
+        "营"
+      ]
+    },
+    "wandering": {
+      "name": "游侠江湖",
+      "description": "游侠隐士风格，国 → 郡/路 → 镇/集/渡/驿/城",
+      "stateSuffixes": [
+        "国",
+        "朝"
+      ],
+      "provinceSuffixes": [
+        "郡",
+        "路"
+      ],
+      "burgSuffixes": [
+        "镇",
+        "集",
+        "渡",
+        "驿",
+        "城"
+      ]
+    },
+    "hidden-master": {
+      "name": "隐世高人",
+      "description": "隐世高人风格，国 → 府/州 → 城/堡/里/镇/乡",
+      "stateSuffixes": [
+        "国",
+        "朝"
+      ],
+      "provinceSuffixes": [
+        "府",
+        "州"
+      ],
+      "burgSuffixes": [
+        "城",
+        "堡",
+        "里",
+        "镇",
+        "乡"
+      ]
+    }
+  }
+}
