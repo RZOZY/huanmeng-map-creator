@@ -88,7 +88,7 @@ class JourneysModule {
   /** Add a journey, empty or a random story between burgs; returns its id */
   add(random = false): number {
     const journey = random ? this.addRandom() : this.addEmpty();
-    if (!journey) throw new Error("No random journey fits this map");
+    if (!journey) throw new Error("这张地图上找不到合适的随机旅程");
     return journey.i;
   }
 
@@ -147,7 +147,7 @@ class JourneysModule {
   /** Change a segment: name, color (null = the journey's), hidden, transport, speed (km/h), duration (hours, null = from distance and speed), from and to (cells), avoidRoads. A changed transport, endpoint or road choice reroutes it */
   setSegment(journeyId: number, segmentId: number, fields: SegmentFields): void {
     const segment = this.segmentOf(this.living(journeyId), segmentId);
-    if (typeof fields !== "object" || fields === null) throw new Error("The segment fields must be an object");
+    if (typeof fields !== "object" || fields === null) throw new Error("路段字段必须是一个对象");
     const unknown = Object.keys(fields).find(key => !SEGMENT_FIELDS.includes(key as keyof SegmentFields));
     if (unknown) throw new Error(`Unknown segment field ${unknown}; known: ${SEGMENT_FIELDS.join(", ")}`);
     const { name, color, hidden, transport, speed, duration, from, to, avoidRoads } = fields;
@@ -194,13 +194,13 @@ class JourneysModule {
     if (avoidRoads !== undefined) segment.avoidRoads = Boolean(avoidRoads) && domain === "land";
     if (speed !== undefined) {
       if (typeof speed !== "number" || !(speed >= 0 && Number.isFinite(speed)))
-        throw new Error("The speed must be a non-negative number");
+        throw new Error("速度必须是非负数");
       segment.speed = speed;
     }
     if (duration === null) delete segment.duration;
     else if (duration !== undefined) {
       if (typeof duration !== "number" || !(duration >= 0 && Number.isFinite(duration)))
-        throw new Error("The duration must be a non-negative number of hours, or null");
+        throw new Error("时长必须是非负数小时数，或为 null");
       segment.duration = duration;
     }
 
@@ -455,7 +455,7 @@ class JourneysModule {
         points: [],
         distance: 0,
         errorCode: "no-land",
-        warning: "Land transport can only travel between land cells. At least one endpoint is in water."
+        warning: "陆路运输只能在陆地单元格之间通行。至少有一个端点在水中。"
       };
     }
 
@@ -465,7 +465,7 @@ class JourneysModule {
         distance: 0,
         errorCode: "no-water",
         warning:
-          "Water transport needs a water cell, a coastal cell or a navigable river at both ends. At least one endpoint is landlocked."
+          "水路运输要求两端都是水域、沿岸或可通航河流。至少有一个端点在内陆。"
       };
     }
 
@@ -480,7 +480,7 @@ class JourneysModule {
         points: [],
         distance: 0,
         errorCode: "no-land-path",
-        warning: "No land route exists — the cells are on different landmasses."
+        warning: "不存在陆路路线 —— 两个单元格位于不同陆块。"
       };
     }
 
@@ -504,12 +504,12 @@ class JourneysModule {
         points: [],
         distance: 0,
         errorCode: "no-land-path",
-        warning: "No land route found between these cells"
+        warning: "这两个单元格之间找不到陆路路线"
       };
     }
 
     const points = pathCells.map(cellId => this.getPoint(cellId));
-    return { ...this.toResult(points), warning: avoidRoads ? undefined : "Segment leaves the road network" };
+    return { ...this.toResult(points), warning: avoidRoads ? undefined : "该路段离开了道路网" };
   }
 
   private findWaterPath(from: number, to: number): PathfindingResult {
@@ -520,7 +520,7 @@ class JourneysModule {
         points: [],
         distance: 0,
         errorCode: "no-water-path",
-        warning: "No sea route found between these cells — they may be in different bodies of water."
+        warning: "这两个单元格之间找不到海路 —— 可能位于不同水域。"
       };
     }
 

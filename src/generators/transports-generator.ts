@@ -28,26 +28,26 @@ const FALLBACK_HOURS_PER_DAY: Record<TransportDomain, number> = {
 };
 
 const DEFAULT_TRANSPORTS: readonly Transport[] = [
-  { i: 1, name: "On foot (laden)", speed: 3, domain: "land", hoursPerDay: 8 },
-  { i: 2, name: "On foot (light)", speed: 5, domain: "land", hoursPerDay: 8 },
-  { i: 3, name: "Horseback (no spare horse)", speed: 7, domain: "land", hoursPerDay: 8 },
-  { i: 4, name: "Horseback (spare horse)", speed: 12, domain: "land", hoursPerDay: 10 },
-  { i: 5, name: "Carriage", speed: 6, domain: "land", hoursPerDay: 10 },
-  { i: 6, name: "Stagecoach", speed: 10, domain: "land", hoursPerDay: 12 },
-  { i: 7, name: "Train", speed: 40, domain: "land", hoursPerDay: 24 },
-  { i: 8, name: "Automobile", speed: 50, domain: "land", hoursPerDay: 10 },
-  { i: 9, name: "Modern Automobile", speed: 80, domain: "land", hoursPerDay: 12 },
-  { i: 10, name: "Rowboat", speed: 4, domain: "water", hoursPerDay: 8 },
-  { i: 11, name: "Sailing boat", speed: 6, domain: "water", hoursPerDay: 12 },
-  { i: 12, name: "Sailing Ship", speed: 10, domain: "water", hoursPerDay: 24 },
-  { i: 13, name: "Steamship", speed: 25, domain: "water", hoursPerDay: 24 },
-  { i: 14, name: "Modern Ship", speed: 35, domain: "water", hoursPerDay: 24 },
-  { i: 15, name: "Aircraft", speed: 120, domain: "air", hoursPerDay: 4 },
-  { i: 16, name: "Dirigible", speed: 20, domain: "air", hoursPerDay: 24 },
-  { i: 17, name: "Helicopter", speed: 220, domain: "air", hoursPerDay: 6 },
-  { i: 18, name: "Modern Airplane", speed: 800, domain: "air", hoursPerDay: 12 },
-  { i: 19, name: "Teleport", speed: 10000, domain: "air", hoursPerDay: 24 },
-  { i: 20, name: "Stay", speed: 0, domain: "stay", hoursPerDay: 24 }
+  { i: 1, name: "步行（负重）", speed: 3, domain: "land", hoursPerDay: 8 },
+  { i: 2, name: "步行（轻装）", speed: 5, domain: "land", hoursPerDay: 8 },
+  { i: 3, name: "骑马（无备用马）", speed: 7, domain: "land", hoursPerDay: 8 },
+  { i: 4, name: "骑马（有备用马）", speed: 12, domain: "land", hoursPerDay: 10 },
+  { i: 5, name: "马车", speed: 6, domain: "land", hoursPerDay: 10 },
+  { i: 6, name: "驿车", speed: 10, domain: "land", hoursPerDay: 12 },
+  { i: 7, name: "火车", speed: 40, domain: "land", hoursPerDay: 24 },
+  { i: 8, name: "汽车", speed: 50, domain: "land", hoursPerDay: 10 },
+  { i: 9, name: "现代汽车", speed: 80, domain: "land", hoursPerDay: 12 },
+  { i: 10, name: "划艇", speed: 4, domain: "water", hoursPerDay: 8 },
+  { i: 11, name: "小帆船", speed: 6, domain: "water", hoursPerDay: 12 },
+  { i: 12, name: "大帆船", speed: 10, domain: "water", hoursPerDay: 24 },
+  { i: 13, name: "蒸汽船", speed: 25, domain: "water", hoursPerDay: 24 },
+  { i: 14, name: "现代轮船", speed: 35, domain: "water", hoursPerDay: 24 },
+  { i: 15, name: "飞行器", speed: 120, domain: "air", hoursPerDay: 4 },
+  { i: 16, name: "飞艇", speed: 20, domain: "air", hoursPerDay: 24 },
+  { i: 17, name: "直升机", speed: 220, domain: "air", hoursPerDay: 6 },
+  { i: 18, name: "现代飞机", speed: 800, domain: "air", hoursPerDay: 12 },
+  { i: 19, name: "传送", speed: 10000, domain: "air", hoursPerDay: 24 },
+  { i: 20, name: "停留", speed: 0, domain: "stay", hoursPerDay: 24 }
 ];
 
 class TransportsModule {

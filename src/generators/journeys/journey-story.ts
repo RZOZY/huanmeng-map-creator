@@ -481,7 +481,7 @@ function personName(burg: Burg): string {
   return Names.getCultureShort(culture) || ra(NAMELESS);
 }
 
-const burgName = (burg: Burg): string => burg.name || `Burg ${burg.i}`;
+const burgName = (burg: Burg): string => burg.name || `城${burg.i}`;
 
 function describeWild(cellId: number): string {
   const height = pack.cells.h[cellId];
@@ -497,5 +497,5 @@ function describeWater(leg: PlannedLeg): string {
   const middle = leg.points[Math.floor(leg.points.length / 2)][2];
   const feature = pack.features?.[pack.cells.f[middle]];
   if (feature?.name) return feature.name; // lakes are named; oceans and seas usually are not
-  return feature?.type === "lake" ? "the open water" : "the open sea";
+  return feature?.type === "lake" ? "开阔水域" : "远海";
 }

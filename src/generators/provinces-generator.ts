@@ -219,13 +219,13 @@ class ProvinceModule {
       if (!s.provinces?.length) return;
 
       const coreProvinceNames = s.provinces.map(p => provinces[p]?.name);
-      const colonyNamePool = [s.name, ...coreProvinceNames].filter(name => name && !/new/i.test(name));
+      const colonyNamePool = [s.name, ...coreProvinceNames].filter(name => name && !/新|new/i.test(name));
       const getColonyName = () => {
         if (colonyNamePool.length < 1) return null;
 
         const index = rand(colonyNamePool.length - 1);
         const spliced = colonyNamePool.splice(index, 1);
-        return spliced[0] ? `New ${spliced[0]}` : null;
+        return spliced[0] ? `新${spliced[0]}` : null;
       };
 
       let stateNoProvince = noProvince.filter(i => cells.state[i] === s.i && !provinceIds[i]);

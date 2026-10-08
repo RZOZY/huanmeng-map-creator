@@ -579,25 +579,25 @@ const types: Record<string, Record<string, number>> = {
   Cult: { 教派: 4, 宗派: 2, 秘仪: 1, 修会: 1, 崇拜: 1, 密教: 1 },
   "Dark Cult": {
     教派: 2,
-    Blasphemy: 1,
-    Circle: 1,
-    Coven: 1,
+    渎神: 1,
+    法环: 1,
+    女巫会: 1,
     神像: 1,
-    Occultism: 1
+    秘术: 1
   },
-  Sect: { 宗派: 4, Society: 1, Brotherhood: 1, Circle: 1, 道法: 1 },
+  Sect: { 宗派: 4, 结社: 1, 兄弟会: 1, 法环: 1, 道法: 1 },
 
   Heresy: {
-    Heresy: 3,
+    异端: 3,
     宗派: 2,
-    Apostates: 1,
-    Brotherhood: 1,
-    Circle: 1,
-    Dissent: 1,
-    Dissenters: 1,
-    Iconoclasm: 1,
-    Schism: 1,
-    Society: 1
+    叛教者: 1,
+    兄弟会: 1,
+    法环: 1,
+    异议: 1,
+    异议者: 1,
+    破像: 1,
+    分裂: 1,
+    结社: 1
   }
 };
 
@@ -1342,7 +1342,7 @@ class ReligionsModule {
     const type: "Folk" | "Organized" | "Cult" | "Heresy" = missingFolk
       ? "Folk"
       : religions[religionId].type === "Organized"
-        ? (rw({ Organized: 4, Cult: 1, Heresy: 2 }) as "Organized" | "Cult" | "Heresy")
+        ? (rw({ Organized: 4, Cult: 1, 异端: 2 }) as "Organized" | "Cult" | "Heresy")
         : (rw({ Organized: 5, Cult: 2 }) as "Organized" | "Cult");
 
     const codes = religions.map(religion => religion.code!);
