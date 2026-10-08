@@ -1,20 +1,11 @@
 name: Build desktop app
 
+# 幻梦地图生成器：本仓库只发布本地构建的便携 ZIP（见 README），
+# 因此这里刻意去掉 push(tag) 与 pull_request 的自动触发 —— 保留原触发时，
+# 每次推 tag 都会在 CI 上构建全平台安装包并用 gh release upload 挂到 release，
+# 那些产物既未测试、又是会被 Defender 误报的 NSIS 安装包。
+# 需要时请从 Actions 页手动 Run workflow。
 on:
-  # Tagging a release (v1.150) builds installers and attaches them to its GitHub release
-  push:
-    tags: ["v[0-9]*"]
-
-  # Cheap guard: make sure the desktop app still compiles when its own files change
-  pull_request:
-    branches: [master]
-    paths:
-      - "electron/**"
-      - "electron-builder.yml"
-      - "scripts/electron.mjs"
-      - "package.json"
-
-  # Allows building the app from the Actions tab, optionally against an already existing tag
   workflow_dispatch:
     inputs:
       tag:
