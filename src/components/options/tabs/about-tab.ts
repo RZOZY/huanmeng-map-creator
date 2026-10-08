@@ -96,10 +96,6 @@ const TEMPLATE = /* html */ `
     <div>• <a href="https://azgaar.github.io/Armoria" target="_blank">Armoria</a>: a tool for creating coats of arms</div>
     <div>• <a href="https://deorum.vercel.app" target="_blank">Deorum</a>: gallery of fantasy characters</div>
   </div>
-  <div style="text-align: left; margin-top: 0.5em">
-    中文语料与界面措辞取材自幻艺地图（<a href="https://www.8desk.top" target="_blank">8desk.top</a>）。<br />
-    本中文版「幻梦地图生成器」基于上游 v1.154.0 二次开发。
-  </div>
   <ul class="share-buttons">
     <li>
       <a

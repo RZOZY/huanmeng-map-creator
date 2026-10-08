@@ -37,8 +37,8 @@ const PATTERNS: [RegExp, string][] = [
   [/^(.*)\. Click to view$/, "$1. 点击查看"],
   [/^(.*)\. Click to edit$/, "$1. 点击编辑"],
   [/^(.*)\. Shortcut: (.*)$/, "$1. 快捷键: $2"],
-  // 窗口标题：\`\${产品名} v\${版本}\`，版本会随上游走，用模式匹配而非写死
-  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "幻梦地图生成器 v$1"],
+  // 窗口标题：上游是「产品名 + v版本号」，本版统一为纯产品名
+  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "幻梦地图生成器"],
   [/^Azgaar's Fantasy Map Generator$/, "幻梦地图生成器"],
   // 省份/国家提示：`${名称} ${形式名}, ${所属国家}`
   [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2, $3"],
