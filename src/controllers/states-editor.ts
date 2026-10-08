@@ -1139,7 +1139,7 @@ function enterAddStateMode(this: HTMLElement): void {
   }
   customization = 3;
   this.classList.add("pressed");
-  tip("Click on the map to create a new capital or promote an existing burg", true);
+  tip("点击地图新建国都，或把已有城镇升格为国都", true);
   select<SVGElement, unknown>("#viewbox").style("cursor", "crosshair").on("click", addState);
   ensureEl("statesBodySection")
     .querySelectorAll<HTMLElement>("div > input, select, span, svg")

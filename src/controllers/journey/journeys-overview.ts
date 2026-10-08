@@ -182,14 +182,14 @@ function renderJourneysPage(view: TableView<Journey>): void {
     lines += /* html */ `<div class="states" data-id="${journey.i}">
       <div data-col="name" style="width: 93%; overflow: hidden">
         <fill-box class="journeyColor" fill="${journey.color}" size="0.8em" data-tip="Journey color. Click to change"></fill-box>
-        <span data-tip="Journey name: ${escapeHtml(journey.name)}">${escapeHtml(journey.name)}</span>
+        <span data-tip="旅程名称：${escapeHtml(journey.name)}">${escapeHtml(journey.name)}</span>
       </div>
       <div data-tip="Kind of travel this is" data-col="type">${escapeHtml(journey.type)}</div>
       ${renderEndpoint("from", getStart(journey))}
       ${renderEndpoint("to", getEnd(journey))}
       <div data-tip="Total distance" data-col="distance">${rn(totalDistance)} ${unit}</div>
       <div data-tip="Average speed, moving segments only" data-col="speed">${avgSpeed ? formatSpeed(avgSpeed) : "-"}</div>
-      <div data-tip="Total time: ${Journeys.formatTravelTimeFull(elapsedHours)}. Travel time: ${Journeys.formatHours(totalHours)}${hiddenNote}" data-col="time">${Journeys.formatTravelTime(elapsedHours)}</div>
+      <div data-tip="总耗时：${Journeys.formatTravelTimeFull(elapsedHours)}<br>行程时间：${Journeys.formatHours(totalHours)}${hiddenNote}" data-col="time">${Journeys.formatTravelTime(elapsedHours)}</div>
       <div data-col="edit"><span class="journeyEdit pointer icon-pencil" data-tip="Edit journey"></span></div>
       <div data-col="locate"><span class="journeyZoom pointer icon-target" data-tip="Locate the journey"></span></div>
       <div data-col="visible"><span class="journeyVisible pointer ${journey.visible === false ? "icon-eye-off" : "icon-eye"}" data-tip="Toggle journey visibility on the map"></span></div>

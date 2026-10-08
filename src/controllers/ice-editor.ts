@@ -19,7 +19,7 @@ function open(element: SVGElement): void {
   const id = +selectedIce.attr("data-id");
   const iceElement = pack.ice.find(el => el.i === id);
   const isGlacier = selectedIce.attr("type") === "glacier";
-  const type = isGlacier ? "Glacier" : "Iceberg";
+  const type = isGlacier ? "冰川" : "冰山";
 
   renderDialog();
 
@@ -49,7 +49,7 @@ function renderDialog(): void {
     <button id="iceEditStyle" data-tip="Edit style in Style Editor" class="icon-brush"></button>
     <button id="iceRandomize" data-tip="Randomize Iceberg shape" class="icon-shuffle"></button>
     <input id="iceSize" data-tip="Change Iceberg size" type="range" min=".05" max="2" step=".01" />
-    <button id="iceNew" data-tip="Add an Iceberg (click on map)" class="icon-plus"></button>
+    <button id="iceNew" data-tip="添加冰山<br>点击地图放置" class="icon-plus"></button>
     <button id="iceRemove" data-tip="Remove the element" data-shortcut="Delete" class="icon-trash fastDelete"></button>
   </div>`;
   ensureEl("dialogs").insertAdjacentHTML("beforeend", html);
@@ -98,7 +98,7 @@ function addIcebergOnClick(event: PointerEvent): void {
 }
 
 function removeIce(): void {
-  const type = selectedIce.attr("type") === "glacier" ? "Glacier" : "Iceberg";
+  const type = selectedIce.attr("type") === "glacier" ? "冰川" : "冰山";
   alertMessage.innerHTML = /* html */ `Are you sure you want to remove the ${type}?`;
   $("#alert").dialog({
     resizable: false,

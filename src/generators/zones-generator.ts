@@ -8,6 +8,32 @@ declare global {
   var Zones: ZonesModule;
 }
 
+/** 区域类型只是内部键，界面显示走这张中文对照表 */
+export const ZONE_TYPE_ZH: Record<string, string> = {
+  "Invasion": "入侵",
+  "Rebels": "叛乱",
+  "Proselytism": "传教",
+  "Crusade": "十字军",
+  "Disease": "疫病",
+  "Disaster": "灾害",
+  "Eruption": "喷发",
+  "Avalanche": "雪崩",
+  "Fault": "断层",
+  "Flood": "洪水",
+  "Tsunami": "海啸"
+};
+
+/** 取得区域类型的中文显示名；没有对照时原样返回 */
+export function zoneTypeZh(type: string): string {
+  return ZONE_TYPE_ZH[type] ?? type;
+}
+
+/** 把界面上的中文类型名转回内部英文键；自定义名称原样返回 */
+export function zoneTypeEn(value: string): string {
+  const hit = Object.entries(ZONE_TYPE_ZH).find(([, zh]) => zh === value);
+  return hit ? hit[0] : value;
+}
+
 export interface Zone {
   i: number;
   name: string;

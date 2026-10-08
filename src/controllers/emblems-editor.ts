@@ -232,7 +232,7 @@ function renderDialog(): void {
         <button id="emblemsCharge" data-tip="Set the charge: choose, link or upload a picture to place on the field" class="icon-chess-knight"></button>
         <button id="emblemsUpload" data-tip="Replace the whole emblem with a picture: choose, link or upload an image, such as a ready coat of arms" class="icon-shield-alt"></button>
         <button id="emblemsDownload" data-tip="Download the emblem as an image" class="icon-download"></button>
-        <button id="emblemsGallery" data-tip="Download all emblems as an HTML gallery (open it in a browser; preparing takes a while)" class="icon-layer-group"></button>
+        <button id="emblemsGallery" data-tip="把所有徽标导出为一个 HTML 画廊<br>用浏览器打开即可<br>生成需要一些时间" class="icon-layer-group"></button>
         <button id="emblemsRegenerate" data-tip="Regenerate the emblem" class="icon-shuffle"></button>
         <button id="emblemsFocus" data-tip="Show the area or place of the emblem" class="icon-target"></button>
       </div>

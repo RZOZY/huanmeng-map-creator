@@ -193,7 +193,7 @@ function selectFeaturesLimitation(el: HTMLElement): void {
   const rows = features.map(
     // prettier-ignore
     ({ name, icon }) => /* html */ `
-        <tr data-tip="Select limitation for burg feature: ${name}">
+        <tr data-tip="为城镇特征「${name}」选择限制条件">
           <td>
             <span class="${icon}"></span>
             <span style="margin-left:.2em">${name}</span>

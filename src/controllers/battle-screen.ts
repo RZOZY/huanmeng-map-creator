@@ -8,6 +8,7 @@ import { moveRegiment } from "@/renderers/draw-military";
 import type { Marker } from "../generators/markers-generator";
 import type { Regiment } from "../generators/military-generator";
 import { capitalize, ensureEl, escapeHtml, getAdjective, last, list, minmax, P, Pint, rand, rn, wiki } from "../utils";
+import { unitNameZh } from "@/generators/military-generator";
 
 type Side = "attackers" | "defenders";
 
@@ -1284,7 +1285,7 @@ function applyResults(): void {
       const losses = r.a ? Math.abs(sum(Object.values(r.casualties!))) / r.a : 1;
       const regStatus = getRegimentStatus(losses);
       const initialList = Object.keys(r.u)
-        .map(t => (r.u[t] ? `${r.u[t]} ${t}` : null))
+        .map(t => (r.u[t] ? `${r.u[t]} ${unitNameZh(t)}` : null))
         .filter((c): c is string => Boolean(c));
       const initialText = initialList.length ? ` Initial forces: ${list(initialList)}.` : "";
       const casualtiesList = Object.keys(r.casualties!)

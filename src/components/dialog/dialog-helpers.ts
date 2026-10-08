@@ -3,14 +3,37 @@
 import { dialogState } from "@/components/dialog/state";
 import { ensureEl, findEl, minmax } from "@/utils";
 
-/** The note button every entity dialog puts in its toolbar. `subject` completes "notes (legend) for ..." */
+/** 笔记按钮的提示里「this burg」这类对象名，中文语序是「编辑该城镇的…」 */
+const NOTE_SUBJECT_ZH: Record<string, string> = {
+  "this burg": "该城镇",
+  "this state": "该国家",
+  "this province": "该省份",
+  "this culture": "该文化",
+  "this religion": "该宗教",
+  "this biome": "该生物群系",
+  "this feature": "该地物",
+  "this good": "该商品",
+  "this market": "该市场",
+  "this label": "该标签",
+  "this lake": "该湖泊",
+  "this marker": "该标记",
+  "this regiment": "该军团",
+  "this journey": "该旅程",
+  "this river": "该河流",
+  "this route": "该道路",
+  "this zone": "该区域"
+};
+
+/** The note button every entity dialog puts in its toolbar. `subject` names the entity the note belongs to */
 export function noteButton(id: string, subject: string): string {
-  return `<button id="${id}" data-tip="Edit free text notes (legend) for ${subject}" class="icon-book"></button>`;
+  const zh = NOTE_SUBJECT_ZH[subject] ?? subject;
+  return `<button id="${id}" data-tip="编辑${zh}的自由文本笔记（图例）" class="icon-book"></button>`;
 }
 
 /** The same button as a table row action, in the `note` column every editor table gives it */
 export function noteIcon(subject: string): string {
-  return `<span data-col="note" data-tip="Edit free text notes (legend) for ${subject}" class="icon-book pointer"></span>`;
+  const zh = NOTE_SUBJECT_ZH[subject] ?? subject;
+  return `<span data-col="note" data-tip="编辑${zh}的自由文本笔记（图例）" class="icon-book pointer"></span>`;
 }
 
 /** Close all open dialogs except the stated one */

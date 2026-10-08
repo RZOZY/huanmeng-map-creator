@@ -15,7 +15,7 @@ function toggle(): void {
   toggleMapPlacement(
     "addRiver",
     addOnClick,
-    "Click on map to place new river or extend an existing one. Hold Shift to place multiple rivers",
+    "点击地图绘制新河流，或在已有河流上延伸<br>按住 Shift 可连续绘制多条",
     "warn"
   );
   Layers.show("rivers");

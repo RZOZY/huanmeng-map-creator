@@ -89,7 +89,7 @@ async function open(type: string): Promise<void> {
 
   canvas.style.display = "block";
   canvas.onmouseenter = () => {
-    const help = "Drag to pan • Scroll to zoom • Right-click drag to rotate • <b>O</b> to toggle options";
+    const help = "拖动平移 · 滚轮缩放 · 右键拖动旋转";
     +canvas.dataset.hovered! > 2 ? tip("") : tip(help);
     canvas.dataset.hovered = String((+canvas.dataset.hovered! | 0) + 1);
   };

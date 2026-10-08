@@ -299,7 +299,7 @@ describe("records", () => {
       expect(MapEntities.get(ref)).toBeDefined();
       return MapEntities.getName(ref);
     });
-    expect(names).toEqual(["Cell 1", "Iceberg 0", "Mount", "Ruler", "Salt deal", "Galley", "German"]);
+    expect(names).toEqual(["Cell 1", "冰山 0", "Mount", "Ruler", "Salt deal", "Galley", "German"]);
     expect(MapEntities.get({ type: "cell", id: 2 })).toBeUndefined();
   });
 

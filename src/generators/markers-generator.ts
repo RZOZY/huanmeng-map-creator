@@ -292,7 +292,7 @@ class MarkersModule {
   private addParty(marker: Marker, _cell: number) {
     if (pack.markers.some(m => m.type === "party" && m.i !== marker.i && m.note)) return;
     marker.name = "队伍";
-    marker.note = "冒险队伍当前所在位置。";
+    marker.note = "冒险队伍当前所在位置<br>";
   }
 
   private getDefaultConfig(): MarkerConfig[] {
@@ -736,7 +736,7 @@ class MarkersModule {
     const name = P(0.3) ? `${proper}山` : P(0.7) ? `${proper}火山` : proper;
     const status = P(0.6) ? "休眠" : P(0.4) ? "活跃" : "喷发中";
     marker.name = name;
-    marker.note = `${status}火山。高度：${getFriendlyHeight(cells.p[cell], pack, grid)}。`;
+    marker.note = `${status}火山<br>高度：${getFriendlyHeight(cells.p[cell], pack, grid)}`;
   }
 
   private listHotSprings({ cells }: PackedGraph) {
@@ -749,7 +749,7 @@ class MarkersModule {
     const proper = Names.getCulture(cells.culture[cell]);
     const temp = convertTemperature(gauss(35, 15, 20, 100));
     const name = P(0.3) ? `${proper}温泉` : proper;
-    const legend = `一处地热温泉，天然加热的泉水可放松身心并具疗养之效。平均水温 ${temp}。`;
+    const legend = `一处地热温泉，天然加热的泉水可放松身心并具疗养之效<br>平均水温 ${temp}<br>`;
 
     marker.name = name;
     marker.note = legend;
@@ -765,7 +765,7 @@ class MarkersModule {
     const type = rw(WATER_SOURCE_TYPES);
 
     const proper = Names.getCulture(cells.culture[cell]);
-    const name = `${proper} ${type}`;
+    const name = `${proper}${type}`;
     const legend =
       "This legendary water source is whispered about in ancient tales and believed to possess mystical properties. The spring emanates crystal-clear water, shimmering with an otherworldly iridescence that sparkles even in the dimmest light.";
 
@@ -813,7 +813,7 @@ class MarkersModule {
     const population = rn(
       burg.population! * options.map.units.population.scale * options.map.units.population.urbanization.rate
     );
-    const legend = `${burg.name}是一座${population}人的矿镇，紧邻${resource}矿。`;
+    const legend = `${burg.name}是一座${population}人的矿镇，紧邻${resource}矿<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -872,8 +872,8 @@ class MarkersModule {
     const meal = isAnimalThemed && isAnimalServed && P(0.5) ? animal : pick(localCourses, courses);
     const course = `${ra(INN_COOKING_METHODS)}${meal}`.toLowerCase();
     const drink =
-      `${P(0.5) ? ra(INN_DRINK_KINDS) : ra(INN_COLORS)} ${pick(localFare(INN_DRINKS_BY_GOOD), INN_COMMON_DRINKS)}`.toLowerCase();
-    const legend = `路边一家有名的大${typeName}。这里供应美味的${course}与${drink}。`;
+      `${P(0.5) ? ra(INN_DRINK_KINDS) : ra(INN_COLORS)}${pick(localFare(INN_DRINKS_BY_GOOD), INN_COMMON_DRINKS)}`;
+    const legend = `路边一家有名的大${typeName}<br>这里供应美味的${course}与${drink}<br>`;
     marker.name = `${name}`;
     marker.note = legend;
   }
@@ -889,7 +889,7 @@ class MarkersModule {
 
     const proper = cells.burg[cell] ? pack.burgs[cells.burg[cell]].name! : Names.getCulture(cells.culture[cell]);
     marker.name = `${proper}灯塔`;
-    marker.note = `一座为远海船只指引方向的灯塔。`;
+    marker.note = `一座为远海船只指引方向的灯塔<br>`;
   }
 
   private listWaterfalls({ cells }: PackedGraph) {
@@ -920,7 +920,7 @@ class MarkersModule {
     const campaign = ra(state.campaigns);
     const date = generateDate(campaign.start, campaign.end);
     const name = `${Names.getCulture(cells.culture[cell])}古战场`;
-    const legend = `${campaign.name}的一场历史战役。\r\n日期：${date} ${options.map.lore.calendar.era}。`;
+    const legend = `${campaign.name}的一场历史战役<br>日期：${date} ${options.map.lore.calendar.era}`;
     marker.name = name;
     marker.note = legend;
   }
@@ -932,7 +932,7 @@ class MarkersModule {
   private addDungeon(marker: Marker, cell: number) {
     const dungeonSeed = `${options.map.seed}${cell}`;
     const name = "地牢";
-    const legend = `<div>Undiscovered dungeon. See <a href="https://watabou.github.io/one-page-dungeon/?seed=${dungeonSeed}" target="_blank">One page dungeon</a></div><iframe style="pointer-events: none;" src="https://watabou.github.io/one-page-dungeon/?seed=${dungeonSeed}" sandbox="allow-scripts allow-same-origin"></iframe>`;
+    const legend = `<div>尚未探明的地城<br>见 <a href="https://watabou.github.io/one-page-dungeon/?seed=${dungeonSeed}" target="_blank">一页地城</a></div><iframe style="pointer-events: none;" src="https://watabou.github.io/one-page-dungeon/?seed=${dungeonSeed}" sandbox="allow-scripts allow-same-origin"></iframe>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -954,9 +954,7 @@ class MarkersModule {
 
     const name = `${lake.name}水怪`;
     const length = gauss(10, 5, 5, 100);
-    const legend = `${ra(RUMOR_SOURCES)} say a relic monster of ${length} ${options.map.units.height.unit} long inhabits ${
-      lake.name
-    } Lake. Truth or lie, folks are afraid to fish in the lake.`;
+    const legend = `${ra(RUMOR_SOURCES)}称，${length} ${options.map.units.height.unit}长的巨怪盘踞在${lake.name}<br>无论真假，当地人都不敢到湖里打鱼<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -970,7 +968,7 @@ class MarkersModule {
   private addSeaMonster(marker: Marker, _cell: number) {
     const name = `${Names.getCultureShort(0)}水怪`;
     const length = gauss(25, 10, 10, 100);
-    const legend = `老水手说，这片危险海域盘踞着一头巨海怪。传言它身长可达 ${length} ${options.map.units.height.unit}。`;
+    const legend = `老水手说，这片危险海域盘踞着一头巨海怪<br>传言它身长可达 ${length} ${options.map.units.height.unit}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -985,9 +983,7 @@ class MarkersModule {
     const monster = ra(HILL_MONSTER_SPECIES);
     const toponym = Names.getCulture(cells.culture[cell]);
     const name = `${toponym}${monster}`;
-    const legend = `${ra(RUMOR_SOURCES)} speak of a ${ra(HILL_MONSTER_ADJECTIVES)} ${monster} who inhabits ${toponym} hills and ${ra(
-      HILL_MONSTER_HABITS
-    )}.`;
+    const legend = `${ra(RUMOR_SOURCES)}说，${toponym}的群山里住着一头${ra(HILL_MONSTER_ADJECTIVES)}的${monster}，它${ra(HILL_MONSTER_HABITS)}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1011,7 +1007,7 @@ class MarkersModule {
     const name = `${Names.getCulture(culture)}神山`;
     const height = getFriendlyHeight(cells.p[cell], pack, grid);
     const sacredTo = religion ? `，奉${religions[religion].name}` : "";
-    const legend = `一座神圣之山${sacredTo}。高度：${height}。`;
+    const legend = `一座神圣之山${sacredTo}<br>高度：${height}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1029,7 +1025,7 @@ class MarkersModule {
     const culture = cells.culture[cell];
     const religion = cells.religion[cell];
     const name = `${Names.getCulture(culture)}圣林`;
-    const legend = `一片为当地${religions[religion].name}所奉的圣林。`;
+    const legend = `一片为当地${religions[religion].name}所奉的圣林<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1045,7 +1041,7 @@ class MarkersModule {
     const culture = cells.culture[cell];
     const religion = cells.religion[cell];
     const name = `${Names.getCulture(culture)}松林`;
-    const legend = `一片为当地${religions[religion].name}所奉的圣松林。`;
+    const legend = `一片为当地${religions[religion].name}所奉的圣松林<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1069,7 +1065,7 @@ class MarkersModule {
     const culture = cells.culture[cell];
     const religion = cells.religion[cell];
     const name = `${Names.getCulture(culture)}棕榈林`;
-    const legend = `一片为当地${religions[religion].name}所奉的圣棕榈林。`;
+    const legend = `一片为当地${religions[religion].name}所奉的圣棕榈林<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1086,16 +1082,16 @@ class MarkersModule {
     const height = cells.h[cell];
 
     const locality = ((height: number, biome: number) => {
-      if (height >= 70) return "highlander";
-      if ([1, 2].includes(biome)) return "desert";
-      if ([3, 4].includes(biome)) return "mounted";
-      if ([5, 6, 7, 8, 9].includes(biome)) return "forest";
-      if (biome === 12) return "swamp";
-      return "angry";
+      if (height >= 70) return "山地";
+      if ([1, 2].includes(biome)) return "沙漠";
+      if ([3, 4].includes(biome)) return "草原";
+      if ([5, 6, 7, 8, 9].includes(biome)) return "森林";
+      if (biome === 12) return "沼泽";
+      return "荒野";
     })(height, biome);
 
     const name = `${Names.getCulture(culture)}${ra(BRIGAND_ANIMALS)}帮`;
-    const legend = `一伙${locality}的${rw(BRIGAND_TYPES)}。`;
+    const legend = `一伙${locality}的${rw(BRIGAND_TYPES)}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1107,7 +1103,7 @@ class MarkersModule {
 
   private addPirates(marker: Marker, _cell: number) {
     const name = "海盗";
-    const legend = "这片海域有人目击到海盗船。";
+    const legend = "这片海域有人目击到海盗船<br>";
     marker.name = name;
     marker.note = legend;
   }
@@ -1128,7 +1124,7 @@ class MarkersModule {
       .fill(null)
       .map(() => ra(script.split("")))
       .join("");
-    const legend = `一座古老的${variant}。上面刻有铭文，但无人能译：
+    const legend = `一座古老的${variant}<br>上面刻有铭文，但无人能译：
         <div style="font-size: 1.8em; line-break: anywhere;">${inscription}</div>`;
     marker.name = name;
     marker.note = legend;
@@ -1141,7 +1137,7 @@ class MarkersModule {
   private addRuins(marker: Marker, _cell: number) {
     const ruinType = ra(RUIN_TYPES);
     const name = `${ruinType}遗迹`;
-    const legend = `一座古老${ruinType}的遗迹。其中或许藏着无尽的财宝。`;
+    const legend = `一座古老${ruinType}的遗迹<br>其中或许藏着无尽的财宝<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1154,8 +1150,8 @@ class MarkersModule {
     const { cells } = pack;
 
     const type = rw(LIBRARY_TYPES);
-    const name = `${Names.getCulture(cells.culture[cell])} ${type}`;
-    const legend = "一座浩瀚的知识宝库，藏有许多珍稀古籍。";
+    const name = `${Names.getCulture(cells.culture[cell])}${type}`;
+    const legend = "一座浩瀚的知识宝库，藏有许多珍稀古籍<br>";
 
     marker.name = name;
     marker.note = legend;
@@ -1168,7 +1164,7 @@ class MarkersModule {
   private addCircus(marker: Marker, _cell: number) {
     const adjective = ra(CIRCUS_ADJECTIVES);
     const name = `${adjective}巡游马戏团`;
-    const legend = `来看一看，这${adjective}马戏团只在此短暂停留。`;
+    const legend = `来看一看，这${adjective}马戏团只在此短暂停留<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1186,7 +1182,7 @@ class MarkersModule {
     const virtue = ra(JOUST_VIRTUES);
 
     const name = `${burgName}${type}`;
-    const legend = `四方武士齐聚${burgName}，为${virtue}的${type}而战，胜者可得名声、财富与恩宠。`;
+    const legend = `四方武士齐聚${burgName}，为${virtue}的${type}而战，胜者可得名声、财富与恩宠<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1219,8 +1215,8 @@ class MarkersModule {
       ? `供应本地${list(wares)}，兼有外来货品与服务`
       : "供应各式本地与外来货品与服务";
 
-    const name = `${burgName} ${type}`;
-    const legend = `${burgName}正在举办集市，${offer}。`;
+    const name = `${burgName}${type}`;
+    const legend = `${burgName}正在举办集市，${offer}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1234,7 +1230,7 @@ class MarkersModule {
 
     const name = "小码头";
     const riverName = river ? river.name : "河";
-    const legend = `${riverName}边有一处下水的小码头，还有位疲惫的船主，愿意载人沿河而行。`;
+    const legend = `${riverName}边有一处下水的小码头，还有位疲惫的船主，愿意载人沿河而行<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1249,7 +1245,7 @@ class MarkersModule {
     const animalChoice = ra(MIGRATING_ANIMALS[pack.cells.biome[cell]] ?? ["Birds"]);
 
     const name = `${animalChoice}迁徙`;
-    const legend = `一大群${animalChoice}正在迁徙，或是循常例，或是另有蹊跷。`;
+    const legend = `一大群${animalChoice}正在迁徙，或是循常例，或是另有蹊跷<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1263,10 +1259,8 @@ class MarkersModule {
     const burgName = burgs[cells.burg[cell]].name;
     const socialType = ra(DANCE_TYPES);
 
-    const name = `${burgName} ${socialType}`;
-    const legend = `A ${socialType} has been organised at ${burgName} as a chance to gather the ${ra(
-      DANCE_GUESTS
-    )} of the area together to be merry, make alliances and scheme around the crisis.`;
+    const name = `${burgName}${socialType}`;
+    const legend = `${burgName}举办了一场${socialType}，四方的${ra(DANCE_GUESTS)}借此聚到一起，寻欢作乐、缔结同盟，也在危机中彼此算计<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1278,7 +1272,7 @@ class MarkersModule {
   private addMirage(marker: Marker, _cell: number) {
     const mirageAdjective = ra(MIRAGE_ADJECTIVES);
     const name = `${mirageAdjective}海市蜃楼`;
-    const legend = `这${mirageAdjective}的海市蜃楼，自古便把旅人引离正途。`;
+    const legend = `这${mirageAdjective}的海市蜃楼，自古便把旅人引离正途<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1296,7 +1290,7 @@ class MarkersModule {
       formation = `冰川${formation}`;
     }
     const name = `${toponym}${formation}`;
-    const legend = `${name}。当地人声称此处${rw(CAVE_STATUSES)}。`;
+    const legend = `${name}<br>当地人声称此处${rw(CAVE_STATUSES)}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1315,7 +1309,7 @@ class MarkersModule {
     const burgName = burgs[cells.burg[cell]].name;
 
     const name = `${burgName}传送门`;
-    const legend = `连接各大城市的魔法传送门体系之一。传送门建于数百年前，至今仍运转良好。`;
+    const legend = `连接各大城市的魔法传送门体系之一<br>传送门建于数百年前，至今仍运转良好<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1327,7 +1321,7 @@ class MarkersModule {
   private addRift(marker: Marker, _cell: number) {
     const riftType = ra(RIFT_TYPES);
     const name = `${riftType}裂隙`;
-    const legend = `传闻此处有一道${riftType}的裂隙，正导致${ra(RIFT_EFFECTS)}。`;
+    const legend = `传闻此处有一道${riftType}的裂隙，正导致${ra(RIFT_EFFECTS)}<br>`;
     marker.name = name;
     marker.note = legend;
   }
@@ -1338,7 +1332,7 @@ class MarkersModule {
 
   private addDisturbedBurial(marker: Marker, _cell: number) {
     const name = "被扰动的墓葬";
-    const legend = "此地的墓葬遭到扰动，死者起身袭击生者。";
+    const legend = "此地的墓葬遭到扰动，死者起身袭击生者<br>";
     marker.name = name;
     marker.note = legend;
   }
@@ -1353,7 +1347,7 @@ class MarkersModule {
     const toponym = Names.getCulture(cells.culture[cell]);
     const type = rw(NECROPOLIS_TYPES);
 
-    const name = `${toponym} ${type}`;
+    const name = `${toponym}${type}`;
     const legend = ra(NECROPOLIS_LEGENDS);
 
     marker.name = name;
@@ -1381,7 +1375,7 @@ class MarkersModule {
     const { subject, verb } = ra(ENCOUNTER_KINDS);
 
     const name = `${cultureName}的${subject}`;
-    const legend = `在${cultureName}领地的${biomeName}中，${subject}${verb}。`;
+    const legend = `在${cultureName}领地的${biomeName}中，${subject}${verb}<br>`;
 
     marker.name = name;
     marker.note = legend;

@@ -46,6 +46,20 @@ interface Platoon {
   children?: Platoon[]; // merged platoons
 }
 
+/** 兵种名只是内部键（存档、setTroops 与 CSV 都按英文名），界面显示走这张中文对照表 */
+export const UNIT_NAME_ZH: Record<string, string> = {
+  infantry: "步兵",
+  archers: "弓手",
+  cavalry: "骑兵",
+  artillery: "炮兵",
+  fleet: "舰船"
+};
+
+/** 取得兵种的中文显示名；没有对照时原样返回 */
+export function unitNameZh(name: string): string {
+  return UNIT_NAME_ZH[name] ?? name;
+}
+
 class MilitaryModule {
   regenerate(): void {
     this.generate();
@@ -540,15 +554,15 @@ class MilitaryModule {
         : cells.province[r.cell] && pack.provinces[cells.province[r.cell]]
           ? pack.provinces[cells.province[r.cell]].fullName
           : null;
-    const station = base ? `${r.name}驻地${r.n ? "位于" : "设于"}${base}。` : "";
+    const station = base ? `${r.name}驻地${r.n ? "位于" : "设于"}${base}<br>` : "";
 
     const composition = r.a
       ? Object.keys(r.u)
-          .map(t => `— ${t}: ${r.u[t as keyof typeof r.u]}`)
+          .map(t => `— ${unitNameZh(t)}：${r.u[t as keyof typeof r.u]}`)
           .join("\r\n")
       : null;
     const troops = composition
-      ? `\r\n\r\n${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}编制：\r\n${composition}。`
+      ? `<br>${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}编制：<br>${composition}`
       : "";
 
     const campaign = s.campaigns ? ra(s.campaigns) : null;
@@ -556,7 +570,7 @@ class MilitaryModule {
       ? rand(campaign.start, campaign.end || options.map.lore.calendar.year)
       : gauss(options.map.lore.calendar.year - 100, 150, 1, options.map.lore.calendar.year - 6);
     const conflict = campaign ? `，正值${campaign.name}` : "";
-    r.note = `该团组建于${year} ${options.map.lore.calendar.era}${conflict}。${station}${troops}`;
+    r.note = `该团组建于${year} ${options.map.lore.calendar.era}${conflict}<br>${station}${troops}`;
   }
 
   /** Rename a regiment, addressed by its state and its own id */

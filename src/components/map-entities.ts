@@ -423,14 +423,14 @@ class EntityLookup {
     },
     ice: {
       label: "Ice",
-      kind: id => (this.byId(pack.ice, id)?.type === "glacier" ? "Glacier" : "Iceberg"),
+      kind: id => (this.byId(pack.ice, id)?.type === "glacier" ? "冰川" : "冰山"),
       icon: "icon-temperature-low",
       scale: 4,
       layers: ["ice"],
       entity: id => this.byId(pack.ice, id),
       name: id => {
         const ice = this.byId(pack.ice, id);
-        return ice ? `${ice.type === "glacier" ? "Glacier" : "Iceberg"} ${id}` : "";
+        return ice ? `${ice.type === "glacier" ? "冰川" : "冰山"} ${id}` : "";
       },
       refs: () => this.refsOf("ice", pack.ice), // ice 0 is real
       highlight: id => `#ice [data-id="${id}"]`,

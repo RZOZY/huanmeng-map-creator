@@ -26,6 +26,7 @@ import { fog, unfog } from "@/renderers/overlays/fogging";
 import { downloadFile, getArea, getAreaUnit, getFileName } from "@/utils";
 import { errorText } from "@/utils/stringUtils";
 import { ensureEl, rn, si, unique } from "../utils";
+import { zoneTypeEn, zoneTypeZh } from "@/generators/zones-generator";
 
 const dialogId = "zonesEditor" as const;
 const LEGEND_NAME = "Zones"; // the legend box this editor toggles
@@ -147,7 +148,7 @@ function renderDialog(): void {
     if (!zone) return;
 
     if (target.classList.contains("zoneName")) changeDescription(zone, target.value);
-    else if (target.classList.contains("zoneType")) changeType(zone, target.value);
+    else if (target.classList.contains("zoneType")) changeType(zone, zoneTypeEn(target.value));
   });
 
   $(body).sortable({
@@ -213,7 +214,7 @@ function renderZonesPage(view: TableView<ZoneRow>): void {
 
     return /* html */ `<div class="states" data-id="${i}" style="${hidden ? "opacity: 0.5" : ""}">
       <div data-col="description" style="display:flex; align-items:center"><fill-box fill="${color}"></fill-box><input data-tip="Zone description. Click and type to change" style="width: 11em" class="zoneName" value="${name}" autocorrect="off" spellcheck="false"></div>
-      <div data-col="type"><input data-tip="Zone type. Click and type to change" class="zoneType" value="${type}"></div>
+      <div data-col="type"><input data-tip="区域类型<br>点击并输入即可更改" class="zoneType" value="${zoneTypeZh(type)}"></div>
       <div data-col="cells"><span data-tip="Cells count" class="icon-check-empty"></span><span data-tip="Cells count" class="stateCells">${percentage ? `${rn((cells.length / pack.cells.i.length) * 100, 2)}%` : cells.length}</span></div>
       <div data-col="area"><span data-tip="Zone area" class="icon-map-o" style="padding-right: 2px"></span><span data-tip="Zone area" class="biomeArea">${percentage ? `${rn((area / totalArea) * 100, 2)}%` : `${si(area)} ${getAreaUnit()}`}</span></div>
       <div data-col="population"><span data-tip="${populationTip}" class="icon-male"></span><span data-tip="${populationTip}" class="zonePopulation pointer">${percentage ? `${rn((population / totalPopulation) * 100, 2)}%` : si(population)}</span></div>

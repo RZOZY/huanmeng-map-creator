@@ -10,7 +10,6 @@ import {
   escapeHtml,
   gauss,
   generateSeed,
-  getAdjective,
   getMixedColor,
   getPolesOfInaccessibility,
   getRandomColor,
@@ -550,16 +549,17 @@ class StatesModule {
   }
 
   generateCampaign(state: State): Campaign[] {
+    // 中文语序：国名 + 战事类型，如「大宸帝国征战」
     const wars = {
-      War: 6,
-      Conflict: 2,
-      Campaign: 4,
-      Invasion: 2,
-      Rebellion: 2,
-      Conquest: 2,
-      Intervention: 1,
-      Expedition: 1,
-      Crusade: 1
+      战争: 6,
+      冲突: 2,
+      征战: 4,
+      入侵: 2,
+      叛乱: 2,
+      征服: 2,
+      干涉: 1,
+      远征: 1,
+      十字军: 1
     };
     const neighbors = state.neighbors?.length ? state.neighbors : [0];
     return neighbors
@@ -567,7 +567,7 @@ class StatesModule {
         const name = i && P(0.8) ? pack.states[i].name : Names.getCultureShort(state.culture);
         const start = gauss(options.map.lore.calendar.year - 100, 150, 1, options.map.lore.calendar.year - 6);
         const end = start + gauss(4, 5, 1, options.map.lore.calendar.year - start - 1);
-        return { name: `${getAdjective(name)} ${rw(wars)}`, start, end, attacker: state.i!, defender: i };
+        return { name: `${name}${rw(wars)}`, start, end, attacker: state.i!, defender: i };
       })
       .sort((a, b) => a.start - b.start);
   }

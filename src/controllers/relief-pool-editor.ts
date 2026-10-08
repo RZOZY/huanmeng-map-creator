@@ -147,7 +147,7 @@ function open(request: ReliefPoolEditorOptions): void {
       <div class="types">${Relief.types
         .map(
           ({ type, label }) =>
-            `<button type="button" data-entry="${type}" data-tip="Add ${label}">${poolEntryHtml(type, set)}</button>`
+            `<button type="button" data-entry="${type}" data-tip="添加${label}">${poolEntryHtml(type, set)}</button>`
         )
         .join("")}</div>
       <div class="actions">

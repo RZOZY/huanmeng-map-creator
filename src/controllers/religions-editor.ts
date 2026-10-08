@@ -250,9 +250,7 @@ function religionsEditorAddLines(view: TableView<Religion>): void {
     const rural = (r.rural ?? 0) * options.map.units.population.scale;
     const urban = (r.urban ?? 0) * options.map.units.population.scale * options.map.units.population.urbanization.rate;
     const population = rn(rural + urban);
-    const populationTip = `Believers: ${si(population)}; Rural areas: ${si(rural)}; Urban areas: ${si(
-      urban
-    )}. Click to change`;
+    const populationTip = `信徒：${si(population)}<br>乡村地区：${si(rural)}<br>城市地区：${si(urban)}<br>点击更改`;
 
     if (!r.i) {
       // No religion (neutral) line

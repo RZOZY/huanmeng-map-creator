@@ -16,7 +16,7 @@ function toggle(): void {
   toggleMapPlacement(
     "addBurgTool",
     addOnClick,
-    "Click on the map to create a new burg. Hold Shift to add multiple",
+    "点击地图新建城镇<br>按住 Shift 可连续添加",
     "warn",
     unpressProxyButton
   );

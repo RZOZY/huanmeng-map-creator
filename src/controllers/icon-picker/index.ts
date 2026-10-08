@@ -463,7 +463,7 @@ function renderCustom(current: string, replacing: string | null, profile: Pictur
   return /* html */ `<div class="customAdd">
       <input type="url" placeholder="Paste a link to an image" data-tip="A linked image keeps the map small; it shows while its site serves it" />
       <button type="button" data-action="link">Add link</button>
-      <button type="button" data-action="upload" data-tip="Upload an SVG file (up to ${profile === "emblem" ? "1 MB" : "200 kB"}) or a PNG, JPEG or WebP image (up to ${profile === "emblem" ? "10 MB, shrunk to 1024 px" : "2 MB, shrunk to 256 px"})">Upload</button>
+      <button type="button" data-action="upload" data-tip="上传 SVG 文件（最大 ${profile === "emblem" ? "1 MB" : "200 kB"}），或 PNG、JPEG、WebP 图片ge (up to ${profile === "emblem" ? "10 MB, shrunk to 1024 px" : "2 MB, shrunk to 256 px"})">Upload</button>
     </div>
     <div class="replacing" ${replacing ? "" : "hidden"}>Link or upload the new picture of the selected icon. <a data-action="stopReplacing">Cancel</a></div>
     ${icons.length ? `<div class="choices">${icons.join("")}</div>` : `<p class="empty">This map carries no custom icons yet.</p>`}

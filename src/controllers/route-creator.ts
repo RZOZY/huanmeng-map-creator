@@ -21,7 +21,7 @@ function open(defaultGroup?: string): void {
   isCellsLayerForced = !Layers.isOn("cells");
   Layers.show("cells");
 
-  tip("Click to add route point", true);
+  tip("点击添加道路控制点", true);
   select("#debug").append("g").attr("id", "controlCells");
   select("#debug").append("g").attr("id", "controlPoints");
   select<SVGElement, unknown>("#viewbox").style("cursor", "crosshair").on("click", onClick);
@@ -51,7 +51,7 @@ function renderDialog(): void {
   destroyDialog("routeCreator");
 
   const html = /* html */ `<div id="routeCreator" class="dialog">
-    <div>Click on map to add/remove route points</div>
+    <div>在地图上点击以添加／移除道路控制点</div>
     <div id="routeCreatorBody" class="table" style="margin: 0.3em 0"></div>
     <div id="routeCreatorBottom">
       <button id="routeCreatorComplete" data-tip="Complete route creation" class="icon-check"></button>

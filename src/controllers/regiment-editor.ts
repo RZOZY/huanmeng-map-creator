@@ -118,7 +118,7 @@ function updateRegimentData(regiment: Regiment): void {
   const composition = ensureEl("regimentComposition");
   composition.innerHTML = options.map.military.units
     .map(u => {
-      return `<div data-tip="${capitalize(u.name)} number. Input to change">
+      return `<div data-tip="${capitalize(u.name)} 数量。输入即可更改">
         <div class="label">${capitalize(u.name)}:</div>
         <input data-u="${u.name}" type="number" min=0 step=1 value="${regiment.u[u.name] || 0}">
         <i>${u.type}</i></div>`;

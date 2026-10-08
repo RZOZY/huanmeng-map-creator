@@ -19,6 +19,7 @@ import type { State } from "@/generators/states-generator";
 import type { MilitaryUnit } from "@/types/Military";
 import { downloadFile, getFileName } from "@/utils";
 import { capitalize, ensureEl, escapeHtml, rn, sanitizeId, si, wiki } from "../utils";
+import { unitNameZh } from "@/generators/military-generator";
 
 const dialogId = "militaryOverview" as const;
 const position = { my: "right top", at: "right-10 top+10", of: "svg", collision: "fit" };
@@ -143,10 +144,10 @@ async function openRegimentsOverview(state: number): Promise<void> {
 function getMilitaryColumns(): EditorColumn<MilitaryRow>[] {
   const unitColumns: EditorColumn<MilitaryRow>[] = options.map.military.units.map(unit => ({
     key: `unit:${unit.name}`,
-    label: capitalize(unit.name.replace(/_/g, " ")),
+    label: unitNameZh(unit.name),
     width: "5em",
     mobileHidden: true,
-    tip: `State ${unit.name} units number. Click to sort`,
+    tip: `国家${unitNameZh(unit.name)}数量。点击排序`,
     sortBy: row => row.forces[unit.name] || 0
   }));
 
@@ -254,7 +255,7 @@ function renderMilitaryPage(view: TableView<MilitaryRow>): void {
       const unitCells = options.map.military.units
         .map(unit => {
           const value = row.forces[unit.name] || 0;
-          return `<div data-col="${`unit:${unit.name}`}" data-tip="State ${unit.name} units number">${percentage ? percent(value, totals.units[unit.name] || 0) : value}</div>`;
+          return `<div data-col="${`unit:${unit.name}`}" data-tip="国家${unitNameZh(unit.name)}数量">${percentage ? percent(value, totals.units[unit.name] || 0) : value}</div>`;
         })
         .join("");
       return /* html */ `<div class="states" data-id="${row.state.i}">
@@ -444,7 +445,7 @@ function militaryCustomize(): void {
     const getLimitButton = (attr: "biomes" | "states" | "cultures" | "religions"): string => {
       const data = pack[attr] as LimitationItem[];
       return `<button
-          data-tip="Select allowed ${attr}"
+          data-tip="选择允许的${attr}"
           data-type="${attr}"
           title="${escapeHtml(getLimitTip(unit[attr], data))}"
           data-value="${getLimitValue(unit[attr])}">

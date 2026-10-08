@@ -16,7 +16,7 @@ function toggle(baseMarker?: Marker): void {
   toggleMapPlacement(
     "addMarker",
     event => addOnClick(event, baseMarker),
-    "Click on map to add a marker. Hold Shift to add multiple",
+    "点击地图添加标记<br>按住 Shift 可连续添加",
     undefined,
     unpressProxyButtons
   );

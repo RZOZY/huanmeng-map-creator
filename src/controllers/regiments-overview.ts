@@ -182,7 +182,7 @@ function renderRegimentsPage(view: TableView<RegimentRow>): void {
       const unitCells = options.map.military.units
         .map(unit => {
           const value = regiment.u[unit.name] || 0;
-          return `<div data-col="${unitColumnKey(unit.name)}" data-tip="${capitalize(unit.name)} units number">${percentage ? percent(value, unitTotals[unit.name]) : value}</div>`;
+          return `<div data-col="${unitColumnKey(unit.name)}" data-tip="${capitalize(unit.name)} 数量">${percentage ? percent(value, unitTotals[unit.name]) : value}</div>`;
         })
         .join("");
       const emblem = `<span data-col="emblem" data-tip="Regiment's emblem">${Icons.html(regiment.icon ?? "")}</span>`;

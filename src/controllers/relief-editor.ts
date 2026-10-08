@@ -25,7 +25,7 @@ const setIconsHtml = (set: ReliefSet): string =>
         const id = Relief.symbolId({ type, variant }, set);
         return reliefArtHtml(
           id,
-          ` data-type="${type}" data-variant="${variant}" data-symbol="${id}" data-tip="Select ${label}"`
+          ` data-type="${type}" data-variant="${variant}" data-symbol="${id}" data-tip="选择${label}"`
         );
       })
     )

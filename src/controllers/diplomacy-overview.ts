@@ -159,7 +159,7 @@ function renderDiplomacyPage(view: TableView<State>): void {
   const selectedName = states[selectedId].name;
 
   EmblemRenderer.trigger(`stateCOA${selectedId}`, states[selectedId].coa);
-  let lines = /* html */ `<div class="states Self" data-id=${selectedId} data-tip="List below shows relations to ${selectedName}">
+  let lines = /* html */ `<div class="states Self" data-id=${selectedId} data-tip="下表列出与 ${selectedName} 的关系">
     <div data-col="name"><svg class="coaIcon" viewBox="0 0 200 200"><use href="#stateCOA${selectedId}"></use></svg><span>${states[selectedId].fullName}</span></div>
     <div data-col="relations"></div>
   </div>`;

@@ -253,7 +253,7 @@ function renderSegmentLine(journey: Journey, segment: JourneySegment): string {
       <fill-box class="segColor" fill="${segment.color || journey.color}" data-tip="Segment color. Click to change"></fill-box>
     </div>
     <div data-col="name" style="width: 95%; overflow: hidden">
-      <input class="segName" value="${escapeHtml(segment.name)}" data-tip="Segment name: ${escapeHtml(segment.name)}" />
+      <input class="segName" value="${escapeHtml(segment.name)}" data-tip="路段名称：${escapeHtml(segment.name)}" />
     </div>
     ${renderEndpointCell("from", segment)}
     ${renderEndpointCell("to", segment)}
@@ -266,13 +266,13 @@ function renderSegmentLine(journey: Journey, segment: JourneySegment): string {
     <div data-tip="Segment distance" data-col="distance">${rn(Journeys.getSegmentDistance(segment))} ${unit}</div>
     <div data-col="speed">
       <input class="segSpeed" type="number" step="0.1" min="0" value="${convertSpeed(segment.speed)}" ${isStay ? "disabled" : ""}
-        data-tip="${isStay ? "A stay covers no ground, so it has no speed" : `Average travel speed in ${unit}/h, type to override. ${segment.avoidRoads ? `Off-road speed: ${convertSpeed(Journeys.getEffectiveSpeed(segment))}` : ""}`}" />
+        data-tip="${isStay ? "停留不移动，因此没有速度" : `平均行进速度（${unit}/时），输入可覆盖 ${segment.avoidRoads ? `绕开道路时速度：${convertSpeed(Journeys.getEffectiveSpeed(segment))}` : ""}`}" />
     </div>
     <div data-col="time" data-tip="${timeCellTip(segment)}">
       <input class="segDuration" type="number" min="0" step="0.1" value="${rn(hours, 1)}"/>
     </div>
     <div data-col="roads">
-      <span class="segRoads pointer ${segment.avoidRoads ? "icon-tree" : "icon-map-signs"} ${domain === "land" ? "" : "hidden"}" data-tip="${segment.avoidRoads ? `Off-road: avoids the road network. Click to follow roads.` : `On-road: follows the road network at full speed. Click to go off-road.`}"></span>
+      <span class="segRoads pointer ${segment.avoidRoads ? "icon-tree" : "icon-map-signs"} ${domain === "land" ? "" : "hidden"}" data-tip="?"></span>
     </div>
     <div data-col="visible">
       <span class="segVisible pointer ${segment.visible === false ? "icon-eye-off" : "icon-eye"}" data-tip="Toggle segment visibility"></span>
@@ -333,7 +333,7 @@ function renderEndpointCell(endpoint: "from" | "to", segment: JourneySegment): s
 
   return /* html */ `<div data-col="${endpoint}">
     <span class="segLocate icon-target ${isSet ? "pointer" : "inactive"}" data-endpoint="${endpoint}"
-      data-tip="${isSet ? `Zoom to ${label}` : "Set the endpoint first"}"></span>
+      data-tip="${isSet ? `缩放到${label}` : "请先设置端点"}"></span>
     <span class="seg${endpoint === "from" ? "From" : "To"} pointer" data-tip="${escapeHtml(cellEndpointTooltip(cellId, place))}"
       ${isSet ? "" : 'style="opacity: 0.55; font-style: italic"'}>${label}</span>
   </div>`;

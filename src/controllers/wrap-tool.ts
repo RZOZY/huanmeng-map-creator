@@ -50,7 +50,7 @@ function open(): void {
   render();
   addListeners();
   brush.attach();
-  tip("Wrap tool: drag to reshape cells, Shift + drag to resize the brush, Space + drag to pan the map", true);
+  tip("环绕工具：拖动可重塑单元格<br>Shift + 拖动调整笔刷大小<br>空格 + 拖动平移地图", true);
   updateControls();
 }
 

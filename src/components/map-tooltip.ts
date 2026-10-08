@@ -16,6 +16,7 @@ import {
 } from "@/utils";
 import { showMainTip, tip } from "./tooltips";
 import { BURG_GROUP_ZH } from "@/generators/burgs-generator";
+import { featureSubtypeZh } from "@/generators/features-generator";
 
 export function handleMouseMove(event: MouseEvent | TouchEvent): void {
   const node = event.currentTarget as SVGElement | null;
@@ -162,7 +163,7 @@ function getElementTip({ group, target, event, path, cellId }: TipContext): stri
 
   if (group === "lakes" && pack.cells.h[cellId] < 20) {
     const lake = pack.features[Number(target.dataset.f)];
-    const kind = lake?.subtype && lake.subtype !== "freshwater" ? `${lake.subtype} ` : "";
+    const kind = lake?.subtype && lake.subtype !== "freshwater" ? `${featureSubtypeZh(lake.subtype)}` : "";
     const name = lake?.name ? `${lake.name} ` : "";
     return `${name}${kind}lake. Click to edit`;
   }

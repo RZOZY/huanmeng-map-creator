@@ -111,7 +111,7 @@ function addMissingGroups(counts: Map<string, number>, groups: LabelGroup[]): vo
     .map(
       ([name, count]) => /* html */ `${name} (${count})
         <button type="button" name="missing" data-group="${name}" class="icon-list-bullet"
-          data-tip="Show labels of the ${name} group in Labels Overview to reassign them"></button>`
+          data-tip="在标签总览中显示「${name}」分组的标签以便重新分配"></button>`
     )
     .join(", ");
 }

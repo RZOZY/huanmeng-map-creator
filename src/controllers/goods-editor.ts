@@ -229,11 +229,11 @@ function renderGoodsPage(view: TableView<Good>) {
         </svg><span data-tip="Good name" class="goodName">${good.name}</span></div>
         <div data-col="type" data-tip="Good types" class="goodType">${types.map(renderTypeBadge).join(" ")}</div>
         <div data-col="unit" data-tip="Unit of production" class="goodUnit">${good.unit ?? ""}</div>
-        <div data-col="produced" data-tip="${producedTip}. Click to see burgs producing this good" class="goodProduced pointer" style="text-align: right">
+        <div data-col="produced" data-tip="${producedTip}<br>点击查看生产该商品的城镇" class="goodProduced pointer" style="text-align: right">
           <div style="display: inline-block; width: 3em">${percentage ? `${rn(totalProduced ? (produced / totalProduced) * 100 : 0, 2)}%` : produced}</div>
           <div style="display: inline-block; width: 0.4em; font-size: 1.5em;">⚒</div>
         </div>
-        <div data-col="stock" data-tip="${stockTip}. Click to see breakdown by location" class="goodStock pointer" style="text-align: right">
+        <div data-col="stock" data-tip="${stockTip}<br>点击查看按地点的明细" class="goodStock pointer" style="text-align: right">
           <div style="display: inline-block; width: 3em">${percentage ? `${rn(totalStock ? (stock / totalStock) * 100 : 0, 2)}%` : stock}</div>
           <div style="display: inline-block; width: 0.4em; font-size: 1.2em;">⛁</div>
         </div>

@@ -43,10 +43,10 @@ function open(editedGood?: Good, onUpdate?: () => void): void {
   };
 
   const renderMultiplierRow = (dim: MultiplierDimKey, label: string) => /*html*/ `
-      <label data-tip="Production multiplier by ${label.toLowerCase()}. 1 = no effect, 0 = fully suppressed.">${label}</label>
+      <label data-tip="按${label}计算的产出倍率。1 表示无影响，0 表示完全停产。">${label}</label>
       <div class="ge-edit-row">
         <span id="mSummary_${dim}">${multiplierSummary(dim)}</span>
-        <button class="mEdit icon-pencil ge-edit" data-dim="${dim}" data-tip="Edit ${label} multipliers"></button>
+        <button class="mEdit icon-pencil ge-edit" data-dim="${dim}" data-tip="编辑${label}倍率"></button>
       </div>`;
 
   const recipes: Record<number, number>[] = editedGood?.recipes || [];
