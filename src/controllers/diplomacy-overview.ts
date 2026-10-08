@@ -14,7 +14,7 @@ import { Layers } from "@/components/layers";
 import { clearMainTip, tip } from "@/components/tooltips";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { Controllers } from "@/controllers";
-import { isRelation, RELATIONS } from "@/data/diplomacy";
+import { INVALID_RELATION, isRelation, RELATIONS, relationText } from "@/data/diplomacy";
 import type { State } from "@/generators/states-generator";
 import { EmblemRenderer } from "@/renderers/emblems/renderer";
 import { removeRelationsMark, showRelations } from "@/renderers/overlays/diplomacy";
@@ -167,10 +167,10 @@ function renderDiplomacyPage(view: TableView<State>): void {
   for (const state of view.rows) {
     const storedRelation = state.diplomacy?.[selectedId] ?? "x";
     const relation = isRelation(storedRelation) ? storedRelation : "Invalid";
-    const { color, inText } = RELATIONS[relation] ?? { color: "#a9a9a9", inText: "has an invalid relation to" };
+    const { color } = RELATIONS[relation] ?? { color: "#a9a9a9" };
 
-    const tipText = `${state.name} ${inText} ${selectedName}`;
-    const tipSelect = `${tipText}. Click to see relations to ${state.name}`;
+        const tipText = relationText(state.name, selectedName, relation);
+        const tipSelect = `${tipText}<br>点击查看与${state.name}的关系`;
 
     const name = state.fullName!.length < 23 ? state.fullName : state.name;
     EmblemRenderer.trigger(`stateCOA${state.i}`, state.coa);
@@ -179,7 +179,7 @@ function renderDiplomacyPage(view: TableView<State>): void {
       <div data-col="name" data-tip="${tipSelect}"><svg class="coaIcon" viewBox="0 0 200 200"><use href="#stateCOA${state.i}"></use></svg><span>${name}</span></div>
       <div data-col="relations" data-tip="${tipText}">
         <fill-box fill="${color}" size=".9em"></fill-box>
-        ${relation}
+        ${RELATIONS[relation]?.zh ?? INVALID_RELATION}
       </div>
     </div>`;
   }
@@ -327,7 +327,7 @@ function showMatrix(): void {
         if (!isRelation(relation)) {
           return `<td data-tip="Invalid relation" class="Unknown">Invalid</td>`;
         }
-        const t = `${state.fullName} ${RELATIONS[relation].inText} ${objectState.fullName}`;
+        const t = relationText(state.fullName!, objectState.fullName!, relation);
         return `<td data-tip='${t}' class='${relation}'>${relation}</td>`;
       })
       .join("")}</tr>`;

@@ -31,7 +31,7 @@ function open(): void {
   redrawAll();
 
   $("#heightmapSelection").dialog({
-    title: "Select Heightmap",
+    title: "选择高度图",
     resizable: false,
     position: { my: "center", at: "center", of: "svg" },
     close: onClose,

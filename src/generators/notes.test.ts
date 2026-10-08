@@ -54,9 +54,10 @@ describe("note access", () => {
     expect(MapEntities.getName(ref)).toBe("1st Cavalry");
   });
 
-  it("names a state by its full name and a river by name and type", () => {
+  it("names a state by its full name and a river by its own name", () => {
     expect(MapEntities.getName({ type: "state", id: 1 })).toBe("Duchy of Ardenia");
-    expect(MapEntities.getName({ type: "river", id: 1 })).toBe("Ald River");
+    // 中文河名本身已带「江/川/溪」等后缀，不再追加以免重复
+    expect(MapEntities.getName({ type: "river", id: 1 })).toBe("Ald");
   });
 });
 

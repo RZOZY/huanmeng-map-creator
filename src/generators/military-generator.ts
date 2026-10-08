@@ -1,7 +1,7 @@
 import { quadtree, sum } from "d3";
 import { Icons } from "@/components/icons";
 import { requireName, requireOneOf } from "@/utils/validationUtils";
-import { findAllInQuadtree, gauss, minmax, nth, ra, rand, rn, si } from "../utils";
+import { findAllInQuadtree, gauss, minmax, ra, rand, rn, si } from "../utils";
 import type { State } from "./states-generator";
 
 declare global {
@@ -521,9 +521,10 @@ class MilitaryModule {
         : cells.burg[r.cell] && pack.burgs[cells.burg[r.cell]]
           ? pack.burgs[cells.burg[r.cell]].name
           : null;
-    const number = nth(regiments.filter(reg => reg.n === r.n && reg.i < r.i).length + 1);
-    const form = r.n ? "Fleet" : "Regiment";
-    return `${number}${proper ? ` (${proper}) ` : ` `}${form}`;
+    const index = regiments.filter(reg => reg.n === r.n && reg.i < r.i).length + 1;
+    const form = r.n ? "舰队" : "团";
+    // 中文语序：地名 + 第 N + 编制，如「玉关郡第 1 团」
+    return proper ? `${proper}第 ${index} ${form}` : `第 ${index} ${form}`;
   }
 
   // utilize si function to make regiment total text fit regiment box

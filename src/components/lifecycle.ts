@@ -136,10 +136,9 @@ export function regeneratePrompt(config?: GenerationConfig): void {
   }
 
   confirmationDialog({
-    title: "Generate new map",
-    message:
-      "Are you sure you want to generate a new map?<br />All unsaved changes made to the current map will be lost",
-    confirm: "Generate",
+    title: "生成新地图",
+    message: "确定要生成新地图吗？<br />当前地图中所有未保存的改动都会丢失",
+    confirm: "生成",
     onConfirm: () => {
       closeDialogs();
       regenerateMap(config);

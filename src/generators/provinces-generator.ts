@@ -8,9 +8,18 @@ import { requireName } from "@/utils/validationUtils";
 import { gauss, generateSeed, getMixedColor, getPolesOfInaccessibility, P, rand, rw } from "../utils";
 import type { Label } from "./labels-generator";
 import { Population } from "./population-generator";
+import { formNameZh } from "@/i18n/form-names";
 
 declare global {
   var Provinces: ProvinceModule;
+}
+
+
+
+/** 中文全名不加空格；名称本身已带形式后缀时不再重复（避免「玉关郡 郡」） */
+function composeFullName(name: string, formName: string): string {
+  const display = formNameZh(formName);
+  return name.endsWith(display) ? name : `${name}${display}`;
 }
 
 export interface Province {
@@ -136,7 +145,7 @@ class ProvinceModule {
         const name = nameByBurg ? stateBurgs[i].name! : Names.getState(Names.getCultureShort(c), c);
         const formName = rw(form);
         form[formName] += 10;
-        const fullName = `${name} ${formName}`;
+        const fullName = composeFullName(name, formName);
         const color = getMixedColor(s.color!);
         const kinship = nameByBurg ? 0.8 : 0.4;
         const type = Burgs.getType(center, burg.port);
@@ -284,7 +293,7 @@ class ProvinceModule {
           return rw(this.forms.Wild);
         })();
 
-        const fullName = `${name} ${formName}`;
+        const fullName = composeFullName(name ?? "", formName);
 
         const dominion = colony ? P(0.95) : singleIsle || isleSubtype ? P(0.7) : P(0.3);
         const kinship = dominion ? 0 : 0.4;
@@ -340,7 +349,7 @@ class ProvinceModule {
     province.name = requireName(name);
     province.fullName =
       replaceWholeWord(province.fullName, old, province.name) ??
-      (province.formName ? `${province.name} ${province.formName}` : province.name);
+      (province.formName ? composeFullName(province.name, province.formName) : province.name);
     if (province.label?.text)
       province.label.text = replaceWholeWord(province.label.text, old, province.name) ?? province.label.text;
   }
@@ -360,7 +369,7 @@ class ProvinceModule {
     const province = this.living(provinceId);
     if (typeof formName !== "string") throw new Error("The form name must be text");
     province.formName = formName.trim();
-    province.fullName = province.formName ? `${province.name} ${province.formName}` : province.name;
+    province.fullName = province.formName ? composeFullName(province.name, province.formName) : province.name;
   }
 
   /** Make a burg inside a province its capital */
@@ -421,7 +430,7 @@ class ProvinceModule {
     );
     coa.shield = Emblems.getShield(culture, state);
     const color = getMixedColor(states[state].color!, 0.2, 0);
-    provinces.push({ i, state, center, burg, name, formName, fullName: `${name} ${formName}`, color, coa });
+    provinces.push({ i, state, center, burg, name, formName, fullName: composeFullName(name, formName), color, coa });
     states[state].provinces = [...(states[state].provinces ?? []), i];
 
     cells.province[center] = i;

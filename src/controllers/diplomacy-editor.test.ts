@@ -119,7 +119,7 @@ describe("painting relations", () => {
     expect(states[1].diplomacy![3]).toBe("Ally");
     expect(chronicle()).toEqual([]);
     action("Apply");
-    expect(chronicle()).toEqual([["Defence pact", "Three entered into defensive pact with One"]]);
+    expect(chronicle()).toEqual([["订立防御协定", "Three与One订立了防御协定"]]);
   });
 
   test("Apply records the net change of each pair once", async () => {
@@ -132,7 +132,7 @@ describe("painting relations", () => {
     await paint([3]);
     action("Apply");
     // Two went Rival → Enemy → Ally; Three went Neutral → Enemy → Neutral
-    expect(chronicle()).toEqual([["Defence pact", "Two entered into defensive pact with One"]]);
+    expect(chronicle()).toEqual([["订立防御协定", "Two与One订立了防御协定"]]);
   });
 
   test("ignores drags that start outside a state", async () => {
@@ -167,9 +167,9 @@ describe("painting relations", () => {
     action("Apply");
     expect(chronicle()).toEqual([
       [
-        "War termination",
-        "Two and One agreed to cease fire and signed a peace treaty",
-        "Two-Onean relations changed to friendly"
+        "停战",
+        "Two与One停火并缔结和约",
+        "Two与One的关系变为友好"
       ]
     ]);
   });

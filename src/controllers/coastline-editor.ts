@@ -5,6 +5,7 @@ import type { Feature } from "@/generators/features-generator";
 import { drawFeaturePath } from "@/renderers/draw-landmass";
 import type { Point } from "@/types/global";
 import { ensureEl, escapeHtml, findEl } from "@/utils";
+import { featureSubtypeZh } from "@/generators/features-generator";
 
 interface InputParams {
   id: string;
@@ -260,7 +261,7 @@ function syncScope(): void {
 }
 
 const featureLabel = (feature: Feature) =>
-  `${feature.name ? `${feature.name} • ${feature.subtype} ${feature.type}` : `Unnamed ${feature.subtype || feature.type} #${feature.i}`}${feature.coastline ? " •" : ""}`;
+  `${feature.name ? `${feature.name} · ${featureSubtypeZh(feature.subtype || feature.type)}` : `未命名${featureSubtypeZh(feature.subtype || feature.type)} #${feature.i}`}${feature.coastline ? " •" : ""}`;
 
 function buildDialogHTML(): string {
   const settings = selectedFeature?.coastline || Coastline.settings;

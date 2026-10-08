@@ -15,6 +15,6 @@ it("keeps a province's full-name pattern and rebuilds it when the name is not in
   Provinces.rename(1, "New");
   expect(pack.provinces[1].fullName).toBe("Duchy of New");
   Provinces.rename(2, "Elm");
-  expect(pack.provinces[2].fullName).toBe("Elm March");
+  expect(pack.provinces[2].fullName).toBe("Elm边区");
   expect(() => Provinces.rename(3, "X")).toThrow("Province 3 does not exist");
 });

@@ -61,6 +61,29 @@ export const LAKE_SUBTYPES = ["freshwater", "salt", "dry", "sinkhole", "frozen",
 export const ISLAND_SUBTYPES = ["continent", "island", "isle", "lake_island"] as const;
 export const OCEAN_SUBTYPES = ["ocean", "sea", "gulf"] as const;
 
+/** 子类型只在内部当键使用（生成器会读它），这里只做显示映射 */
+export const FEATURE_SUBTYPE_ZH: Record<string, string> = {
+  "continent": "大陆",
+  "island": "岛屿",
+  "isle": "小岛",
+  "lake_island": "湖中岛",
+  "freshwater": "淡水",
+  "salt": "咸水",
+  "dry": "干涸",
+  "sinkhole": "陷坑",
+  "frozen": "冰封",
+  "lava": "熔岩",
+  "ocean": "海洋",
+  "sea": "海",
+  "gulf": "海湾",
+  "lake": "湖泊"
+};
+
+/** 取得地物子类型的中文显示名；没有对照时原样返回 */
+export function featureSubtypeZh(subtype: string): string {
+  return FEATURE_SUBTYPE_ZH[subtype] ?? subtype;
+}
+
 export const NON_NAVIGABLE_LAKE_SUBTYPES = new Set<string>(["dry", "frozen", "lava"]);
 
 class FeatureModule {

@@ -331,7 +331,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
     pack.cultures = JSON.parse(data[13]);
     pack.states = JSON.parse(data[14]);
     pack.burgs = JSON.parse(data[15]);
-    pack.religions = data[29] ? JSON.parse(data[29]) : ([{ i: 0, name: "No religion" }] as typeof pack.religions);
+    pack.religions = data[29] ? JSON.parse(data[29]) : ([{ i: 0, name: "无宗教" }] as typeof pack.religions);
     pack.provinces = data[30] ? JSON.parse(data[30]) : ([0] as unknown as typeof pack.provinces);
     pack.rivers = data[32] ? JSON.parse(data[32]) : [];
     pack.markers = data[35] ? JSON.parse(data[35]) : [];

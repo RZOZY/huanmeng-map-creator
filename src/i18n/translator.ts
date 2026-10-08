@@ -18,32 +18,66 @@ const entries: Dict = dictionary as Dict;
  */
 const PATTERNS: [RegExp, string][] = [
   // 地图提示
-  [/^(.*)\. Click to edit the label$/, "$1. 点击编辑标签"],
-  [/^(.*)\. Click to edit the Route$/, "$1. 点击编辑道路"],
+  [/^(.*)\. Click to edit the label$/, "$1<br>点击编辑标签"],
+  [/^(.*)\. Click to edit the Route$/, "$1<br>点击编辑道路"],
   [/^Click to edit the Route$/, "点击编辑道路"],
-  [/^(.*?)\s?lake\. Click to edit$/, "$1湖. 点击编辑"],
+  [/^(.*?)\s?lake\. Click to edit$/, "$1湖<br>点击编辑"],
   [
     /^(.*) (\S+) emblem\. Click to edit\. Hold Shift to show associated area or place$/,
-    "$1 $2纹章. 点击编辑。按住 Shift 显示关联区域或地点"
+    "$1 $2纹章<br>点击编辑<br>按住 Shift 显示关联区域或地点"
   ],
-  [/^(.*)\. Population: (.*)\. Click to edit$/, "$1. 人口: $2. 点击编辑"],
-  [/^Cell population: (.*); Rural: (.*); Urban: (.*)$/, "单元格人口: $1; 乡村: $2; 城市: $3"],
+  [/^(.*)\. Population: (.*)\. Click to edit$/, "$1<br>人口：$2<br>点击编辑"],
+  [/^Cell population: (.*); Rural: (.*); Urban: (.*)$/, "单元格人口<br>总计：$1<br>乡村：$2<br>城市：$3"],
   [
     /^Cell rural production: (.*)\. Click to select displayed goods in Goods Editor$/,
-    "单元格乡村产出：$1. 点击在商品编辑器中选择显示的商品"
+    "单元格乡村产出：$1<br>点击在商品编辑器中选择显示的商品"
   ],
-  [/^(.*) urban production: (.*)\. Click to view$/, "$1 城市产出：$2. 点击查看"],
-  [/^(.*) market\. Click to view$/, "$1 市场. 点击查看"],
-  [/^(.*)\. Click to view$/, "$1. 点击查看"],
-  [/^(.*)\. Click to edit$/, "$1. 点击编辑"],
-  [/^(.*)\. Shortcut: (.*)$/, "$1. 快捷键: $2"],
-  // 窗口标题：上游是「产品名 + v版本号」，本版统一为纯产品名
+  [/^(.*) urban production: (.*)\. Click to view$/, "$1 城市产出：$2<br>点击查看"],
+  [/^(.*) market\. Click to view$/, "$1 市场<br>点击查看"],
+  [/^(.*)\. Click to view$/, "$1<br>点击查看"],
+  [/^(.*)\. Click to edit$/, "$1<br>点击编辑"],
+  [/^(.*)\. Shortcut: (.*)$/, "$1<br>快捷键：$2"],
+  // 动态数值类提示（每种商品/市场各不同，只能按模式处理）
+  [
+    /^Good daily production: (.*)\. Cells: (.*)\. Burgs: (.*)\. Click to see burgs producing this good$/,
+    "日产量：$1<br>单元格：$2<br>城镇：$3<br>点击查看生产该商品的城镇"
+  ],
+  [
+    /^Current treasury: (.*)\. Sales Tax: (.*)\. Poll Tax: (.*)\. Click to view and edit taxes$/,
+    "国库：$1<br>销售税：$2<br>人头税：$3<br>点击查看并编辑税收"
+  ],
+  [
+    /^Total stock in all markets and burg inventories: (.*)\. Click to see breakdown by location$/,
+    "各市场与城镇库存总量：$1 单位<br>点击查看按地点的明细"
+  ],
+  [
+    /^Total population: (.*)\. Rural population: (.*)\. Urban population: (.*)$/,
+    "总人口：$1<br>乡村人口：$2<br>城市人口：$3"
+  ],
+  [/^Total population: (.*); Rural population: (.*); Urban population: (.*)$/, "总人口：$1<br>乡村人口：$2<br>城市人口：$3"],
+  [/^State: (.*) Culture: (.*) Total population: (.*)$/, "国家：$1<br>文化：$2<br>总人口：$3"],
+  [/^Relief: (.*)\. Density (.*)$/, "地形：$1<br>密度 $2"],
+  [/^(.*) points · (.*)x complexity · (.*)% rough$/, "$1 点 · 复杂度 $2x · 崎岖度 $3%"],
+  [/^Estimated area: the feature goes beyond the map border, its area on the map is (.*)$/, "估算面积：该地物超出了地图边界，其在地图上的面积约为 $1"],
+  [/^(.*) is a NOT state capital$/i, "$1 不是国都"],
+  [/^Zoom to (.*)$/, "缩放到$1"],
+  [/^Journey name: (.*)$/, "旅程名称：$1"],
+  [/^Marker icon size (.*)$/, "标记图标大小 $1"],
+    [/^No relief(<br>.*)?$/, "无地形$1"],
+  [/\. Click to change$/, "<br>点击更改"],
+  [/\. Click to view details$/, "<br>点击查看详情"],
+  [/\. Click to select$/, "<br>点击选择"],
+  [/^Total time: (.*)\. Travel time: (.*)$/, "总耗时：$1<br>行程时间：$2"],
+  [/^Hours spent moving or waiting: (.*), the sum of the segment times\. Rest between travel days is not counted\.$/, "行进与等待的耗时合计：$1<br>不计算行军日之间的休整。"],
+  [/^Time from start to finish: (.*)\. A day of travel fills a whole day<br>however many hours the transport sustains\.$/, "从起点到终点的耗时：$1<br>行军日按整天计，不论该运输方式实际能行进多少小时。"],
+  [/^List below shows relations to (.*)$/, "下表列出与$1的关系"],
+    // 窗口标题：上游是「产品名 + v版本号」，本版统一为纯产品名
   [/^Azgaar's Fantasy Map Generator v(\S+)$/, "幻梦地图生成器"],
   [/^Azgaar's Fantasy Map Generator$/, "幻梦地图生成器"],
   // 省份/国家提示：`${名称} ${形式名}, ${所属国家}`
-  [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2, $3"],
+  [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2<br>$3"],
   // 编辑器的实体提示
-  [/^(.*) culture\. (.*)\. (.*)$/, "$1 文化. $2. $3"]
+  [/^(.*) culture\. (.*)\. (.*)$/, "$1 文化<br>$2<br>$3"]
 ];
 
 function applyPatterns(key: string): string | null {
@@ -84,6 +118,15 @@ function translateTextNode(node: Text): void {
   if (!/[A-Za-z]{2}/.test(raw)) return;
   const hit = translate(raw);
   if (!hit) return;
+
+  // 译文里带 <br> 时（提示的多行排版）必须以 HTML 写入：写成文本节点的话，
+  // 浏览器会把 "<br>" 当普通字符原样显示出来
+  const parent = node.parentElement;
+  if (hit.includes("<br>") && parent && node.parentNode?.childNodes.length === 1) {
+    parent.innerHTML = hit;
+    return;
+  }
+
   // 保留原有的前后空白，避免影响布局
   const lead = raw.match(/^\s*/)?.[0] ?? "";
   const tail = raw.match(/\s*$/)?.[0] ?? "";

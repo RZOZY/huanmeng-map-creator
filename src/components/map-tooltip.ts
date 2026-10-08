@@ -103,7 +103,17 @@ interface TipContext {
  * Returns undefined if the element is not interactive, so the layer tip is shown instead
  */
 /** 中文里类型词直接接在后面，不加空格 */
-const BURG_GROUP_LABELS: Record<string, string> = { city: "城", town: "镇", capital: "都城" };
+const BURG_GROUP_LABELS: Record<string, string> = {
+  capital: "都城",
+  city: "城",
+  town: "镇",
+  village: "村",
+  hamlet: "小村",
+  fort: "要塞",
+  monastery: "修道院",
+  caravanserai: "商队驿站",
+  trading_post: "商站"
+};
 const EMBLEM_TYPE_LABELS: Record<string, string> = { burg: "城镇", province: "省份", state: "国家" };
 const RELIGION_TYPE_LABELS: Record<string, string> = {
   Folk: "民间信仰",
@@ -119,11 +129,11 @@ function getElementTip({ group, target, event, path, cellId }: TipContext): stri
     const burgId = Number(burgElement.dataset.id);
     const burg = pack.burgs[burgId];
     if (!burg) return "点击编辑城镇";
-    const port = burg.port ? " port" : "";
+    const port = burg.port ? "（港口）" : "";
     const population = si(
       (burg.population || 0) * options.map.units.population.scale * options.map.units.population.urbanization.rate
     );
-    return `${burg.name}${BURG_GROUP_LABELS[burg.group ?? ""] ?? burg.group ?? ""}${port}。人口: ${population}。点击编辑`;
+    return `${burg.name}${BURG_GROUP_LABELS[burg.group ?? ""] ?? burg.group ?? ""}${port}<br>人口：${population}<br>点击编辑`;
   }
 
   const labelElement = target.closest<SVGElement>("#labels [data-label-type]");
@@ -201,7 +211,7 @@ function getEmblemTip(target: SVGElement, parent: SVGElement, event: Event): str
   select(parent).raise();
 
   const name = "fullName" in element ? element.fullName || element.name : element.name;
-  return `${name} ${EMBLEM_TYPE_LABELS[type] ?? type}纹章。点击编辑。按住 Shift 显示关联区域或地点`;
+  return `${name} ${EMBLEM_TYPE_LABELS[type] ?? type}纹章<br>点击编辑<br>按住 Shift 显示关联区域或地点`;
 }
 
 function getMarketTip(target: SVGElement): string | undefined {
@@ -269,7 +279,7 @@ function showLayerTip(point: Point, cellId: number, gridCellId: number, isLand: 
   if (cells.state[cellId] && (Layers.isOn("provinces") || Layers.isOn("states"))) {
     const stateId = cells.state[cellId];
     const provinceId = cells.province[cellId];
-    const province = provinceId ? `${pack.provinces[provinceId].fullName}, ` : "";
+    const province = provinceId ? `${pack.provinces[provinceId].fullName}<br>` : "";
     return void tip(province + pack.states[stateId].fullName);
   }
   if (Layers.isOn("cultures") && cells.culture[cellId]) {

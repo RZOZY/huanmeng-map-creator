@@ -145,7 +145,7 @@ describe("Diplomacy Editor", () => {
     element<HTMLElement>("#diplomacyShowMatrix").click();
     await openEditor("Vassal");
     await paint([3]);
-    expect(element('[data-id="3"] [data-col="relations"]').textContent).toContain("Vassal");
+    expect(element('[data-id="3"] [data-col="relations"]').textContent).toContain("附庸");
     expect(element('#diplomacyMatrixBody tr[data-id="1"] td:nth-of-type(3)').textContent).toBe("Suzerain");
   });
 
@@ -163,10 +163,10 @@ describe("Diplomacy Editor", () => {
     const before = JSON.stringify(states);
     await openEditor("Enemy");
     await paint([2]);
-    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("Enemy");
+    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("交战");
     action("Discard");
     expect(JSON.stringify(states)).toBe(before);
-    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("Rival");
+    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("竞争");
     expect(document.getElementById("diplomacyEditor")).toBeTruthy();
   });
 
@@ -176,7 +176,7 @@ describe("Diplomacy Editor", () => {
     await paint([2, 3]);
     close("#diplomacyEditor");
     expect(JSON.stringify(states)).toBe(before);
-    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("Rival");
+    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("竞争");
     mapClick(3);
     expect(selfId()).toBe("3");
   });
@@ -235,7 +235,7 @@ describe("invalid diplomacy", () => {
 
   test("renders invalid pairs without mutating them", () => {
     showInvalidPair();
-    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("Invalid");
+    expect(element('[data-id="2"] [data-col="relations"]').textContent).toContain("无效关系");
     expect(document.querySelectorAll("#diplomacyMatrixBody td.x")).toHaveLength(3);
     expect(states[1].diplomacy![2]).toBe("x");
     expect(chronicle()).toEqual([]);

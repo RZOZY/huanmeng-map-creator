@@ -44,61 +44,61 @@ const choice = (choices: Record<string, string>, fieldMeta: StyleMeta = {}) =>
 const solidColor = (fieldMeta: StyleMeta = {}) => meta(hexColor.clone(), { control: "color", ...fieldMeta });
 
 // --- shared attrs -----------------------------------------------------------------------------------
-const opacity = range(0, 1, { nullAs: 1, tip: "Set opacity. 0: transparent, 1: solid" }).nullable();
+const opacity = range(0, 1, { nullAs: 1, tip: "设置不透明度。0 为全透明，1 为不透明" }).nullable();
 
 const color = solidColor().nullable();
 
-const fill = variant(color, { label: "Color", tip: "Set fill color" });
-const fillOpacity = variant(opacity, { label: "Opacity", tip: "Set fill opacity. 0: transparent, 1: solid" });
+const fill = variant(color, { label: "颜色", tip: "设置填充颜色" });
+const fillOpacity = variant(opacity, { label: "不透明度", tip: "设置填充不透明度。0 为全透明，1 为不透明" });
 
-const stroke = variant(color, { label: "Color", tip: "Set stroke color" });
-const strokeOpacity = variant(opacity, { label: "Opacity", tip: "Set stroke opacity. 0: transparent, 1: solid" });
+const stroke = variant(color, { label: "Color", tip: "设置描边颜色" });
+const strokeOpacity = variant(opacity, { label: "Opacity", tip: "设置描边不透明度。0 为全透明，1 为不透明" });
 
 const strokeWidth = meta(z.number().min(0), {
-  label: "Width",
+  label: "宽度",
   nullAs: 0,
   range: [0, 10],
-  tip: "Set stroke width"
+  tip: "设置描边宽度"
 }).nullable();
 
 const strokeDasharray = meta(z.string().regex(FORMATS.strokeDasharray), {
   control: "dash",
-  label: "Dash array",
-  tip: "Set stroke dash array, e.g. 5 2"
+  label: "虚线样式",
+  tip: "设置描边的虚线样式，例如 5 2"
 })
   .nullable()
   .default(null);
 
-const strokeLinecap = choice(LINECAPS, { label: "Linecap", tip: "Set stroke linecap" }).nullable();
+const strokeLinecap = choice(LINECAPS, { label: "线端样式", tip: "设置描边的线端样式" }).nullable();
 
-const strokeLinejoin = choice(LINEJOINS, { label: "Linejoin", tip: "Set stroke linejoin" }).nullable();
+const strokeLinejoin = choice(LINEJOINS, { label: "拐角样式", tip: "设置描边的拐角样式" }).nullable();
 
-const fontFamily = text({ control: "font", label: "Family", tip: "Select font" });
+const fontFamily = text({ control: "font", label: "字体族", tip: "选择字体" });
 
 const fontSizePx = meta(z.string().regex(FORMATS.fontSizePx), {
   control: "px",
-  label: "Size",
+  label: "大小",
   range: [1, 40],
-  tip: "Set font size in pixels"
+  tip: "设置字号（像素）"
 });
 
 const filter = meta(z.string().regex(FORMATS.filter), {
   control: "filter",
-  tip: "Select filter for element. Filters may cause performance issues!"
+  tip: "为该元素选择滤镜。滤镜可能影响性能！"
 }).nullable();
 
 const blurFilter = meta(z.string().regex(FORMATS.blurFilter), {
   control: "blur",
-  label: "Blur",
+  label: "模糊",
   range: [0, 10],
-  tip: "Blur radius in pixels. Set to 0 for a solid line"
+  tip: "模糊半径（像素）。设为 0 即实线"
 }).nullable();
 
 // a defs reference the renderer owns (url(#fog), url(#vignette-mask)): stored, never edited
 const mask = hidden(z.string().regex(FORMATS.mask).nullable());
 
 // the layers that clip to land or water offer the two masks
-const clip = choice(CLIPS, { label: "Clip", tip: "Set clipping. Only non-clipped part will be visible" }).nullable();
+const clip = choice(CLIPS, { label: "裁剪", tip: "设置裁剪。只有未被裁掉的部分会显示" }).nullable();
 
 const transform = hidden(z.string().nullable()); // a raw layer transform, not a style choice
 
@@ -142,35 +142,35 @@ const lake = z.strictObject({
   options: meta(
     z.strictObject({
       embellishment: choice(LAKE_EMBELLISHMENTS, {
-        tip: "Fine ripples along the banks, fading into open water and scaled down for small lakes"
+        tip: "沿岸的细密波纹，向开阔水面逐渐消失，小湖泊中会缩小"
       }),
-      density: range(0.1, 4, { tip: "How closely ripple rows are spaced" }),
-      length: range(0.2, 4, { tip: "Ripple length, fitted to the available water width" }),
+      density: range(0.1, 4, { tip: "波纹行的疏密程度" }),
+      length: range(0.2, 4, { tip: "波纹长度，会按可用水面宽度调整" }),
       halo: range(0, 2, {
-        label: "Shore gap",
+        label: "岸边留白",
         step: 0.05,
-        tip: "Clear water along the shoreline, relative to lake ripple scale"
+        tip: "沿岸线留出的清水带，相对于湖泊波纹尺度"
       }),
       color: solidColor({ group: "Stroke", label: "Color" }),
-      width: range(0.05, 2, { group: "Stroke", label: "Width", step: 0.05, tip: "Ripple stroke width in map pixels" }),
-      opacity: range(0, 1, { group: "Stroke", label: "Opacity", step: 0.05, tip: "Opacity of the lake ripples" })
+      width: range(0.05, 2, { group: "Stroke", label: "Width", step: 0.05, tip: "波纹的描边宽度（地图像素）" }),
+      opacity: range(0, 1, { group: "Stroke", label: "Opacity", step: 0.05, tip: "湖泊波纹的不透明度" })
     }),
-    { gate: "embellishment", label: "Embellishment" }
+    { gate: "embellishment", label: "装饰" }
   ).default({ embellishment: "none", density: 1, length: 1, halo: 0.2, color: "#000000", width: 0.3, opacity: 0.6 })
 });
 
 const contours = meta(
   z.strictObject({
     mode: choice(CONTOUR_MODES, {
-      tip: "Draw smooth elevation contours over the heightmap colors, or show only contour lines"
+      tip: "在高度图配色之上绘制平滑的等高线，或只显示等高线"
     }),
     interval: count(1, 20, {
-      label: "Spacing",
-      tip: "Elevation spacing between contours. Lower values show more detail; every fifth contour is heavier"
+      label: "间距",
+      tip: "等高线之间的海拔间距。数值越小细节越多；每第五条线更粗"
     }),
-    color: solidColor({ tip: "Color of the contour lines" }),
-    width: range(0.1, 2, { step: 0.05, tip: "Width of minor contours. Every fifth contour is twice as wide" }),
-    opacity: range(0, 1, { step: 0.05, tip: "Opacity of the contour lines" })
+    color: solidColor({ tip: "等高线的颜色" }),
+    width: range(0.1, 2, { step: 0.05, tip: "次要等高线的宽度。每第五条线宽度加倍" }),
+    opacity: range(0, 1, { step: 0.05, tip: "等高线的不透明度" })
   }),
   { gate: "mode" }
 ).default({ mode: "off", interval: 5, color: "#5c513e", width: 0.35, opacity: 0.5 });
@@ -179,39 +179,39 @@ const contours = meta(
 const hachures = meta(
   z.strictObject({
     mode: choice(HACHURE_MODES, {
-      tip: "Draw downhill pen strokes over the heightmap colors, or show only the strokes"
+      tip: "在高度图配色之上绘制下降笔触，或只显示笔触"
     }),
     density: range(0.1, 4, {
-      tip: "How closely the strokes are packed, relative to the default. Steep ground packs them tighter"
+      tip: "笔触的疏密程度（相对默认值）。坡陡处会更密"
     }),
     length: range(0.2, 4, {
-      tip: "Stroke length, relative to the default. Strokes stop early where the slope levels off"
+      tip: "笔触长度（相对默认值）。坡度变缓处笔触会提前中止"
     }),
     width: range(0.2, 4, {
       group: "Stroke",
       label: "Width",
-      tip: "Stroke width at its root, relative to the default. Gentler ground draws lighter strokes"
+      tip: "笔触根部的宽度（相对默认值）。坡缓处笔触更轻"
     }),
-    color: solidColor({ group: "Stroke", label: "Color", tip: "Color of the hachure strokes" }),
-    opacity: range(0, 1, { step: 0.05, tip: "Opacity of the hachure strokes" })
+    color: solidColor({ group: "Stroke", label: "Color", tip: "晕渲笔触的颜色" }),
+    opacity: range(0, 1, { step: 0.05, tip: "晕渲笔触的不透明度" })
   }),
   { gate: "mode" }
 ).default({ mode: "off", density: 1, length: 1, width: 1, color: "#5c513e", opacity: 0.65 });
 
 const heightOptions = z.strictObject({
-  scheme: text({ control: "scheme", label: "Color scheme", tip: "Select color scheme for the element" }),
-  terracing: range(0, 20, { step: 1, tip: "Terracing power. Set to 0 to toggle off" }),
+  scheme: text({ control: "scheme", label: "配色方案", tip: "为该元素选择配色方案" }),
+  terracing: range(0, 20, { step: 1, tip: "梯田化强度。设为 0 即关闭" }),
   skip: range(0, 10, {
-    label: "Reduce layers",
+    label: "减少图层数",
     step: 1,
-    tip: "Layers reduction rate. Increase to improve performance"
+    tip: "图层减少比例。调高可提升性能"
   }),
   relax: range(0, 10, {
-    label: "Simplify",
+    label: "简化",
     step: 1,
-    tip: "Line simplification rate. Increase to slightly improve performance"
+    tip: "线条简化比例。调高可略微提升性能"
   }),
-  curve: choice(HEIGHTMAP_CURVES, { label: "Line style", tip: "Select line interpolation type" }),
+  curve: choice(HEIGHTMAP_CURVES, { label: "线条样式", tip: "选择线条插值类型" }),
   contours,
   hachures
 });
@@ -220,7 +220,7 @@ const oceanHeights = meta(
   z.strictObject({
     attrs: landHeights.shape.attrs,
     options: heightOptions.extend({
-      render: flag({ label: "Render ocean heights", tip: "Check to render ocean heights" })
+      render: flag({ label: "渲染海洋高度", tip: "勾选以渲染海洋高度" })
     })
   }),
   { gate: "options.render" }
@@ -228,21 +228,21 @@ const oceanHeights = meta(
 
 const coastlineBands = meta(
   z.strictObject({
-    render: flag({ label: "Coastline bands", tip: "Draw concentric bands that follow the coastline" }),
-    count: count(1, 8, { tip: "Number of bands around the coast" }),
-    spacing: range(0.2, 5, { tip: "Band spacing in map units; bands widen farther from shore" }),
+    render: flag({ label: "海岸线色带", tip: "绘制跟随海岸线的同心色带" }),
+    count: count(1, 8, { tip: "海岸周围的色带数量" }),
+    spacing: range(0.2, 5, { tip: "色带间距（地图单位）；离岸越远色带越宽" }),
     width: range(0.05, 1, {
       group: "Outline",
       label: "Width",
       step: 0.05,
-      tip: "Width of the dark lines separating bands"
+      tip: "分隔色带的深色线条宽度"
     }),
     color: solidColor({ group: "Outline", label: "Color" }),
-    shore: solidColor({ label: "Shore tint", tip: "Tint over the existing ocean, strongest near the shore" }),
+    shore: solidColor({ label: "岸边色调", tip: "叠加在现有海洋上的色调，近岸处最强" }),
     shade: range(0, 1, {
-      label: "Shading",
+      label: "明暗",
       step: 0.05,
-      tip: "Strength of the nearshore tint; zero leaves only outlines over the ocean texture"
+      tip: "近岸色调的强度；设为 0 时海洋贴图上只保留轮廓"
     }).default(0.35),
     opacity: range(0, 1, { step: 0.05 })
   }),
@@ -274,20 +274,20 @@ const oceanWaves = meta(
     ),
     options: z.strictObject({
       render: flag({
-        label: "Ocean embellishment",
-        tip: "Decorate coastal and distant water around a clear offshore band"
+        label: "海洋装饰",
+        tip: "在近岸留白带的外侧装饰沿岸与远处水面"
       }),
-      type: choice(WAVE_TYPES, { tip: "Choose the shape of the ocean embellishments" }).default("waves"),
-      density: range(0.1, 4, { tip: "How closely embellishments are spaced, relative to the default" }),
-      length: range(0.2, 4, { tip: "Stroke length, relative to the default" }),
+      type: choice(WAVE_TYPES, { tip: "选择海洋装饰的形状" }).default("waves"),
+      density: range(0.1, 4, { tip: "装饰的疏密程度（相对默认值）" }),
+      length: range(0.2, 4, { tip: "笔触长度（相对默认值）" }),
       reach: range(1, 12, {
         step: 0.5,
-        tip: "Distance into the sea over which embellishments fade, in cell spacings"
+        tip: "装饰向海中渐隐的距离（按单元格间距计）"
       }),
       halo: range(0, 2, {
-        label: "Coastal gap",
+        label: "沿岸留白",
         step: 0.05,
-        tip: "Clear water beyond the coastline bands (or shore), in cell spacings"
+        tip: "海岸线色带（或岸边）之外的清水带（按单元格间距计）"
       })
     })
   }),
@@ -305,8 +305,8 @@ const burgGroup = z.strictObject({
     filter
   }),
   options: z.strictObject({
-    size: number({ label: "Icon size", range: [0.01, 100], step: 0.01, tip: "Set icon size" }),
-    icon: text({ control: "icon", tip: "Select icon" })
+    size: number({ label: "图标大小", range: [0.01, 100], step: 0.01, tip: "设置图标大小" }),
+    icon: text({ control: "icon", tip: "选择图标" })
   })
 });
 
@@ -314,18 +314,18 @@ const burgGroup = z.strictObject({
 const anchorGroup = burgGroup.extend({
   options: burgGroup.shape.options.extend({
     dx: meta(z.number().optional(), {
-      label: "Shift x",
+      label: "水平偏移",
       range: [-5, 5],
       step: 0.05,
       nullAs: 0,
-      tip: "Horizontal shift in icon-size units (positive moves right)"
+      tip: "水平偏移（以图标大小为单位的正值向右）"
     }),
     dy: meta(z.number().optional(), {
-      label: "Shift y",
+      label: "垂直偏移",
       range: [-5, 5],
       step: 0.05,
       nullAs: 0,
-      tip: "Vertical shift in icon-size units (positive moves down)"
+      tip: "垂直偏移（以图标大小为单位的正值向下）"
     })
   })
 });
@@ -335,11 +335,11 @@ const coastline = z.strictObject({
 });
 
 const emblemGroup = z.strictObject({
-  options: z.strictObject({ size: number({ range: [0, 5], step: 0.01, tip: "Set emblems size multiplier" }) })
+  options: z.strictObject({ size: number({ range: [0, 5], step: 0.01, tip: "设置徽标大小倍率" }) })
 });
 
 const padding = (side: string) =>
-  number({ group: "Padding", label: side, range: [0, 50], step: 0.5, tip: "Background element padding in pixels" });
+  number({ group: "Padding", label: side, range: [0, 50], step: 0.5, tip: "背景元素的内边距（像素）" });
 
 // --- the record -------------------------------------------------------------------------------------
 // on change run scripts/convert-style-presets.mjs to automatically update style presets
@@ -352,8 +352,8 @@ export const stylesSchema = z.strictObject({
         z.string(),
         z.strictObject({
           groups: z.strictObject({
-            icons: meta(burgGroup, { label: "Icons" }),
-            anchors: meta(anchorGroup, { label: "Anchors" })
+            icons: meta(burgGroup, { label: "图标" }),
+            anchors: meta(anchorGroup, { label: "锚点" })
           })
         })
       )
@@ -368,8 +368,8 @@ export const stylesSchema = z.strictObject({
         attrs: z.strictObject({
           transform: meta(z.string().regex(FORMATS.compassTransform), {
             control: "transform",
-            label: "Placement",
-            tip: "Set wind (compass) rose shift and size"
+            label: "放置",
+            tip: "设置风向玫瑰图的偏移与大小"
           }).nullable()
         })
       })
@@ -389,7 +389,7 @@ export const stylesSchema = z.strictObject({
   }),
   cultures: z.strictObject({ attrs: z.strictObject({ opacity, ...strokeGroup, filter }) }),
   emblems: z.strictObject({
-    attrs: z.strictObject({ opacity, "stroke-width": variant(strokeWidth, { label: "Stroke Width" }), filter }),
+    attrs: z.strictObject({ opacity, "stroke-width": variant(strokeWidth, { label: "描边宽度" }), filter }),
     groups: z.strictObject({
       stateEmblems: emblemGroup,
       provinceEmblems: emblemGroup,
@@ -403,21 +403,21 @@ export const stylesSchema = z.strictObject({
       goodsIcons: z.strictObject({
         attrs: z.strictObject({
           opacity,
-          stroke: variant(stroke, { label: "Icon Lines", tip: "Color of the icon lines" }),
+          stroke: variant(stroke, { label: "图标线条", tip: "图标线条的颜色" }),
           "stroke-width": variant(strokeWidth, {
             label: "Stroke Width",
-            tip: "Width of the circle outline; the icon lines are drawn at 40% of it"
+            tip: "圆形轮廓的宽度；图标线条按它的 40% 绘制"
           }),
           filter
         }),
         options: z.strictObject({
           size: number({
-            label: "Marker size",
+            label: "标记大小",
             range: [1, 20],
             step: 0.5,
-            tip: "Set good marker (icon and circle) size in pixels"
+            tip: "设置商品标记（图标与圆形）的大小（像素）"
           }),
-          circle: flag({ label: "Show circle", tip: "Show or hide circle around good icons" })
+          circle: flag({ label: "显示圆形", tip: "显示或隐藏商品图标外的圆形" })
         })
       }),
       goodsBurgs: z.strictObject({
@@ -429,10 +429,10 @@ export const stylesSchema = z.strictObject({
         }),
         options: z.strictObject({
           size: number({
-            label: "Plate size",
+            label: "牌面大小",
             range: [1, 12],
             step: 0.5,
-            tip: "Set burg production plate icon size in pixels. Plate and font scale together with it"
+            tip: "设置城镇产出牌面图标的大小（像素）。牌面与文字会一同缩放"
           })
         })
       })
@@ -453,8 +453,8 @@ export const stylesSchema = z.strictObject({
       { effect: "draw" }
     ),
     options: z.strictObject({
-      type: choice(GRID_TYPES, { tip: "Select grid overlay type" }),
-      scale: number({ range: [0.1, 10], step: 0.01, tip: "Set grid cells scale multiplier" }),
+      type: choice(GRID_TYPES, { tip: "选择网格叠加类型" }),
+      scale: number({ range: [0.1, 10], step: 0.01, tip: "设置网格单元的缩放倍率" }),
       dx: shift("x", 100, 1, "Shift by x axis in pixels"),
       dy: shift("y", 100, 1, "Shift by y axis in pixels")
     })
@@ -484,20 +484,20 @@ export const stylesSchema = z.strictObject({
             label: "Size",
             range: [1, 40],
             effect: "draw",
-            tip: "Set font size, relative to the labels layer"
+            tip: "设置字号，相对于标签图层"
           }),
           "font-style": choice(FONT_STYLES, {
-            label: "Style",
+            label: "样式",
             group: "Font",
-            tip: "Set font style"
+            tip: "设置字体样式"
           })
             .nullable()
             .default(null),
           "font-weight": meta(z.literal(FONT_WEIGHTS), {
             control: "select",
-            label: "Weight",
+            label: "字重",
             group: "Font",
-            tip: "Set font weight"
+            tip: "设置字重"
           })
             .nullable()
             .default(null),
@@ -508,12 +508,12 @@ export const stylesSchema = z.strictObject({
             range: [-2, 10],
             step: 0.01,
             effect: "draw",
-            tip: "Set letter spacing"
+            tip: "设置字间距"
           }).nullable(),
           style: meta(z.string().refine(isLabelStyle), {
             control: "labelStyle",
             label: "Style",
-            tip: "Set text shadow, case and shift"
+            tip: "设置文字阴影、大小写与偏移"
           }).nullable(),
           filter
         })
@@ -530,15 +530,15 @@ export const stylesSchema = z.strictObject({
     }),
     options: z.strictObject({
       columns: number({
-        label: "Column items",
+        label: "每列条目数",
         range: [1, 30],
         step: 1,
-        tip: "Set maximum number of items in one column"
+        tip: "设置单列的最大条目数"
       })
     }),
     groups: z.strictObject({
       box: meta(z.strictObject({ attrs: z.strictObject(fillGroup) }), {
-        label: "Background",
+        label: "背景",
         effect: "draw"
       })
     })
@@ -546,8 +546,8 @@ export const stylesSchema = z.strictObject({
   map: z.strictObject({
     attrs: z.strictObject({
       filter: choice(MAP_FILTERS, {
-        label: "Filter",
-        tip: "Set a filter to be applied to the map in general"
+        label: "滤镜",
+        tip: "设置应用于整张地图的滤镜"
       }).nullable()
     })
   }),
@@ -566,15 +566,15 @@ export const stylesSchema = z.strictObject({
         label: "Marker size",
         range: [1, 12],
         step: 0.5,
-        tip: "Set market marker (circle) size in pixels"
+        tip: "设置市场标记（圆形）的大小（像素）"
       }),
       iconSize: number({
         label: "Icon size",
         range: [1, 20],
         step: 0.5,
-        tip: "Set market marker icon size in pixels"
+        tip: "设置市场标记图标的大小（像素）"
       }),
-      icon: text({ control: "icon", label: "Marker icon", tip: "Set the icon shown inside the market marker" })
+      icon: text({ control: "icon", label: "标记图标", tip: "设置市场标记内部显示的图标" })
     })
   }),
   military: z.strictObject({
@@ -583,7 +583,7 @@ export const stylesSchema = z.strictObject({
       boxSize: number({
         range: [0, 10],
         step: 0.1,
-        tip: "Set regiment box size. All regiments will be redrawn on change (position will defaulted)"
+        tip: "设置军团框大小。更改后所有军团都会重绘（位置将恢复默认）"
       })
     })
   }),
@@ -595,14 +595,14 @@ export const stylesSchema = z.strictObject({
       }),
       pattern: z.strictObject({
         attrs: z.strictObject({
-          href: choice(OCEAN_PATTERNS, { label: "Image", tip: "Select ocean pattern" }),
+          href: choice(OCEAN_PATTERNS, { label: "图像", tip: "选择海洋图案" }),
           opacity
         })
       }),
       oceanLayers: z.strictObject({
         attrs: z.strictObject({ filter }),
         options: z.strictObject({
-          outline: choice(OCEAN_OUTLINES, { label: "Ocean layers", tip: "Define the coast outline contours scheme" })
+          outline: choice(OCEAN_OUTLINES, { label: "海洋图层", tip: "定义海岸轮廓的等高线方案" })
         })
       }),
       oceanWaves
@@ -634,13 +634,13 @@ export const stylesSchema = z.strictObject({
       set: meta(z.enum(RELIEF_SETS), {
         label: "Style",
         effect: "draw",
-        tip: "Select set of relief icons. Existing icons are restyled, not regenerated"
+        tip: "选择地形图标集。已有图标只会换样式，不会重新生成"
       }),
       size: number({
         range: [0.2, 4],
         step: 0.01,
         effect: "draw",
-        tip: "Define the size of relief icons. A render multiplier: the map data is not changed"
+        tip: "设置地形图标的大小。这是渲染倍率，不改动地图数据"
       }),
       density: number({
         range: [0.3, 0.8],
@@ -668,10 +668,10 @@ export const stylesSchema = z.strictObject({
     z.strictObject({
       attrs: z.strictObject({ opacity, fill, "font-size": fontSizePx }),
       options: z.strictObject({
-        barSize: number({ label: "Bar size", range: [0.5, 5], step: 0.1, tip: "Set bar size" }),
-        label: text({ tip: "Type scale bar label, leave blank to hide label" }),
-        x: number({ group: "Position", range: [0, 100], step: 0.1, tip: "Scale bar right edge, in percents" }),
-        y: number({ group: "Position", range: [0, 100], step: 0.1, tip: "Scale bar bottom edge, in percents" })
+        barSize: number({ label: "标尺大小", range: [0.5, 5], step: 0.1, tip: "设置标尺大小" }),
+        label: text({ tip: "输入比例尺文字，留空则隐藏文字" }),
+        x: number({ group: "Position", range: [0, 100], step: 0.1, tip: "比例尺右边缘（百分比）" }),
+        y: number({ group: "Position", range: [0, 100], step: 0.1, tip: "比例尺下边缘（百分比）" })
       }),
       groups: z.strictObject({
         back: meta(
@@ -725,7 +725,7 @@ export const stylesSchema = z.strictObject({
       href: text({
         control: "texture",
         label: "Image",
-        tip: "Select texture image. Big textures can highly affect performance"
+        tip: "选择贴图图像。大贴图会严重影响性能"
       }),
       x: shift("x", 500, 1, "Shift texture by x axis in pixels"),
       y: shift("y", 500, 1, "Shift texture by y axis in pixels")
@@ -737,32 +737,32 @@ export const stylesSchema = z.strictObject({
     options: meta(
       z.strictObject({
         x: variant(percentage, {
-          label: "Position x",
+          label: "X 位置",
           range: [0, 100],
           step: 0.1,
-          tip: "Vignette rectangle x, in percents"
+          tip: "暗角矩形的 X 坐标（百分比）"
         }),
         y: variant(percentage, {
-          label: "Position y",
+          label: "Y 位置",
           range: [0, 100],
           step: 0.1,
-          tip: "Vignette rectangle y, in percents"
+          tip: "暗角矩形的 Y 坐标（百分比）"
         }),
-        width: variant(percentage, { range: [0, 100], step: 0.1, tip: "Vignette rectangle width, in percents" }),
-        height: variant(percentage, { range: [0, 100], step: 0.1, tip: "Vignette rectangle height, in percents" }),
+        width: variant(percentage, { range: [0, 100], step: 0.1, tip: "暗角矩形的宽度（百分比）" }),
+        height: variant(percentage, { range: [0, 100], step: 0.1, tip: "暗角矩形的高度（百分比）" }),
         rx: variant(percentage, {
-          label: "Radius x",
+          label: "X 半径",
           range: [0, 50],
           step: 0.1,
-          tip: "Vignette X radius, in percents"
+          tip: "暗角的 X 半径（百分比）"
         }),
         ry: variant(percentage, {
-          label: "Radius y",
+          label: "Y 半径",
           range: [0, 50],
           step: 0.1,
-          tip: "Vignette Y radius, in percents"
+          tip: "暗角的 Y 半径（百分比）"
         }),
-        filter: variant(blurFilter, { range: [0, 400], step: 1, tip: "Set vignette blur propagation, in pixels" })
+        filter: variant(blurFilter, { range: [0, 400], step: 1, tip: "设置暗角模糊的扩散范围（像素）" })
       }),
       { effect: "draw" }
     )

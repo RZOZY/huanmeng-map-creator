@@ -2,7 +2,7 @@ import Alea from "alea";
 import { curveCatmullRom, line } from "d3";
 import Delaunator from "delaunator";
 import { requireName, requireOneOf } from "@/utils/validationUtils";
-import { distanceSquared, findPath, getAdjective, isLand, ra, rn, round, rw } from "../utils";
+import { distanceSquared, findPath, isLand, ra, rn, round, rw } from "../utils";
 import { meander } from "../utils/pathUtils";
 import type { Burg } from "./burgs-generator";
 import type { Label } from "./labels-generator";
@@ -22,7 +22,7 @@ const ROUTE_TYPE_MODIFIERS: Record<string, number> = {
   default: 8 // far ocean
 };
 
-export const UNNAMED_ROUTE = "Unnamed route segment";
+export const UNNAMED_ROUTE = "未命名路段";
 
 // name generator data
 const models: Record<string, Record<string, number>> = {
@@ -41,135 +41,26 @@ const models: Record<string, Record<string, number>> = {
 };
 
 const prefixes: string[] = [
-  "King",
-  "Queen",
-  "Military",
-  "Old",
-  "New",
-  "Ancient",
-  "Royal",
-  "Imperial",
-  "Great",
-  "Grand",
-  "High",
-  "Silver",
-  "Dragon",
-  "Shadow",
-  "Star",
-  "Mystic",
-  "Whisper",
-  "Eagle",
-  "Golden",
-  "Crystal",
-  "Enchanted",
-  "Frost",
-  "Moon",
-  "Sun",
-  "Thunder",
-  "Phoenix",
-  "Sapphire",
-  "Celestial",
-  "Wandering",
-  "Echo",
-  "Twilight",
-  "Crimson",
-  "Serpent",
-  "Iron",
-  "Forest",
-  "Flower",
-  "Whispering",
-  "Eternal",
-  "Frozen",
-  "Rain",
-  "Luminous",
-  "Stardust",
-  "Arcane",
-  "Glimmering",
-  "Jade",
-  "Ember",
-  "Azure",
-  "Gilded",
-  "Divine",
-  "Shadowed",
-  "Cursed",
-  "Moonlit",
-  "Sable",
-  "Everlasting",
-  "Amber",
-  "Nightshade",
-  "Wraith",
-  "Scarlet",
-  "Platinum",
-  "Whirlwind",
-  "Obsidian",
-  "Ethereal",
-  "Ghost",
-  "Spike",
-  "Dusk",
-  "Raven",
-  "Spectral",
-  "Burning",
-  "Verdant",
-  "Copper",
-  "Velvet",
-  "Falcon",
-  "Enigma",
-  "Glowing",
-  "Silvered",
-  "Molten",
-  "Radiant",
-  "Astral",
-  "Wild",
-  "Flame",
-  "Amethyst",
-  "Aurora",
-  "Shadowy",
-  "Solar",
-  "Lunar",
-  "Whisperwind",
-  "Fading",
-  "Titan",
-  "Dawn",
-  "Crystalline",
-  "Jeweled",
-  "Sylvan",
-  "Twisted",
-  "Ebon",
-  "Thorn",
-  "Cerulean",
-  "Halcyon",
-  "Infernal",
-  "Storm",
-  "Eldritch",
-  "Sapphire",
-  "Crimson",
-  "Tranquil",
-  "Paved"
+  "王之", "后之", "军", "古", "新", "上古", "御", "内廷", "大", "宏", "高", "银", "龙", "影", "星",
+  "玄", "低语", "鹰", "金", "晶", "附魔", "霜", "月", "日", "雷", "凤", "蓝宝", "天", "游", "回声",
+  "暮", "绯", "蛇", "铁", "林", "花", "轻语", "永恒", "冰封", "雨", "流光", "星尘", "秘法", "微光",
+  "玉", "余烬", "青", "鎏金", "神", "幽影", "诅咒", "月华", "玄墨", "永续", "琥珀", "夜影", "幽魂",
+  "猩红", "白金", "旋风", "黑曜", "虚空", "鬼", "尖峰", "昏", "渡鸦", "幽灵", "燃烧", "苍翠", "赤铜",
+  "丝绒", "隼", "谜", "辉光", "镀银", "熔岩", "光辉", "星辰", "荒野", "火焰", "紫晶", "极光", "暗影",
+  "日曜", "月曜", "风语", "凋零", "泰坦", "黎明", "结晶", "缀宝", "林间", "扭曲", "乌木", "荆棘",
+  "天青", "静好", "地狱", "风暴", "诡秘", "蓝宝石", "绯红", "宁静", "铺石"
 ];
 
 const descriptors = [
-  "Great",
-  "Shrouded",
-  "Sacred",
-  "Fabled",
-  "Frosty",
-  "Winding",
-  "Echoing",
-  "Serpentine",
-  "Breezy",
-  "Misty",
-  "Rustic",
-  "Silent",
-  "Cobbled",
-  "Cracked",
-  "Shaky",
-  "Obscure"
+  "大", "笼罩", "神圣", "传说", "霜寒", "蜿蜒", "回响", "蛇形", "微风", "雾霭",
+  "质朴", "寂静", "卵石", "龟裂", "颠簸", "幽暗"
 ];
 
+// 中文后缀：道路用「道/路/大道/官道」，小径用「径/小道/蹊/隘口」，海路用「航线/航道/海峡通道/水路」
 const suffixes: Record<string, Record<string, number>> = {
-  roads: { road: 7, route: 3, way: 2, highway: 1 },
-  trails: { trail: 4, path: 1, track: 1, pass: 1 },
-  searoutes: { route: 5, lane: 2, passage: 1, "water way": 1 }
+  roads: { 道: 7, 路: 3, 大道: 2, 官道: 1 },
+  trails: { 径: 4, 小道: 1, 蹊: 1, 隘口: 1 },
+  searoutes: { 航线: 5, 航道: 2, 海峡通道: 1, 水路: 1 }
 };
 
 export interface Route {
@@ -1004,7 +895,7 @@ class RoutesModule {
       const priority = [points.at(-1), points.at(0), points.slice(1, -1).reverse()];
       for (const [_x, _y, cellId] of priority as [number, number, number][]) {
         const burgId = pack.cells.burg[cellId];
-        if (burgId) return getAdjective(pack.burgs[burgId].name!);
+        if (burgId) return pack.burgs[burgId].name!;
       }
       return null;
     }
@@ -1012,13 +903,14 @@ class RoutesModule {
     const model = rw(models[group] || models.roads);
     const suffix = rw(suffixes[group] || suffixes.roads);
 
+    // 中文不用 "The" 与空格，直接按「修饰 + 主体 + 后缀」拼接
     const burgName = getBurgName();
     if (burgName) {
-      if (model === "burg_suffix") return `${burgName} ${suffix}`;
-      if (model === "the_descriptor_burg_suffix") return `The ${ra(descriptors)} ${burgName} ${suffix}`;
+      if (model === "burg_suffix") return `${burgName}${suffix}`;
+      if (model === "the_descriptor_burg_suffix") return `${ra(descriptors)}${burgName}${suffix}`;
     }
-    if (model === "the_descriptor_prefix_suffix") return `The ${ra(descriptors)} ${ra(prefixes)} ${suffix}`;
-    return `${ra(prefixes)} ${suffix}`; // no burg on the route, fall back to the burg-free model
+    if (model === "the_descriptor_prefix_suffix") return `${ra(descriptors)}${ra(prefixes)}${suffix}`;
+    return `${ra(prefixes)}${suffix}`; // no burg on the route, fall back to the burg-free model
   }
 
   private ROUTE_CURVES: Record<string, any> = {

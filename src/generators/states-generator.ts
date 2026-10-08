@@ -27,9 +27,18 @@ import type { Label } from "./labels-generator";
 import type { Regiment } from "./military-generator";
 import { Population } from "./population-generator";
 import type { Province } from "./provinces-generator";
+import { formNameZh } from "@/i18n/form-names";
 
 declare global {
   var States: StatesModule;
+}
+
+
+
+/** 中文全名不加空格；名称本身已带形式后缀时不再重复 */
+function composeFullName(name: string, formName: string): string {
+  const display = formNameZh(formName);
+  return name.endsWith(display) ? name : `${name}${display}`;
 }
 
 export interface State {
@@ -294,7 +303,7 @@ class StatesModule {
   }
 
   private createStates() {
-    const states: State[] = [{ i: 0, name: "Neutrals", salesTax: 0, pollTax: 0, treasury: 0 } as State];
+    const states: State[] = [{ i: 0, name: "中立势力", salesTax: 0, pollTax: 0, treasury: 0 } as State];
     const each5th = each(5);
     const sizeVariety = options.generation.states.sizeVariety;
 
@@ -667,9 +676,9 @@ class StatesModule {
       const dd = states[defender].diplomacy as string[]; // defender relations;
 
       // start an ongoing war
-      const name = `${an}-${trimVowels(dn)}ian War`;
+      const name = `${an}与${dn}的战争`;
       const start = options.map.lore.calendar.year - gauss(2, 3, 0, 10);
-      const war = [name, `${an} declared a war on its rival ${dn}`];
+      const war = [name, `${an}向竞争对手${dn}宣战`];
       const campaign: Campaign = { name, start, attacker, defender };
       states[attacker].campaigns!.push(campaign);
       states[defender].campaigns!.push(campaign);
@@ -916,30 +925,10 @@ class StatesModule {
   }
 
   getFullName(state: State) {
-    // state forms requiring Adjective + Name, all other forms use scheme Form + Of + Name
-    const adjForms = [
-      "Empire",
-      "Sultanate",
-      "Khaganate",
-      "Shogunate",
-      "Caliphate",
-      "Despotate",
-      "Theocracy",
-      "Oligarchy",
-      "Union",
-      "Confederation",
-      "Trade Company",
-      "League",
-      "Tetrarchy",
-      "Triumvirate",
-      "Diarchy",
-      "Horde",
-      "Marches"
-    ];
     if (!state.formName) return state.name;
-    if (!state.name && state.formName) return `The ${state.formName}`;
-    const adjName = adjForms.includes(state.formName) && !/-| /.test(state.name);
-    return adjName ? `${getAdjective(state.name)} ${state.formName}` : `${state.formName} of ${state.name}`;
+    // 中文语序统一为「名称 + 形式名」，不再用 The X / X of Y 这类英文模板
+    if (!state.name) return composeFullName("", state.formName);
+    return composeFullName(state.name, state.formName);
   }
 
   /** Rename a state; a custom full name or label keeps its pattern when the old name stands in it as a whole word */
@@ -1012,13 +1001,13 @@ class StatesModule {
     const subject = pack.states[subjectId].name;
     const object = pack.states[objectId].name;
     const { title, text } = RELATIONS[newRelation].event ?? {
-      title: "Relations change",
-      text: () => `${subject}-${getAdjective(object)} relations changed to ${newRelation.toLowerCase()}`
+      title: "关系变更",
+      text: () => `${subject}与${object}的关系变为${RELATIONS[newRelation]?.zh ?? newRelation}`,
     };
     if (oldRelation !== "Enemy") return [title, text(subject, object)];
     return [
-      "War termination",
-      `${subject} and ${object} agreed to cease fire and signed a peace treaty`,
+      "停战",
+      `${subject}与${object}停火并缔结和约`,
       text(subject, object)
     ];
   }
@@ -1201,7 +1190,7 @@ class StatesModule {
       burg,
       name: state.name,
       formName,
-      fullName: `${state.name} ${formName}`,
+      fullName: composeFullName(state.name, formName),
       color: getMixedColor(state.color!),
       coa: state.coa
     } as Province);
@@ -1338,7 +1327,7 @@ class StatesModule {
         burg: burgId,
         name,
         formName,
-        fullName: `${name} ${formName}`,
+        fullName: composeFullName(name, formName),
         color: getMixedColor(states[stateId].color!),
         coa
       } as Province);

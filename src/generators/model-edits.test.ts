@@ -108,7 +108,7 @@ describe("state forms", () => {
       states: [{ i: 0 }, { i: 1, name: "Orwin", form: "Monarchy", formName: "Kingdom", fullName: "Kingdom of Orwin" }]
     });
     States.setForm(1, "Free City");
-    expect(pack.states[1]).toMatchObject({ form: "Republic", formName: "Free City", fullName: "Free City of Orwin" });
+    expect(pack.states[1]).toMatchObject({ form: "Republic", formName: "Free City", fullName: "Orwin自由市" });
     States.setForm(1, "Holy Dominion");
     expect(pack.states[1]).toMatchObject({ form: "Republic", formName: "Holy Dominion" });
     States.setForm(1, "Holy Dominion", "Theocracy");
@@ -298,7 +298,7 @@ describe("States", () => {
     States.setRelation(2, 1, "Vassal");
     expect(pack.states[2].diplomacy![1]).toBe("Vassal");
     expect(pack.states[1].diplomacy![2]).toBe("Suzerain");
-    expect(States.getChronicle().at(-1)).toEqual(["Vassalization", "Kahor became a vassal of Orwin"]);
+    expect(States.getChronicle().at(-1)).toEqual(["成为附庸", "Kahor成为Orwin的附庸"]);
     expect(() => States.setRelation(1, 2, "Besties")).toThrow("The relation must be one of");
     expect(() => States.setRelation(1, 1, "Ally")).toThrow("two different states");
   });
@@ -350,7 +350,7 @@ describe("Provinces", () => {
 
   it("setForm rebuilds the full name, setCapital takes a burg inside, remove frees the cells", () => {
     Provinces.setForm(1, "Duchy");
-    expect(pack.provinces[1].fullName).toBe("Vel Duchy");
+    expect(pack.provinces[1].fullName).toBe("Vel公国");
     Provinces.setCapital(1, 3);
     expect(pack.provinces[1]).toMatchObject({ burg: 3, center: 1 });
     expect(() => Provinces.setCapital(1, 1)).toThrow("not in province 1");

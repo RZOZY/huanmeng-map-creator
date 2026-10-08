@@ -73,11 +73,11 @@ describe("styles schema metadata", () => {
     expect(byPath["zones.attrs.stroke-width"].spec).toMatchObject({ kind: "slider", min: 0, max: 10, nullAs: 0 });
     expect(byPath["zones.attrs.filter"].spec.kind).toBe("filter");
     expect(byPath["zones.attrs.stroke-dasharray"].spec.kind).toBe("dash");
-    expect(byPath["zones.attrs.mask"].spec).toMatchObject({ kind: "select", label: "Clip" });
+    expect(byPath["zones.attrs.mask"].spec).toMatchObject({ kind: "select", label: "裁剪" });
     expect(byPath["fogging.attrs.mask"].hidden).toBe(true);
     expect(byPath["temperature.attrs.font-size"].spec).toMatchObject({ kind: "px", min: 1, max: 40 });
     expect(byPath["labels.groups.*.attrs.font-size"].spec).toMatchObject({ kind: "percent", group: "Font" });
-    expect(byPath["vignette.options.x"].spec).toMatchObject({ kind: "percent", label: "Position x", min: 0, max: 100 });
+    expect(byPath["vignette.options.x"].spec).toMatchObject({ kind: "percent", label: "X 位置", min: 0, max: 100 });
     expect(byPath["compass.groups.compassRose.attrs.transform"].spec.kind).toBe("transform");
     expect(byPath["labels.groups.*.attrs.style"].spec.kind).toBe("labelStyle");
     expect(byPath["labels.groups.*.attrs.font-weight"].spec).toMatchObject({
@@ -87,9 +87,9 @@ describe("styles schema metadata", () => {
     expect(byPath["heightmap.groups.landHeights.options.scheme"].spec.kind).toBe("scheme");
     expect(byPath["texture.options.href"].spec.kind).toBe("texture");
     expect(byPath["markets.options.icon"].spec.kind).toBe("icon");
-    expect(byPath["map.attrs.filter"].spec).toMatchObject({ kind: "select", nullable: true, label: "Filter" });
-    expect(byPath["ocean.groups.pattern.attrs.href"].spec).toMatchObject({ kind: "select", label: "Image" });
-    expect(byPath["legend.attrs.font-size"].spec).toMatchObject({ kind: "px", group: undefined, label: "Size" });
+    expect(byPath["map.attrs.filter"].spec).toMatchObject({ kind: "select", nullable: true, label: "滤镜" });
+    expect(byPath["ocean.groups.pattern.attrs.href"].spec).toMatchObject({ kind: "select", label: "图像" });
+    expect(byPath["legend.attrs.font-size"].spec).toMatchObject({ kind: "px", group: undefined, label: "大小" });
     expect(byPath["states.groups.statesHalo.attrs.stroke-width"].spec).toMatchObject({
       kind: "slider",
       min: 0,
@@ -111,15 +111,16 @@ describe("styles schema metadata", () => {
   });
 
   test("labels come from the meta or the key, and read under their group or row", () => {
-    expect(byPath["zones.attrs.stroke-width"].spec).toMatchObject({ group: "Stroke", label: "Width" });
+    expect(byPath["zones.attrs.stroke-width"].spec).toMatchObject({ group: "Stroke", label: "宽度" });
+    // 该标签是从键名派生的兜底值（strokes 的 meta 只覆盖了 zones），界面上由运行时字典翻成中文
     expect(byPath["temperature.attrs.stroke-opacity"].spec).toMatchObject({ group: "Stroke", label: "Opacity" });
     expect(byPath["burgIcons.groups.*.groups.anchors.options.dx"].spec).toMatchObject({
       kind: "slider",
-      label: "Shift x",
+      label: "水平偏移",
       nullAs: 0
     });
-    expect(byPath["heightmap.groups.landHeights.options.skip"].spec.label).toBe("Reduce layers");
-    expect(byPath["heightmap.groups.landHeights.options.relax"].spec.label).toBe("Simplify");
+    expect(byPath["heightmap.groups.landHeights.options.skip"].spec.label).toBe("减少图层数");
+    expect(byPath["heightmap.groups.landHeights.options.relax"].spec.label).toBe("简化");
   });
 
   test("no label needs a second line: the column holds 13 characters", () => {
@@ -129,6 +130,6 @@ describe("styles schema metadata", () => {
 
   test("tips survive on the fields the classic tab described", () => {
     expect(byPath["relief.options.density"].spec.tip).toMatch(/regenerated/);
-    expect(byPath["grid.options.scale"].spec.tip).toBe("Set grid cells scale multiplier");
+    expect(byPath["grid.options.scale"].spec.tip).toBe("设置网格单元的缩放倍率");
   });
 });

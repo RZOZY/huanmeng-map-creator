@@ -1896,7 +1896,15 @@ export async function resolveVersionConflicts(mapVersion: string, data: string[]
 
       // a note titled differently from its entity keeps that title as a heading, so nothing is lost.
       // an untitled note was titled with its own element id, which is no title at all
-      const named = note.name === note.id || note.name === MapEntities.getName(ref) || note.name === shortName(ref);
+      // 旧存档里河流的显示名是「名称 + 类型」（如 "Ald River"）；现在只显示名称，
+      // 所以两种写法都算「以自己名字命名的笔记」，否则会给旧笔记多加一级标题
+      const river = ref.type === "river" ? pack.rivers?.[ref.id] : undefined;
+      const legacyRiverName = river ? `${MapEntities.getName(ref)} ${river.type ?? ""}`.trim() : "";
+      const named =
+        note.name === note.id ||
+        note.name === MapEntities.getName(ref) ||
+        note.name === shortName(ref) ||
+        (legacyRiverName !== "" && note.name === legacyRiverName);
       const heading = note.name && !named ? `<h3>${note.name}</h3>` : "";
       if (!Notes.append(ref, note.legend && `${heading}${note.legend}`) && ref.type !== "regiment") orphan(note);
     }

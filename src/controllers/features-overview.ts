@@ -34,6 +34,7 @@ import {
   getVertexPath,
   si
 } from "@/utils";
+import { featureSubtypeZh } from "@/generators/features-generator";
 
 const dialogId = "featuresOverview" as const;
 const position = { my: "right top", at: "right-10 top+10", of: "svg", collision: "fit" };
@@ -232,7 +233,7 @@ function renderGroupCell(feature: Feature, lakeGroups: string[]): string {
 // "Freshwater lake", "Isle", "Lake island", "Sea"
 function getTypeLabel(feature: Pick<Feature, "type" | "subtype">): string {
   const subtype = feature.subtype?.replace("_", " ");
-  if (feature.type === "lake") return capitalize(`${subtype} ${feature.type}`);
+  if (feature.type === "lake") return `${featureSubtypeZh(subtype)}湖泊`;
   return capitalize(subtype || feature.type);
 }
 

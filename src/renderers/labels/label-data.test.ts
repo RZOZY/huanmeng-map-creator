@@ -98,7 +98,7 @@ describe("labels index", () => {
     const index = getLabelsIndex();
     expect(index.map(label => [label.id, label.text])).toEqual([
       ["stateLabel1", "Kingdom of West"],
-      ["riverLabel1", "Kobat River"]
+      ["riverLabel1", "Kobat"]
     ]);
     expect(index.find(label => label.type === "river")?.anchor).toEqual([10, 10]);
     expect(fitStateLabel).not.toHaveBeenCalled();

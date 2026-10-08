@@ -5,20 +5,20 @@ import type { IconAlias, IconSet } from "@/types/icons";
 import { minmax, rn } from "@/utils";
 
 const TYPES = [
-  { type: "mount", label: "Mountain", variants: 6 },
-  { type: "mountSnow", label: "Snowy mountain", variants: 6, fallback: "mount" },
-  { type: "vulcan", label: "Volcano", variants: 3, fallback: "mount" },
-  { type: "hill", label: "Hill", variants: 4 },
-  { type: "dune", label: "Dune", variants: 1 },
-  { type: "deciduous", label: "Deciduous tree", variants: 2 },
-  { type: "conifer", label: "Conifer", variants: 1 },
-  { type: "coniferSnow", label: "Snowy conifer", variants: 1, fallback: "conifer" },
-  { type: "acacia", label: "Acacia", variants: 1 },
-  { type: "palm", label: "Palm", variants: 1 },
-  { type: "grass", label: "Grass", variants: 1 },
-  { type: "swamp", label: "Swamp", variants: 2 },
-  { type: "cactus", label: "Cactus", variants: 3, fallback: "dune" },
-  { type: "deadTree", label: "Dead tree", variants: 2, fallback: "dune" }
+  { type: "mount", label: "山", variants: 6 },
+  { type: "mountSnow", label: "雪山", variants: 6, fallback: "mount" },
+  { type: "vulcan", label: "火山", variants: 3, fallback: "mount" },
+  { type: "hill", label: "丘陵", variants: 4 },
+  { type: "dune", label: "沙丘", variants: 1 },
+  { type: "deciduous", label: "阔叶树", variants: 2 },
+  { type: "conifer", label: "针叶树", variants: 1 },
+  { type: "coniferSnow", label: "雪松", variants: 1, fallback: "conifer" },
+  { type: "acacia", label: "金合欢", variants: 1 },
+  { type: "palm", label: "棕榈", variants: 1 },
+  { type: "grass", label: "草", variants: 1 },
+  { type: "swamp", label: "沼泽", variants: 2 },
+  { type: "cactus", label: "仙人掌", variants: 3, fallback: "dune" },
+  { type: "deadTree", label: "枯树", variants: 2, fallback: "dune" }
 ] as const;
 
 export type ReliefSet = (typeof RELIEF_SETS)[number];

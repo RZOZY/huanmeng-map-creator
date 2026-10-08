@@ -41,7 +41,7 @@ function open(id: number | string): void {
   updateBurgValues();
 
   $("#burgEditor").dialog({
-    title: "Edit Burg",
+    title: "编辑城镇",
     resizable: false,
     close: closeBurgEditor,
     position: { my: "left top", at: "left+10 top+10", of: "svg", collision: "fit" }
@@ -120,7 +120,7 @@ function renderDialog(): void {
             </div>
             <div data-tip="Burg height above mean sea level">
               <div class="label">Elevation:</div>
-              <span id="burgElevation"></span> above sea level
+              <span id="burgElevation"></span> 米（海拔）
             </div>
             <div>
               <div class="label">Features:</div>
