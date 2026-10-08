@@ -3,13 +3,13 @@
   "productName": "幻梦地图生成器",
   "version": "1.154.0",
   "description": "幻梦地图生成器 —— 基于 Azgaar's Fantasy Map Generator 的中文奇幻地图生成器",
-  "homepage": "https://github.com/Azgaar/Fantasy-Map-Generator#readme",
+  "homepage": "https://github.com/RZOZY/humeng-map-generator#readme",
   "bugs": {
-    "url": "https://github.com/Azgaar/Fantasy-Map-Generator/issues"
+    "url": "https://github.com/RZOZY/humeng-map-generator/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Azgaar/Fantasy-Map-Generator.git"
+    "url": "git+https://github.com/RZOZY/humeng-map-generator.git"
   },
   "license": "MIT",
   "author": "Azgaar",

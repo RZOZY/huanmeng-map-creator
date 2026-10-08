@@ -37,6 +37,10 @@ nsis:
   allowToChangeInstallationDirectory: true
   # otherwise a third installer carrying both architectures is built next to the per-arch ones
   buildUniversalInstaller: false
+# 默认不自动发布：本项目只发便携 ZIP，NSIS 会被 Defender 误报
+# 需要发布时显式传 --publish always
 publish:
   provider: github
   releaseType: draft
+  owner: RZOZY
+  repo: humeng-map-generator
