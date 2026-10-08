@@ -37,6 +37,9 @@ const PATTERNS: [RegExp, string][] = [
   [/^(.*)\. Click to view$/, "$1. 点击查看"],
   [/^(.*)\. Click to edit$/, "$1. 点击编辑"],
   [/^(.*)\. Shortcut: (.*)$/, "$1. 快捷键: $2"],
+  // 窗口标题：\`\${产品名} v\${版本}\`，版本会随上游走，用模式匹配而非写死
+  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "幻梦地图生成器 v$1"],
+  [/^Azgaar's Fantasy Map Generator$/, "幻梦地图生成器"],
   // 省份/国家提示：`${名称} ${形式名}, ${所属国家}`
   [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2, $3"],
   // 编辑器的实体提示
@@ -139,12 +142,20 @@ export function rescan(): void {
     scheduled = false;
     walk(document.body);
     translateLayerButtons();
+    translateDocumentTitle();
   });
+}
+
+/** 窗口标题在 <head> 的 <title> 里，不在 body 内，需要单独处理 */
+function translateDocumentTitle(): void {
+  const hit = translate(document.title);
+  if (hit) document.title = hit;
 }
 
 function install(): void {
   walk(document.body);
   translateLayerButtons();
+  translateDocumentTitle();
   new MutationObserver(mutations => {
     for (const mutation of mutations) {
       if (mutation.type === "characterData") {

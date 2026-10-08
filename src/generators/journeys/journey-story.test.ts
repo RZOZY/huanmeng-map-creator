@@ -193,14 +193,14 @@ describe("generateStoryJourney", () => {
 
 /** Types kept in the default list for modern maps, which generation must never reach for on its own */
 const MODERN_TYPES = [
-  "Train",
-  "Automobile",
-  "Modern Automobile",
-  "Steamship",
-  "Modern Ship",
-  "Aircraft",
-  "Helicopter",
-  "Modern Airplane"
+  "火车",
+  "汽车",
+  "现代汽车",
+  "蒸汽船",
+  "现代轮船",
+  "飞行器",
+  "直升机",
+  "现代飞机"
 ];
 
 describe("archetype transport preferences", () => {

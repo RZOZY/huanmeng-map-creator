@@ -1,262 +1,261 @@
-# Configuration
+# Configuration ｜ 配置
 
-There is **one configuration object**. `options` holds everything the user can set, in three
-sections with one storage location, one schema and one model:
+只存在**一个配置对象**。`options` 保存用户可设置的一切，分为三个
+部分，共用一个存储位置、一个 schema 和一个模型：
 
-| Section              | Answers                                  | In the `.map`?                          |
+| 部分              | 回答什么                                  | 在 `.map` 中？                          |
 | -------------------- | ---------------------------------------- | --------------------------------------- |
-| `options.map`        | what is true about the map on screen     | yes — it _is_ the file's settings block |
-| `options.generation` | what to ask the generators for next time | never                                   |
-| `options.app`        | how this browser behaves                 | never                                   |
+| `options.map`        | 屏幕上地图的真实状况     | 是——它_就是_该文件的设置块 |
+| `options.generation` | 下次向生成器请求什么 | 从不                                   |
+| `options.app`        | 这个浏览器的行为方式                 | 从不                                   |
 
-The whole object lives in `localStorage` under `fmg-options`, except `options.map.customIcons`: pictures
-outgrow `localStorage`, so this browser keeps them in IndexedDB under `fmg-custom-icons`. `Options.restoreIcons`
-reads them at boot, after `Options.restore`, and no icons are written before that read succeeds, so a database that
-cannot open never loses the ones it holds. `options.map` is also, byte for
-byte, what a `.map` file stores in its settings block: saving writes that object and loading
-replaces it, so the two cannot drift apart. There is no second object and no conversion.
+整个对象位于 `localStorage` 中的 `fmg-options` 下，但 `options.map.customIcons` 例外：图片会
+超出 `localStorage` 的容量，因此该浏览器将它们保存在 IndexedDB 中的 `fmg-custom-icons` 下。`Options.restoreIcons`
+在启动时、`Options.restore` 之后读取它们，且在该读取成功之前不会写入任何图标，因此一个
+无法打开的数据库绝不会丢失它所保存的图标。`options.map` 还逐字节地
+等同于 `.map` 文件在其设置块中存储的内容：保存会写入该对象，加载会
+替换它，因此两者不会出现偏差。不存在第二个对象，也不存在转换。
 
-`options.map` is [map config](./architecture.md#two-scopes-of-configuration) and is serialized to
-`map.facts` beside `meta`, `layers`, `style` and `data` — see
-[future-data-model.md](./future-data-model.md).
+`options.map` 是[地图配置](./architecture.md#two-scopes-of-configuration)，被序列化到
+`map.facts`，与 `meta`、`layers`、`style` 和 `data` 并列——见
+[future-data-model.md](./future-data-model.md)。
 
-The shape is `options-schema.ts` and the model is `options-model.ts`; this page is why they look
-the way they do, not a copy of what they contain.
-
----
-
-## Principles
-
-1. **Options are primary.** Every value the UI shows and every value the app reads is in
-   `options`. A `.map` file is where one of its sections is written down, not a second store the
-   app keeps in step.
-2. **A section decides a lifetime, not a panel.** `map` is replaced by every load and
-   re-established by every generation; `generation` and `app` outlive both.
-3. **`generation` holds requests; `map` holds what happened.** Where a request and a result both
-   exist they are different values in different sections with different names. Never two copies of
-   one value, and never two forms of one — a density step and the cell count it stands for are the
-   same request said twice, so only the step is stored.
-4. **A value belongs in `map` if and only if the map cannot be operated correctly without it.**
-5. **The model is the store.** `options` is a global the model declares and initializes, written
-   plainly — `options.map.units.area.unit = …` — because a value takes effect where it is written.
-   What remembers it is `Options.save()` (debounced) or `Options.persist()` for the few places that
-   must not wait: boot, reset, and the end of a generation or a load.
-6. **Validate at the boundary and replace, never merge.** Anything arriving from `localStorage` or
-   a `.map` is parsed against the schema before it is adopted, and adoption swaps the section
-   wholesale. Merging lets one map inherit another's values.
-7. **The panel is a view.** Reading or writing a configuration value never requires a panel to be
-   open, and the DOM is never the source of truth.
+结构定义是 `options-schema.ts`，模型是 `options-model.ts`；本页解释它们为何是
+现在这样，而不是复制它们的内容。
 
 ---
 
-## The test
+## Principles ｜ 原则
 
-> Does anything other than a deliberate regeneration of that element need this value?
+1. **选项是首要的。** UI 显示的每个值和应用读取的每个值都在
+   `options` 中。`.map` 文件只是其中一个部分被写下来的地方，而不是应用需要
+   保持同步的第二个存储。
+2. **由部分决定生命周期，而非由面板决定。** `map` 会在每次加载时被替换，并在每次生成时
+   重新建立；`generation` 和 `app` 的寿命比两者都长。
+3. **`generation` 保存请求；`map` 保存实际发生的结果。** 当请求和结果同时
+   存在时，它们是不同部分中名称不同的不同值。绝不对一个值保留两份副本，
+   也绝不保留一个值的两种形式——密度档位与其所代表的单元格数量是同一个请求
+   说了两遍，因此只存储档位。
+4. **当且仅当地图离开某个值便无法被正确操作时，该值才属于 `map`。**
+5. **模型即存储。** `options` 是模型声明并初始化的全局对象，写入方式很直白
+   ——`options.map.units.area.unit = …`——因为值在哪里写入就在哪里生效。
+   记住它的是 `Options.save()`（防抖），或在少数不能等待的地方使用 `Options.persist()`：
+   启动、重置，以及一次生成或加载结束时。
+6. **在边界处校验并替换，绝不合并。** 任何来自 `localStorage` 或 `.map` 的内容在
+   被采用之前都会对照 schema 解析，采用时会整体替换该部分。合并会让一张地图
+   继承另一张地图的值。
+7. **面板只是视图。** 读取或写入配置值从不需要面板处于
+   打开状态，DOM 也绝不是事实来源。
 
-If yes, it belongs in `map`. If the only reader is the generator that produces the element, and
-that generator only runs when the user asks for it, it is a **request** and belongs in
-`generation`. The distinction that matters is **regeneration** (the user asks for a new version of
-something and accepts current settings) versus **recalculation and rendering** (the map must keep
-behaving like itself).
+---
 
-| Value                | Read by                                                | Section      |
+## The test ｜ 检验
+
+> 除了刻意重新生成该元素之外，还有别的东西需要这个值吗？
+
+如果是，它就属于 `map`。如果唯一的读取者是生成该元素的生成器，且
+该生成器只在用户请求时运行，那么它就是一个**请求**，属于
+`generation`。真正重要的区分是**重新生成**（用户请求某个东西的新版本
+并接受当前设置）与**重新计算和渲染**（地图必须继续
+表现得像它自己）。
+
+| 值                | 读取者                                                | 部分      |
 | -------------------- | ------------------------------------------------------ | ------------ |
-| `states.growthRate`  | only the states generator, whenever it is asked to run | `generation` |
-| heightmap template   | the generators that raise the terrain, while they run  | `generation` |
-| `cultures.set`       | marker generation branches on it long after generation | `map`        |
-| `coastline`          | building a feature path at render time                 | `map`        |
-| `relief.rules`       | re-placing a pool's relief long after generation       | `map`        |
-| `graph.width/height` | every latitude, longitude and full-map cover           | `map`        |
-| 3D erosion detail    | the 3D renderer, this session only                     | `app`        |
+| `states.growthRate`  | 只有国家生成器，在它被要求运行时 | `generation` |
+| heightmap template   | 在运行时抬升地形的那些生成器  | `generation` |
+| `cultures.set`       | 标记生成在生成很久之后仍以它分支 | `map`        |
+| `coastline`          | 渲染时构建地物路径                 | `map`        |
+| `relief.rules`       | 在生成很久之后重新放置某个池的地形起伏       | `map`        |
+| `graph.width/height` | 每个纬度、经度和全图覆盖           | `map`        |
+| 3D erosion detail    | 3D 渲染器，仅本次会话                     | `app`        |
 
-Counts, rates, ratios and varieties are spent when the generator runs, so they are rarely map
-values. What survives is what **other** things read: `cultures.set` is in `map` and
-`cultures.growthRate` is not, because marker and name generation still branch on the set long after
-the cultures are drawn. And what produced something is not what describes it — the heightmap
-template raised the terrain and is never consulted again.
-
----
-
-## The three sections
-
-**`options.map`** is cell-independent map data: the seed, the graph extent, where the map sits on
-the globe and the climate that produced its per-cell values, the culture set, lore, units, the
-style preset, the definition sets, the coastline settings the renderer reads, and the relief rules. Everything keyed
-by cell lives in `data` instead.
-
-Some of it is **derived** — `geography.coordinates` is computed from `mapSize`, `latitude`,
-`longitude` and the aspect ratio. A derived value is re-derived **the moment any of its inputs
-changes**, not when someone needs the result, which is what makes the stored value trustworthy. It
-is serialized, and a load takes it as the file gives it; a file too old to carry it gets one
-computed on load. A derived value must stay recomputable, so nothing is lost if the cache is
-dropped.
-
-**`options.generation`** is the requests: the graph to build, entity counts, ratios, rates and
-varieties, culture set and template for the next map. Note the deliberate pair —
-`generation.graph.{width,height,density}` is the graph asked for and `map.graph.{width,height,points}`
-is the one that was built. Changing the request does not touch the map on screen. World-position
-requests are nullable: `null` means automatic, a number fixes that input, and the resolved numbers
-land in `map.geography`, which keeps lock handling out of terrain generation.
-
-**`options.app`** is the preferences: they take effect immediately and generate nothing.
-Two rules keep the boundary sharp. **"Show all regardless of zoom" is a preference** —
-`labels.showAll` turns off zoom culling for this browser; the map's own typography lives in the
-style record. And **a preference the user has not set
-is `null`, not a guess** — interface size follows the screen and the viewport follows the window
-until someone chooses otherwise, so a control's reset writes `null` rather than today's number.
-
-The **viewport** is the clearest case of the last rule, and the one most often confused with the
-extent: the extent is the coordinate space the map's geometry lives in, fixed for the life of its
-graph and asked for before the map exists; the viewport is the screen window onto it.
-
-Neither bounds the other; the **zoom floor** is what reconciles them, and it is derived from the
-two rather than configured: `max(viewport.width / extent.width, viewport.height / extent.height)`,
-rounded up. A map opened on a screen bigger than the one it was made on is scaled up until it
-covers the window; a map bigger than the window zooms out below 1 until it fits. Either way there
-is never canvas beside the map, and a map opens at that floor - the fitted view - whatever window
-size it was saved on.
-
-`app.zoomExtent.min` is therefore a derived value the canvas writes and the panel displays, not a
-request the user makes: it is recomputed whenever the viewport or the extent changes. Typing a
-value into the control still applies it, and it stands until the next fit re-derives it.
-
-### The definition sets
-
-Military unit types, transport types, burg groups, label groups, the custom icons and the coastline
-settings sit in `options.map` however much they look like user settings, because **entities point at
-them by name or id**: a set that travels separately from its entities opens a map with unresolved
-references.
-
-They are also the set the **next** map starts from: they survive a refresh because they are in
-`options`, and `Options.randomize()` carries them across explicitly while resetting everything else
-in `options.map`. A set is never empty — the boundary repairs one that arrives empty from the
-module that owns it, because a label type with no group draws no labels. The custom icons are the
-exception: a map may carry none.
-
-### Locks
-
-A lock pins a value so a new map does not re-roll it. It stores **the value**, in a store of its
-own: `options.map` is replaced wholesale by every load and every generation, so a pin that named
-only a key would not survive one. Lock keys are a stable UI vocabulary independent of the object
-paths — renaming one invalidates a user's pins — and each maps to the same schema node that
-validates the option it pins.
-
-The options model resolves every pin; generators never read one. A dialog owns the icons it shows
-and answers for the value each stands for. A lock is a boundary like any other: an unknown key is
-never pinned, and a pinned value its schema rejects is ignored rather than written into the map. A
-preference is never pinnable, because nothing re-rolls it.
-
-One predicate bypasses the whole store, for `?options=default`. It ignores the pins, not this
-browser's stored requests, so it is not a reset: a request nothing re-rolls still stands at what the
-user last set.
+计数、比率、比例和多样性在生成器运行时就被消耗掉，因此它们很少是地图
+值。留存下来的是**其他**东西会读取的内容：`cultures.set` 在 `map` 中，而
+`cultures.growthRate` 不在，因为标记和名称生成在文化绘制完成很久之后
+仍以该集合分支。而且，产生某物的东西并不等同于描述它的东西——高度图
+模板抬升了地形，之后就再也不会被查询。
 
 ---
 
-## Storage scopes
+## The three sections ｜ 三个部分
 
-| Scope         | Key                                     | In the `.map`? |
+**`options.map`** 是与单元格无关的地图数据：种子、图的范围、地图位于
+地球上的位置以及产生其逐单元格值的气候、文化集合、传说、单位、
+样式预设、定义集、渲染器读取的海岸线设置，以及地形起伏规则。所有以单元格为键的内容
+则位于 `data` 中。
+
+其中一些是**派生**的——`geography.coordinates` 由 `mapSize`、`latitude`、
+`longitude` 和宽高比计算得出。派生值会在**其任何输入发生变化的那一刻**重新推导，
+而不是在有人需要结果时才推导，这正是存储值可信的原因。它
+会被序列化，加载时按文件给出的内容接收；太旧而无法携带它的文件会在加载时
+计算得到。派生值必须保持可重新计算，因此即使缓存被丢弃也不会有任何损失。
+
+**`options.generation`** 是请求：要构建的图、实体数量、比例、比率和
+多样性、下一张地图的文化集合和模板。注意这对刻意的对应——
+`generation.graph.{width,height,density}` 是所请求的图，而 `map.graph.{width,height,points}`
+是实际构建出来的图。更改请求不会影响屏幕上的地图。世界位置
+请求可为空：`null` 表示自动，数字则固定该输入，解析出的数字
+落在 `map.geography` 中，这使锁定处理不必进入地形生成。
+
+**`options.app`** 是偏好设置：它们立即生效，且不生成任何东西。
+有两条规则让边界保持清晰。**“无论缩放都显示全部”是一种偏好**——
+`labels.showAll` 为该浏览器关闭缩放剔除；地图自身的排版位于
+样式记录中。而且**用户未设置的偏好
+是 `null`，而不是猜测值**——界面大小跟随屏幕，视口跟随窗口，
+直到有人另行选择，因此控件的重置会写入 `null`，而不是当天的数字。
+
+**视口**是最后一条规则最清晰的例子，也是最常与范围混淆的概念：
+范围是地图几何所处的坐标空间，在其图的整个生命周期内固定，
+且在地图存在之前就被请求；视口则是通往它的屏幕窗口。
+
+两者互不限定；**缩放下限**才是调和它们的东西，它由这两者
+推导而来，而非配置：`max(viewport.width / extent.width, viewport.height / extent.height)`，
+向上取整。在比制作时更大的屏幕上打开地图时，地图会放大直到
+覆盖窗口；比窗口更大的地图会缩小到 1 以下直到适配。无论哪种情况，
+地图旁边都不会出现画布空白，地图会在该下限——即适配后的视图——打开，无论它保存时
+的窗口大小如何。
+
+因此，`app.zoomExtent.min` 是一个由画布写入、面板显示的派生值，而不是
+用户发出的请求：每当视口或范围变化时都会重新计算。在控件中
+输入值仍然会使其生效，并且它会保持有效，直到下一次适配重新推导它。
+
+### The definition sets ｜ 定义集
+
+军事单位类型、运输类型、城镇分组、标签分组、自定义图标和海岸线
+设置都位于 `options.map`，无论它们看起来多么像用户设置，因为**实体按名称或 id 指向
+它们**：与其实体分离传输的集合会在打开地图时留下无法解析的
+引用。
+
+它们也是**下一张**地图的起点：因为位于 `options` 中，它们能在刷新后
+保留下来，而 `Options.randomize()` 会显式将它们带过去，同时重置 `options.map` 中
+其他一切。集合绝不会为空——边界会修复从拥有它的模块传来时
+为空的集合，因为没有分组的标签类型绘制不出任何标签。自定义图标
+是例外：一张地图可以不携带任何自定义图标。
+
+### Locks ｜ 锁定
+
+锁定会固定一个值，使新地图不会重新随机它。它将**值本身**存储在自己的
+存储中：`options.map` 会在每次加载和每次生成时被整体替换，因此只记录键的
+固定项无法在一次替换后留存。锁定键是一套独立于对象路径的稳定 UI 词汇
+——重命名其中一个会使用户的固定项失效——每个键都映射到校验它所固定选项的
+同一个 schema 节点。
+
+选项模型会解析每个固定项；生成器从不读取它。对话框拥有它所显示的图标，
+并为每个图标所代表的值负责。锁定与其他任何边界一样：未知的键
+绝不会被固定，而被其 schema 拒绝的固定值会被忽略，而不是写入地图。
+偏好永远不可固定，因为没有什么会重新随机它。
+
+有一个谓词会绕过整个存储，用于 `?options=default`。它忽略固定项，但不忽略
+该浏览器存储的请求，因此它不是重置：没有任何东西会重新随机的请求仍然保持在
+用户上次设置的值。
+
+---
+
+## Storage scopes ｜ 存储作用域
+
+| 作用域         | 键                                     | 在 `.map` 中？ |
 | ------------- | --------------------------------------- | -------------- |
-| `options`     | `fmg-options`                           | `map` only     |
-| Locks         | `fmg-locks`                             | no             |
-| Dialog state  | `fmg-dialog-state`                      | no             |
-| Layer presets | `preset`/`presets`                      | no             |
-| Style presets | `fmgStyle_*`                            | no             |
-| App flags     | `version`, `debug`, and other bare keys | no             |
-| Credentials   | cloud, AI and Assistant tokens     | no             |
+| `options`     | `fmg-options`                           | 仅 `map`     |
+| 锁定         | `fmg-locks`                             | 否             |
+| 对话框状态  | `fmg-dialog-state`                      | 否             |
+| 图层预设 | `preset`/`presets`                      | 否             |
+| 样式预设 | `fmgStyle_*`                            | 否             |
+| 应用标志     | `version`、`debug` 及其他裸键 | 否             |
+| 凭据   | 云、AI 和助手令牌     | 否             |
 
-**One key holds all three sections.** A preference does not get a `localStorage` key of its own,
-however small it is: a key beside the object is a second source of truth for a control the object
-already answers for, and the panel ends up showing one while the app reads the other.
+**一个键保存全部三个部分。** 偏好不会拥有自己的 `localStorage` 键，
+无论它多么小：对象旁边的键会成为该对象本已负责的控件的第二个事实来源，
+最终面板显示一个值，而应用读取另一个值。
 
-The exceptions are all things that are not preferences. The preset libraries and the dialog state
-are lists keyed by something the user named, not fields a control answers for. The locks are values
-keyed by a vocabulary of their own. The app flags are what the app records about itself, shown by
-no control. The credentials are secrets with their own lifetime, revoked independently of anything
-the user configured.
-
----
-
-## Lifecycle
-
-**A load** establishes a new map without rewriting what this browser wants of the app. It parses
-the file's settings against `mapSchema` and **replaces** `options.map` wholesale — a section the
-file lacks becomes the schema default, never the previous map's value — re-derives what the file
-did not carry, leaves `options.app` and `options.generation` alone, and refreshes the panels. The
-extent is the one request a load updates, because generating from the opened map should keep its
-shape; a pinned extent is never overridden. Adding anything else to that rule needs a reason stated
-here, and the default answer is no.
-
-**A save** writes `options.map` as it stands, and nothing else. The file records what the map is; a
-request that was never generated is not part of the map. Where a request and a result both exist,
-only the result is saved.
-
-**A generation** is the commit point from requests to map values. `Options.randomize()` re-rolls
-the unpinned requests, resolves the ones the map keeps into `options.map`, and re-rolls the map
-values that have no request. Values needing terrain are resolved by their own pipeline step
-instead, with no callback into the options model.
-
-- **A new map** starts `options.map` from the defaults and keeps the seed, the active style preset
-  and the definition sets. Generation keeps the current style, so its preset must carry over too.
-- **Regenerating one element** reads the current request for that element and writes afterwards the
-  parameters the map needs, such as its culture set.
-- **A recalculation is not a regeneration.** Re-deriving climate or rebuilding a coastline path
-  reads `options.map`, never `options.generation`.
-- **Editing a map value directly** is what the panels that own them do — world position and
-  climate, units, lore, the definition sets. Such a panel writes `options.map` or pins the value,
-  saves, and runs whatever derivation and redraw depend on it. It does not write requests.
-
-Consequently the panel that shows requests and the panel that edits map values are different
-panels, each writing exactly one section, and **every value has exactly one writer**: a request is
-written by its control, a map value by the generator, derivation or editor that produces it.
+例外全部是不是偏好设置的东西。预设库和对话框状态是
+以用户命名的内容为键的列表，而不是控件负责的字段。锁定是以其
+自身的词汇为键的值。应用标志是应用关于自身记录的内容，不由任何
+控件显示。凭据是有自身生命周期的机密，独立于用户配置的任何内容
+被撤销。
 
 ---
 
-## Validation
+## Lifecycle ｜ 生命周期
 
-`options` is validated when read from `localStorage`, and the settings block when read from a
-`.map`. Validation must **repair rather than reject** — one stale field cannot cost the user their
-map or their settings. Each section is validated independently; a failing value is replaced with
-its default and the section re-validated; a section that still fails falls back to its own default,
-with a console warning at each step. Unknown keys are stripped, which is how values from an
-abandoned schema stop travelling. A file is always repaired from the **defaults**, never from what
-is on screen, so a section the file lacks cannot come back as the previous map's value.
+**一次加载**会建立一张新地图，而不重写该浏览器对应用的期望。它会对照 `mapSchema`
+解析文件的设置，并整体**替换** `options.map`——文件缺少的部分
+会变为 schema 默认值，而绝不会是上一张地图的值——重新推导文件未携带的内容，
+不动 `options.app` 和 `options.generation`，并刷新各面板。范围
+是加载会更新的唯一请求，因为从打开的地图生成时应保持其
+形状；被固定的范围绝不会被覆盖。向该规则添加任何其他内容都需要在此
+说明理由，默认答案是不。
 
-A leaf constrains **what would break the app**: a positive extent, a whole count, a step the table
-has an entry for, one of a closed set of modes, a colour that is a colour. It constrains nothing
-beyond that — a bound the UI merely happens to impose is not a claim about the value, and turning a
-slider's `max` into validation lets a repair quietly rewrite a number the user set on purpose.
+**一次保存**会按原样写入 `options.map`，别的什么都不写。文件记录地图是什么；
+从未被生成的请求不是地图的一部分。当请求和结果同时存在时，
+只保存结果。
 
-The definition sets have no per-entry defaults, so an entry that cannot be repaired is dropped on
-its own. Losing one unit type is a repair; losing the set is what makes every regiment that
-referenced it stop resolving.
+**一次生成**是从请求到地图值的提交点。`Options.randomize()` 会重新随机
+未固定的请求，将地图保留的请求解析到 `options.map` 中，并重新随机没有请求的
+地图值。需要地形的值则由它们自己的流水线步骤
+解析，不回调选项模型。
 
-### Migrations
+- **新地图**会从默认值开始建立 `options.map`，并保留种子、当前激活的样式预设
+  和定义集。生成会保留当前样式，因此其预设也必须一并延续。
+- **重新生成某个元素**会读取该元素的当前请求，之后写入地图所需的
+  参数，例如其文化集合。
+- **重新计算不是重新生成。** 重新推导气候或重建海岸线路径
+  读取的是 `options.map`，绝不是 `options.generation`。
+- **直接编辑地图值**是拥有它们的面板的职责——世界位置和
+  气候、单位、传说、定义集。这样的面板会写入 `options.map` 或固定该值，
+  保存，并运行依赖于它的任何推导和重绘。它不写请求。
 
-A migration describes a world that no longer exists, so it **carries its own copy of that world and
-never leans on the live schema**: renaming a field today must not change what an old file means.
-Migrations run at the boundary, before validation, and produce a current-shaped object.
-
-A `.map` file is a migration's job because the user cannot re-make it. This browser's stored
-settings are not: they are one panel away. So the two are migrated to different depths — out of
-per-control `localStorage` keys the migration adopts what the user would miss (preferences chosen
-once, definition sets built by hand) and drops what they would re-set without noticing (the pins,
-whose old keys carry neither the vocabulary nor the shape the current ones claim). It runs
-_underneath_ the stored object rather than after it, so its values are validated like any other
-untrusted store.
+因此，显示请求的面板和编辑地图值的面板是不同的
+面板，各自只写入一个部分，并且**每个值都恰好有一个写入者**：请求由
+其控件写入，地图值由产生它的生成器、推导或编辑器写入。
 
 ---
 
-## Invariants
+## Validation ｜ 校验
 
-These are the properties the design exists to guarantee, and the ones worth asserting in tests:
+`options` 在从 `localStorage` 读取时校验，设置块在从 `.map` 读取时校验。
+校验必须**修复而不是拒绝**——一个过期的字段不能让用户失去他们的
+地图或设置。每个部分独立校验；失败的值会被替换为
+其默认值并重新校验该部分；仍然失败的部分会回退到它自己的默认值，
+每一步都会输出控制台警告。未知的键会被剥除，这就是来自
+已废弃 schema 的值停止传播的方式。文件总是从**默认值**修复，而绝不是从
+屏幕上现有的内容修复，因此文件缺少的部分不可能以上一张地图的值回归。
 
-- **Round trip.** Load a file, save it, load it again: the settings block is identical.
-- **No cross-map inheritance.** Load map A, then map B: no value from A survives in `options.map`.
-- **A file describes its map.** Every value in a saved file was written by something that actually
-  ran. Changing a request without generating changes no file.
-- **The app survives maps.** Loading any map leaves `options.app`, `options.generation` and the
-  pins unchanged, save for the extent, which never overrides a pin.
-- **The map survives a reload.** Anything needed to render or operate the map is in the file, so a
-  fresh browser opens it identically.
-- **Derivation is idempotent.** Re-deriving a derived value from a saved file reproduces the saved
-  value.
+叶子节点只约束**会破坏应用的内容**：正的范围、整数计数、表中有
+对应条目的档位、封闭模式集合中的一种、确实是颜色的颜色。它不约束
+除此之外的任何东西——UI 恰好施加的界限并不是对值的断言，而把
+滑块的 `max` 变成校验，会让修复悄悄改写用户有意设置的数值。
+
+定义集没有按条目的默认值，因此无法修复的条目会被单独丢弃。
+丢失一个单位类型是一次修复；丢失整个集合才会使每个引用过它的
+军团停止解析。
+
+### Migrations ｜ 迁移
+
+迁移描述的是一个已不存在的世界，因此它**携带该世界自己的副本，
+绝不依赖仍在使用的 schema**：今天重命名字段绝不能改变旧文件的含义。
+迁移在边界处、校验之前运行，并生成当前形状的对象。
+
+`.map` 文件是迁移的职责，因为用户无法重新制作它。该浏览器存储的
+设置则不是：它们只差一个面板就能重设。因此两者被迁移到不同深度——从
+各控件的 `localStorage` 键中，迁移会采用用户会想念的内容（一次性选择的
+偏好、手工构建的定义集），并丢弃他们会在不知不觉中重设的内容（固定项，
+其旧键既不携带当前键所声称的词汇，也不携带其形状）。它运行在
+存储对象_之下_，而不是在其之后，因此其值会像任何其他不可信
+存储一样被校验。
+
+---
+
+## Invariants ｜ 不变式
+
+这些是设计旨在保证的性质，也是值得在测试中断言的：
+
+- **往返一致。** 加载文件、保存、再次加载：设置块完全相同。
+- **无跨地图继承。** 先加载地图 A，再加载地图 B：A 的任何值都不会留在 `options.map` 中。
+- **文件描述其地图。** 已保存文件中的每个值都是由实际运行过的东西
+  写入的。更改请求而不生成，不会改变任何文件。
+- **应用能在换地图后存活。** 加载任何地图都不会改变 `options.app`、`options.generation`
+  和固定项，范围除外，而范围绝不会覆盖固定项。
+- **地图能在重新加载后存活。** 渲染或操作地图所需的一切都在文件中，因此一个
+  全新的浏览器会以相同方式打开它。
+- **推导是幂等的。** 从已保存文件重新推导一个派生值，会重现保存的
+  值。

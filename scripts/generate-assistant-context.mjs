@@ -10,7 +10,9 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const target = "src/services/assistant/provider/context.generated.ts";
 
-const read = path => readFileSync(join(root, path), "utf8");
+// 统一成 LF 再解析：Windows 上 core.autocrlf 会让工作区是 CRLF，
+// 而下面的正则与 split("\n") 都按 LF 写，不归一化会在本地直接抛错
+const read = path => readFileSync(join(root, path), "utf8").replace(/\r\n/g, "\n");
 
 // Every non-test source file under src, read once
 const paths = readdirSync(join(root, "src"), { recursive: true })
@@ -41,7 +43,9 @@ function dataFields() {
   const lines = new Map();
   let section = "";
   for (const part of read("docs/architecture/data-model.md").split(/(?=^#{1,3} )/m)) {
-    const [, level, heading] = part.match(/^(#{1,3}) (.+)$/m) ?? [];
+    const [, level, rawHeading] = part.match(/^(#{1,3}) (.+)$/m) ?? [];
+    // 标题形如 "Burgs ｜ 城镇"：竖线前是英文，也是 read_docs 的主题名；竖线后是中文注解，仅给人读
+    const heading = rawHeading?.split("｜")[0].trim();
     if (level === "##") section = heading;
     if (!level || level === "#") continue;
     const sub = level === "###" ? heading.replace(/ object$/, "").toLowerCase() : "";

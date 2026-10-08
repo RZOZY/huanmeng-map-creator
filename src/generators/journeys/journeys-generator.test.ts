@@ -5,7 +5,7 @@ const makeSeg = (
   distance: number,
   speed: number,
   avoidRoads = false,
-  transport = "On foot (laden)"
+  transport = "步行（负重）"
 ): JourneySegment => ({
   i: 0,
   name: "s",
@@ -64,7 +64,7 @@ describe("journey metrics", () => {
 
   it("getSegmentHoursPerDay comes from the transport type", () => {
     expect(Journeys.getSegmentHoursPerDay(makeSeg(10, 3))).toBe(8); // On foot (laden)
-    expect(Journeys.getSegmentHoursPerDay(makeSeg(10, 20, false, "Dirigible"))).toBe(24);
+    expect(Journeys.getSegmentHoursPerDay(makeSeg(10, 20, false, "飞艇"))).toBe(24);
     expect(Journeys.getSegmentHoursPerDay(makeSeg(10, 5, false, "Removed type"))).toBe(8); // unknown: domain fallback
   });
 
@@ -101,7 +101,7 @@ describe("journey metrics", () => {
       visible: true,
       color: "#000",
       // 24h on foot is 3 travel days, the same 24h aboard a dirigible is 1
-      segments: [makeSeg(72, 3), makeSeg(480, 20, false, "Dirigible")]
+      segments: [makeSeg(72, 3), makeSeg(480, 20, false, "飞艇")]
     };
     const t = Journeys.getTotals(j);
     expect(t.totalHours).toBe(48);
@@ -118,7 +118,7 @@ describe("journey metrics", () => {
       visible: true,
       color: "#000",
       // a full walking day (24h of calendar) followed by a 12h wait
-      segments: [makeSeg(24, 3), { ...makeSeg(0, 0, false, "Stay"), duration: 12 }]
+      segments: [makeSeg(24, 3), { ...makeSeg(0, 0, false, "停留"), duration: 12 }]
     };
     const t = Journeys.getTotals(j);
     expect(t.totalHours).toBe(20);
@@ -161,7 +161,7 @@ describe("journey metrics", () => {
   });
 
   it("stay-domain segment contributes duration to totalHours, not distance/speed", () => {
-    const stay = { ...makeSeg(0, 0, false, "Stay"), duration: 4 };
+    const stay = { ...makeSeg(0, 0, false, "停留"), duration: 4 };
     const walk = makeSeg(10, 5);
     const j: Journey = {
       i: 0,
@@ -183,7 +183,7 @@ describe("journey metrics", () => {
     const stalled = makeSeg(10, 0);
     expect(Journeys.isStaySegment(stalled)).toBe(false);
     expect(Journeys.getSegmentDistance(stalled)).toBe(10);
-    expect(Journeys.isStaySegment(makeSeg(10, 0, false, "Stay"))).toBe(true);
+    expect(Journeys.isStaySegment(makeSeg(10, 0, false, "停留"))).toBe(true);
   });
 
   it("duration overrides the calculated time on a moving segment", () => {

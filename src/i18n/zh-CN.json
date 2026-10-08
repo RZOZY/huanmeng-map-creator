@@ -1,7 +1,7 @@
 {
-  "Azgaar's Fantasy Map Generator v1.153.0": "幻艺地图生成器 v1.153.0",
-  "Azgaar's": "玄域科技的",
-  "Fantasy Map Generator": "幻艺地图生成器",
+  "Azgaar's Fantasy Map Generator v1.153.0": "幻梦地图生成器 v1.153.0",
+  "Azgaar's": "Azgaar 的",
+  "Fantasy Map Generator": "幻梦地图生成器",
   "LOADING": "加载中",
   "Click to show the Menu": "点击显示菜单",
   "Click to generate a new map": "点击生成新地图",
@@ -926,7 +926,7 @@
   "Confirm": "确定",
   "Cancel": "取消",
   "Fantasy Map Generator update": "Fantasy Map Generator 更新",
-  "The Fantasy Map Generator is updated up to version": "幻艺地图生成器已更新至版本",
+  "The Fantasy Map Generator is updated up to version": "幻梦地图生成器已更新至版本",
   ". This version is compatible with": "。此版本与",
   "previous versions": "之前版本",
   ", loaded save files will be auto-updated.": "兼容，加载的存档文件会自动更新。",
@@ -1064,5 +1064,6 @@
   "Tribes": "部落",
   "Tsardom": "沙皇国",
   "Free City": "自由市",
-  "Free Territory": "自由领地"
+  "Free Territory": "自由领地",
+  "Azgaar's Fantasy Map Generator": "幻梦地图生成器"
 }

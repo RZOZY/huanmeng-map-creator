@@ -63,7 +63,7 @@ describe("GoodsModule", () => {
   it("restores the default catalogue when requested explicitly", () => {
     goodsModule.restoreDefaults();
 
-    expect(globalThis.pack.goods.some((good: any) => good.name === "Wood")).toBe(true);
+    expect(globalThis.pack.goods.some((good: any) => good.name === "木材")).toBe(true);
     expect(globalThis.pack.goods[0].name).not.toBe("Custom A");
   });
 
@@ -73,25 +73,25 @@ describe("GoodsModule", () => {
 
     goodsModule.restoreDefaults();
 
-    expect(globalThis.pack.goods[0].name).toBe("Wood");
+    expect(globalThis.pack.goods[0].name).toBe("木材");
   });
 
   it("initialises the catalogue from defaults when none exists yet", () => {
     globalThis.pack.goods = [];
     goodsModule.generate();
 
-    expect(globalThis.pack.goods.some((good: any) => good.name === "Wood")).toBe(true);
+    expect(globalThis.pack.goods.some((good: any) => good.name === "木材")).toBe(true);
   });
 
   it("does not corrupt the default template when a restored good is edited", () => {
     goodsModule.restoreDefaults();
-    const wood = globalThis.pack.goods.find((good: any) => good.name === "Wood")!;
+    const wood = globalThis.pack.goods.find((good: any) => good.name === "木材")!;
     wood.name = "Edited Wood";
 
     goodsModule.restoreDefaults();
 
     expect(globalThis.pack.goods.find((good: any) => good.name === "Edited Wood")).toBeUndefined();
-    expect(globalThis.pack.goods.some((good: any) => good.name === "Wood")).toBe(true);
+    expect(globalThis.pack.goods.some((good: any) => good.name === "木材")).toBe(true);
   });
 
   it("clears a single good when it is no longer placeable", () => {

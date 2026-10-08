@@ -1342,7 +1342,7 @@ class ReligionsModule {
     const type: "Folk" | "Organized" | "Cult" | "Heresy" = missingFolk
       ? "Folk"
       : religions[religionId].type === "Organized"
-        ? (rw({ Organized: 4, Cult: 1, 异端: 2 }) as "Organized" | "Cult" | "Heresy")
+        ? (rw({ Organized: 4, Cult: 1, Heresy: 2 }) as "Organized" | "Cult" | "Heresy")
         : (rw({ Organized: 5, Cult: 2 }) as "Organized" | "Cult");
 
     const codes = religions.map(religion => religion.code!);

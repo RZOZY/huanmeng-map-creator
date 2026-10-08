@@ -1020,12 +1020,12 @@ describe("Journeys", () => {
       color: "#00ff00",
       visible: false
     });
-    expect(() => Journeys.setSegment(0, 1, { teleport: true } as never)).toThrow("Unknown segment field teleport");
-    expect(() => Journeys.setSegment(0, 1, { speed: -1 })).toThrow("non-negative");
+    expect(() => Journeys.setSegment(0, 1, { teleport: true } as never)).toThrow("未知的路段字段 teleport");
+    expect(() => Journeys.setSegment(0, 1, { speed: -1 })).toThrow("非负数");
     Journeys.removeSegment(0, 1);
     expect(pack.journeys[0].segments.map(({ i }) => i)).toEqual([0]);
     Journeys.remove(0);
-    expect(() => Journeys.remove(0)).toThrow("Journey 0 does not exist");
+    expect(() => Journeys.remove(0)).toThrow("旅程 0 不存在");
   });
 });
 

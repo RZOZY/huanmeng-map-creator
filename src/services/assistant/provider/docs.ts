@@ -15,7 +15,13 @@ async function load(): Promise<Map<string, { title: string; text: string }>> {
   const map = new Map<string, string>();
   for (const part of (dataModel.default as string).split(/(?=^#{1,2} )/m)) {
     const heading = part.match(/^## (.+)$/m)?.[1];
-    if (heading) map.set(heading, part.trim());
+    if (!heading) continue;
+    // 标题形如 "Burgs ｜ 城镇"：竖线前是英文，也是 read_docs 的主题键（模型按英文主题名调用）；
+    // 竖线后是中文注解，仅供阅读。两个都登记，中英文主题名都能命中。
+    const separator = heading.indexOf("｜");
+    const key = separator < 0 ? heading : heading.slice(0, separator).trim();
+    map.set(key, part.trim());
+    if (separator >= 0) map.set(heading, part.trim());
   }
   map.set("Configuration", configuration.default as string);
   map.set("Globals", `\`\`\`ts\n${GLOBAL_DECLARATIONS}\n\`\`\``);

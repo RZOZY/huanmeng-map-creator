@@ -53,7 +53,7 @@ describe("MarkersModule.addEncounter", () => {
     const marker = { i: 42, cell: CELL } as Marker;
     markers.addEncounter(marker, CELL);
 
-    expect(marker.name).toBe("Random encounter");
+    expect(marker.name).toBe("随机遭遇");
     expect(String(marker.note).includes(`https://deorum.vercel.app/encounter/${CELL}`)).toBe(true);
     expect(String(marker.note).includes("<iframe")).toBe(true);
   });
@@ -116,7 +116,7 @@ describe("MarkersModule mines", () => {
     expect(markers.listMines(pack)).toEqual([1]);
     const marker = { i: 0, cell: 1 } as Marker;
     markers.addMine(marker, 1);
-    expect(marker.name).toBe("Ironton — iron mining town");
+    expect(marker.name).toBe("Ironton——iron矿镇");
   });
 });
 
@@ -131,8 +131,8 @@ describe("MarkersModule migrations", () => {
     expect(markers.listMigrations(pack)).toEqual([0, 2]);
     const marker = { i: 0, cell: 0 } as Marker;
     markers.addMigration(marker, 0);
-    expect(["Reindeer", "Musk oxen", "Wolves", "Foxes", "Geese", "Hares", "Owls"]).toContain(
-      marker.name.replace(" migration", "")
+    expect(["驯鹿", "麝牛", "狼", "狐", "鹅", "野兔", "猫头鹰"]).toContain(
+      marker.name.replace("迁徙", "")
     );
   });
 });

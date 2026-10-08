@@ -53,7 +53,7 @@ function render(): string {
       </ul>
     </p>
 
-    <p>Chinese localization: <a href="https://www.8desk.top" target="_blank">8desk.top</a></p>`;
+    <p>中文语料与界面措辞取材自幻艺地图（<a href="https://www.8desk.top" target="_blank">8desk.top</a>）。本中文版「幻梦地图生成器」基于上游 v1.154.0 二次开发。</p>`;
 }
 
 /** Show info about the generator in a popup */

@@ -139,7 +139,7 @@ class JourneysModule {
     const journey = this.living(journeyId);
     const segment = this.segmentOf(journey, segmentId);
     if (!Number.isInteger(index) || index < 0 || index >= journey.segments.length)
-      throw new Error(`Position ${index} is outside the journey's ${journey.segments.length} segments`);
+      throw new Error(`位置 ${index} 超出该旅程的 ${journey.segments.length} 个路段`);
     journey.segments.splice(journey.segments.indexOf(segment), 1);
     journey.segments.splice(index, 0, segment);
   }
@@ -149,7 +149,7 @@ class JourneysModule {
     const segment = this.segmentOf(this.living(journeyId), segmentId);
     if (typeof fields !== "object" || fields === null) throw new Error("路段字段必须是一个对象");
     const unknown = Object.keys(fields).find(key => !SEGMENT_FIELDS.includes(key as keyof SegmentFields));
-    if (unknown) throw new Error(`Unknown segment field ${unknown}; known: ${SEGMENT_FIELDS.join(", ")}`);
+    if (unknown) throw new Error(`未知的路段字段 ${unknown}；可用字段：${SEGMENT_FIELDS.join(", ")}`);
     const { name, color, hidden, transport, speed, duration, from, to, avoidRoads } = fields;
 
     if (name !== undefined) segment.name = requireName(name);
@@ -164,7 +164,7 @@ class JourneysModule {
     if (transport !== undefined) {
       const type = Transports.get(transport);
       if (!type)
-        throw new Error(`Transport ${transport} does not exist; known: ${Transports.all.map(t => t.name).join(", ")}`);
+        throw new Error(`运输方式 ${transport} 不存在；可用：${Transports.all.map(t => t.name).join(", ")}`);
       segment.transport = type.name;
       segment.speed = type.domain === "stay" ? 0 : type.speed;
       if (type.domain === "stay") {
@@ -179,7 +179,7 @@ class JourneysModule {
     ] as const) {
       if (cell === undefined) continue;
       if (!Number.isInteger(cell) || cell < 0 || cell >= pack.cells.i.length)
-        throw new Error(`Cell ${cell} does not exist`);
+        throw new Error(`单元格 ${cell} 不存在`);
       segment[endpoint] = cell;
     }
     // only a change of transport or endpoint is checked: an edited heightmap may leave older endpoints invalid
@@ -238,13 +238,13 @@ class JourneysModule {
 
   private living(journeyId: number): Journey {
     const journey = pack.journeys?.find(({ i }) => i === journeyId);
-    if (!journey) throw new Error(`Journey ${journeyId} does not exist`);
+    if (!journey) throw new Error(`旅程 ${journeyId} 不存在`);
     return journey;
   }
 
   private segmentOf(journey: Journey, segmentId: number): JourneySegment {
     const segment = journey.segments.find(({ i }) => i === segmentId);
-    if (!segment) throw new Error(`Segment ${segmentId} of journey ${journey.i} does not exist`);
+    if (!segment) throw new Error(`旅程 ${journey.i} 的路段 ${segmentId} 不存在`);
     return segment;
   }
 
