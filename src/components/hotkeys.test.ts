@@ -1,3 +1,5 @@
+// 本版刻意关闭了全局快捷键：只通过鼠标点击操作（见 src/components/hotkeys.ts 的 HOTKEYS_ENABLED）。
+// 因此下面这些快捷键行为测试全部跳过；将来恢复快捷键时，把 describe.skip 改回 describe 即可。
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -34,7 +36,7 @@ beforeEach(() => {
   mocks.getLayer.mockClear();
 });
 
-describe("save shortcut", () => {
+describe.skip("save shortcut", () => {
   it.each(["ctrlKey", "metaKey"])("saves on %s + S keydown and suppresses the browser save", modifier => {
     const init = { code: "KeyS", key: "s", bubbles: true, cancelable: true, [modifier]: true };
     const keydown = new KeyboardEvent("keydown", init);
@@ -62,7 +64,7 @@ describe("save shortcut", () => {
   });
 });
 
-describe("Space opens the search", () => {
+describe.skip("Space opens the search", () => {
   it("from the plain map", () => {
     press(document.body, "Space", " ");
     expect(mocks.open).toHaveBeenCalledTimes(1);

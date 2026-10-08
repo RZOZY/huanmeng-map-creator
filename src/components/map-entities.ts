@@ -194,7 +194,7 @@ class EntityLookup {
       collection: { field: "rivers", indexed: false, references: { parent: "river", basin: "river" } },
       name: id => {
         const river = this.byId(pack.rivers, id);
-        return river ? `${river.name} ${river.type}` : "";
+        return river ? river.name : "";
       },
       refs: () => this.refsOf("river", pack.rivers, true),
       element: id => `river${id}`,

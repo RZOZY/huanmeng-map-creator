@@ -115,7 +115,7 @@ function buildRiverLabel(river: River, geometry: boolean): LabelData | undefined
     id: `riverLabel${river.i}`,
     entityId: river.i,
     type: "river",
-    text: river.label?.text ?? `${river.name} ${river.type}`,
+    text: river.label?.text ?? river.name,
     group: river.label?.group || "river",
     anchor,
     pathPoints: customPath ?? defaultPath

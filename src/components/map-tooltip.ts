@@ -102,18 +102,28 @@ interface TipContext {
  * Get the tooltip for the hovered element.
  * Returns undefined if the element is not interactive, so the layer tip is shown instead
  */
+/** 中文里类型词直接接在后面，不加空格 */
+const BURG_GROUP_LABELS: Record<string, string> = { city: "城", town: "镇", capital: "都城" };
+const EMBLEM_TYPE_LABELS: Record<string, string> = { burg: "城镇", province: "省份", state: "国家" };
+const RELIGION_TYPE_LABELS: Record<string, string> = {
+  Folk: "民间信仰",
+  Organized: "建制宗教",
+  Cult: "教派",
+  Heresy: "异端"
+};
+
 function getElementTip({ group, target, event, path, cellId }: TipContext): string | undefined {
   const parent = target.parentNode as SVGElement;
   const burgElement = target.closest<SVGElement>("[data-label-type='burg'][data-id], #burgIcons [data-id]");
   if (burgElement) {
     const burgId = Number(burgElement.dataset.id);
     const burg = pack.burgs[burgId];
-    if (!burg) return "Click to edit the Burg";
+    if (!burg) return "点击编辑城镇";
     const port = burg.port ? " port" : "";
     const population = si(
       (burg.population || 0) * options.map.units.population.scale * options.map.units.population.urbanization.rate
     );
-    return `${burg.name} ${burg.group}${port}. Population: ${population}. Click to edit`;
+    return `${burg.name}${BURG_GROUP_LABELS[burg.group ?? ""] ?? burg.group ?? ""}${port}。人口: ${population}。点击编辑`;
   }
 
   const labelElement = target.closest<SVGElement>("#labels [data-label-type]");
@@ -137,9 +147,9 @@ function getElementTip({ group, target, event, path, cellId }: TipContext): stri
     return undefined;
   }
 
-  if (group === "terrain") return "Click to edit the Relief Icon";
+  if (group === "terrain") return "点击编辑地形图标";
 
-  if (group === "markers") return "Click to edit the Marker. Hold Shift to not close the assosiated note";
+  if (group === "markers") return "点击编辑标记。按住 Shift 不关闭关联笔记";
 
   if (group === "ruler")
     return findEl("measurersEditor") ? "Drag the measurer or its points to edit" : "Click to open the Measurers Editor";
@@ -162,7 +172,7 @@ function getElementTip({ group, target, event, path, cellId }: TipContext): stri
     return zone?.name;
   }
 
-  if (group === "ice") return "Click to edit the Ice";
+  if (group === "ice") return "点击编辑冰盖";
 
   return undefined;
 }
@@ -191,7 +201,7 @@ function getEmblemTip(target: SVGElement, parent: SVGElement, event: Event): str
   select(parent).raise();
 
   const name = "fullName" in element ? element.fullName || element.name : element.name;
-  return `${name} ${type} emblem. Click to edit. Hold Shift to show associated area or place`;
+  return `${name} ${EMBLEM_TYPE_LABELS[type] ?? type}纹章。点击编辑。按住 Shift 显示关联区域或地点`;
 }
 
 function getMarketTip(target: SVGElement): string | undefined {
@@ -219,7 +229,7 @@ function getGoodsTip(target: SVGElement, cellId: number): string | undefined {
 
   if (target.closest("#goodsIcons")) {
     const good = Goods.get(Number(target.closest<SVGElement>("[data-i]")?.dataset.i));
-    return `${good?.name} bonus resource. Click to open Goods Editor and select displayed goods`;
+    return `${good?.name} 加成资源。点击打开物资编辑器，选择要显示的商品`;
   }
 
   if (target.closest("#goodsCells")) {
@@ -243,17 +253,17 @@ function getGoodsTip(target: SVGElement, cellId: number): string | undefined {
 function showLayerTip(point: Point, cellId: number, gridCellId: number, isLand: boolean): void {
   const { cells } = pack;
   if (Layers.isOn("precipitation") && isLand)
-    return void tip(`Annual Precipitation: ${getFriendlyPrecipitation(cellId, pack, grid)}`);
+    return void tip(`年降水量: ${getFriendlyPrecipitation(cellId, pack, grid)}`);
   if (Layers.isOn("population")) return void tip(getPopulationTip(cellId));
-  if (Layers.isOn("temperature")) return void tip(`Temperature: ${convertTemperature(grid.cells.temp[gridCellId])}`);
+  if (Layers.isOn("temperature")) return void tip(`气温: ${convertTemperature(grid.cells.temp[gridCellId])}`);
   if (Layers.isOn("biomes") && cells.biome[cellId]) {
     const biomeId = cells.biome[cellId];
-    return void tip(`Biome: ${pack.biomes[biomeId].name}`);
+    return void tip(`生物群系: ${pack.biomes[biomeId].name}`);
   }
   if (Layers.isOn("religions") && cells.religion[cellId]) {
     const religionId = cells.religion[cellId];
     const religion = pack.religions[religionId];
-    const type = religion.type === "Cult" || religion.type === "Heresy" ? religion.type : `${religion.type} religion`;
+    const type = RELIGION_TYPE_LABELS[religion.type] ?? religion.type;
     return void tip(`${type}: ${religion.name}`);
   }
   if (cells.state[cellId] && (Layers.isOn("provinces") || Layers.isOn("states"))) {
@@ -264,7 +274,7 @@ function showLayerTip(point: Point, cellId: number, gridCellId: number, isLand: 
   }
   if (Layers.isOn("cultures") && cells.culture[cellId]) {
     const cultureId = cells.culture[cellId];
-    return void tip(`Culture: ${pack.cultures[cultureId].name}`);
+    return void tip(`文化: ${pack.cultures[cultureId].name}`);
   }
-  if (Layers.isOn("heightmap")) return void tip(`Height: ${getFriendlyHeight(point, pack, grid)}`);
+  if (Layers.isOn("heightmap")) return void tip(`高度: ${getFriendlyHeight(point, pack, grid)}`);
 }

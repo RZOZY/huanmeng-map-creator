@@ -188,3 +188,10 @@ else install();
   translate,
   rescan
 };
+
+// 本版已关闭全局快捷键，<u> 原先只用于标示快捷键字母，去掉下划线避免误导
+(function () {
+  const style = document.createElement("style");
+  style.textContent = "u { text-decoration: none !important; }";
+  document.head.append(style);
+})();

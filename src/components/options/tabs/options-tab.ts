@@ -23,7 +23,7 @@ import { CULTURE_SETS, Cultures } from "@/generators/cultures-generator";
 import { Emblems } from "@/generators/emblems-generator";
 import { EmblemRenderer } from "@/renderers/emblems/renderer";
 import { copyMapURL } from "@/services/url-params";
-import { applyOption, ensureEl, findEl } from "@/utils/nodeUtils";
+import { applyOption, ensureEl } from "@/utils/nodeUtils";
 import { minmax, rn } from "@/utils/numberUtils";
 import { PerformanceSettings } from "../performance-settings";
 
@@ -602,19 +602,7 @@ const TEMPLATE = /* html */ `
         ></i>
       </td>
     </tr>
-    <tr
-      data-tip="Load Google Translate and select a language. Automatic translation can break some page functions. If this happens, reset the language to English or refresh the page"
-    >
-      <td>
-        <i data-tip="Reset language to English" id="resetLanguage" class="icon-ccw"></i>
-      </td>
-      <td>Language</td>
-      <td>
-        <button id="loadGoogleTranslateButton">Load Google Translate</button>
-        <div id="google_translate_element"></div>
-      </td>
-      <td></td>
-    </tr>
+    <!-- 本版已完整中文化，不再提供 Google 翻译入口（原模块会联网加载外部脚本）-->
   </table>
   <div>
     <button
@@ -667,8 +655,6 @@ function addListeners(): void {
     else if (target.id === "openPerformanceSettings") PerformanceSettings.open();
     else if (target.id === "speakerTest") testSpeaker();
     else if (target.id === "themeColorRestore") restoreDefaultThemeColor();
-    else if (target.id === "loadGoogleTranslateButton") loadGoogleTranslate();
-    else if (target.id === "resetLanguage") resetLanguage();
   });
 }
 
@@ -1001,32 +987,6 @@ function testSpeaker(): void {
   speechSynthesis.speak(speech);
 }
 
-function loadGoogleTranslate(): void {
-  const script = document.createElement("script");
-  script.src = "https://translate.google.com/translate_a/element.js?cb=initGoogleTranslate";
-  script.onload = () => {
-    findEl("loadGoogleTranslateButton")?.remove();
-
-    // replace the mapLayers hotkey underlines with bare text, they confuse the translator
-    for (const item of ensureEl("mapLayers").querySelectorAll("li")) {
-      item.innerHTML = item.innerHTML.replace(/<u>(.+)<\/u>/g, "$1");
-    }
-  };
-  document.head.append(script);
-}
-
-function resetLanguage(): void {
-  const select = document.querySelector<HTMLSelectElement & { handleChange: (e: Event) => void }>(
-    "#google_translate_element select"
-  );
-  if (!select?.value) return;
-
-  // twice: the first change only arms the widget, the second actually resets it
-  for (let i = 0; i < 2; i++) {
-    select.value = "en";
-    select.handleChange(new Event("change"));
-  }
-}
 
 /**
  * Restore what the tab itself shows: the lock icons, the saved style presets and the interface
@@ -1058,26 +1018,10 @@ export function restoreUi(): void {
   applyZoomExtent();
 }
 
-// Legacy seam: the submap and transform tools set the cell density, and Google's script calls
-// back into the page by name
+// 子地图与变换工具会设置单元格密度，并通过全局名回调
 declare global {
   // biome-ignore lint/suspicious/noRedeclare: legacy seam
   var changeCellsDensity: (density: number) => void;
-  var initGoogleTranslate: () => void;
-  var google: {
-    translate: {
-      TranslateElement: {
-        new (config: { pageLanguage: string; layout: unknown }, elementId: string): unknown;
-        InlineLayout: { VERTICAL: unknown };
-      };
-    };
-  };
 }
 
 window.changeCellsDensity = changeCellsDensity;
-window.initGoogleTranslate = () => {
-  new google.translate.TranslateElement(
-    { pageLanguage: "en", layout: google.translate.TranslateElement.InlineLayout.VERTICAL },
-    "google_translate_element"
-  );
-};

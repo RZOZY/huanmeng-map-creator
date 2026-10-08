@@ -496,7 +496,7 @@ function definePlace(): string | null {
   const burg = cells.burg[i] ? pack.burgs[cells.burg[i]].name : null;
   const getRiver = (riverId: number): string => {
     const river = pack.rivers.find(r => r.i === riverId)!;
-    return `${river.name} ${river.type}`;
+    return river.name;
   };
   const river = !burg && cells.r[i] ? getRiver(cells.r[i]) : null;
   const proper = burg || river ? null : Names.getCulture(cells.culture[i]);

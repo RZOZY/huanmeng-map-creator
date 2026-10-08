@@ -37,14 +37,15 @@ class RiverModule {
   private LENGTH_PROGRESSION = [1, 1, 2, 3, 5, 8, 13, 21, 34].map(n => n / this.LENGTH_FACTOR);
   private lineGen = line().curve(curveBasis);
 
+  // 仅用于显示；中文河名本身已带「江/川/溪/源」等后缀，故拼接时不再追加以免重复
   riverTypes = {
     main: {
-      big: { River: 1 },
-      small: { Creek: 9, River: 3, Brook: 3, Stream: 1 }
+      big: { 江: 1 },
+      small: { 溪: 9, 河: 3, 涧: 3, 溪流: 1 }
     },
     fork: {
-      big: { Fork: 1 },
-      small: { Branch: 1 }
+      big: { 汊: 1 },
+      small: { 支流: 1 }
     }
   };
 

@@ -193,7 +193,7 @@ function getDepth(feature: Feature, [x, y]: Point): string {
 
 function getRiverInfo(riverId: number): string {
   const river = pack.rivers.find(river => river.i === riverId);
-  return river ? `${river.name} ${river.type} (${riverId})` : "n/a";
+  return river ? `${river.name} (${riverId})` : "n/a";
 }
 
 /** Get user-friendly (real-world) population value in a cell */

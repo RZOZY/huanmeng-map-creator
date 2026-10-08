@@ -102,10 +102,34 @@ function applyTextTransform(style: string | null): (text: string) => string {
   return text => text;
 }
 
+/**
+ * 全角字符判定：中日韩文字与全角标点在字体里约占一个 em，比拉丁字母宽得多。
+ * 早期版本把它们按 0.55 em 估算，导致中文标签的字号被高估近一倍、文字溢出后被截断。
+ */
+function isFullWidth(codePoint: number): boolean {
+  return (
+    (codePoint >= 0x1100 && codePoint <= 0x115f) || // 韩文字母
+    (codePoint >= 0x2e80 && codePoint <= 0x303e) || // 中日韩部首与标点
+    (codePoint >= 0x3041 && codePoint <= 0x33ff) || // 假名、注音、兼容符号
+    (codePoint >= 0x3400 && codePoint <= 0x4dbf) || // 扩展 A
+    (codePoint >= 0x4e00 && codePoint <= 0x9fff) || // 基本区
+    (codePoint >= 0xa000 && codePoint <= 0xa4cf) || // 彝文
+    (codePoint >= 0xac00 && codePoint <= 0xd7a3) || // 韩文音节
+    (codePoint >= 0xf900 && codePoint <= 0xfaff) || // 兼容表意文字
+    (codePoint >= 0xfe30 && codePoint <= 0xfe4f) || // 中日韩兼容形式
+    (codePoint >= 0xff00 && codePoint <= 0xff60) || // 全角形式
+    (codePoint >= 0xffe0 && codePoint <= 0xffe6) ||
+    (codePoint >= 0x20000 && codePoint <= 0x2fffd) || // 扩展 B 及以后
+    (codePoint >= 0x30000 && codePoint <= 0x3fffd)
+  );
+}
+
 export function estimateTextWidth(text: string): number {
   let width = 0;
   for (const character of text) {
-    if (character === " ") width += 0.32;
+    const codePoint = character.codePointAt(0) ?? 0;
+    if (isFullWidth(codePoint)) width += 1;
+    else if (character === " ") width += 0.32;
     else if ("ilIjtfr.,'|".includes(character)) width += 0.35;
     else if ("MWQO@%".includes(character)) width += 0.85;
     else if (character !== character.toLowerCase() && character === character.toUpperCase()) width += 0.68;

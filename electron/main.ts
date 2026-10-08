@@ -26,7 +26,10 @@ const DISCORD_URL = "https://discord.gg/X7E84HU";
  * 首次运行时把旧目录的内容迁移过来，避免用户已有的地图"消失"。迁移只在目标目录尚不存在时执行一次。
  */
 const LEGACY_USER_DATA = path.join(app.getPath("appData"), "fantasy-map-generator");
-const USER_DATA = path.join(app.getPath("appData"), "huameng-map-generator");
+// 允许用环境变量指定目录：开发与调试时可用独立配置，避免和正在使用的正式实例互相覆盖存档
+const USER_DATA = process.env.HUMENG_USER_DATA
+  ? path.resolve(process.env.HUMENG_USER_DATA)
+  : path.join(app.getPath("appData"), "huameng-map-generator");
 
 if (!fs.existsSync(USER_DATA) && fs.existsSync(LEGACY_USER_DATA)) {
   try {

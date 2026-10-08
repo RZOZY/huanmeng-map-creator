@@ -3,6 +3,7 @@ import { showExportPane, showLoadPane, showSavePane } from "@/components/options
 import { changeViewMode } from "@/components/options/view-mode";
 import { clearMainTip } from "@/components/tooltips";
 import { resetZoom } from "@/components/zoom";
+import { confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { Controllers } from "@/controllers";
 import { ARROW_TIP_KEY } from "@/services/versioning";
 import { ensureEl, findEl } from "@/utils/nodeUtils";
@@ -115,9 +116,21 @@ function initialize(): void {
     else if (id === "loadButton") void showLoadPane();
     else if (id === "zoomReset") resetZoom(1000);
     else if (id === "searchButton") Controllers.Omnibar.open();
+    else if (id === "exitAppButton") confirmExit();
   });
 
   ensureEl("viewMode").addEventListener("click", changeViewMode);
+}
+
+/** 退出程序：桌面端关掉最后一个窗口即退出。先确认，避免误点丢掉未保存的地图 */
+function confirmExit(): void {
+  confirmationDialog({
+    title: "退出",
+    message: "确定要退出「幻梦地图生成器」吗？<br>未保存的地图修改会丢失。",
+    cancel: "取消",
+    confirm: "退出",
+    onConfirm: () => window.close()
+  });
 }
 
 initialize();

@@ -9,8 +9,14 @@ import { getLayerByShortcut } from "./options/tabs/layers-tab";
 import { changeMapZoom, panMap, setMapZoom } from "./zoom";
 
 // Hotkeys, see github.com/Azgaar/Fantasy-Map-Generator/wiki/Hotkeys
-document.addEventListener("keydown", handleKeydown);
-document.addEventListener("keyup", handleKeyup);
+// 本版刻意关闭全局快捷键：只通过鼠标点击操作，避免误触键盘导致地图被意外改动。
+// 改回 true 即恢复上游的键盘操作。
+const HOTKEYS_ENABLED = false;
+
+if (HOTKEYS_ENABLED) {
+  document.addEventListener("keydown", handleKeydown);
+  document.addEventListener("keyup", handleKeyup);
+}
 
 function handleKeydown(event: KeyboardEvent): void {
   if (!allowHotkeys()) return; // in some cases (e.g. in a textarea) hotkeys are not allowed

@@ -1,4 +1,3 @@
-import { isMobile } from "@/services/platform";
 import { debounce, ensureEl, findEl } from "@/utils";
 
 type TipType = "info" | "success" | "warn" | "error";
@@ -65,8 +64,7 @@ export function showDataTip(event: Event): void {
   let dataTip = target.dataset?.tip || parent?.dataset?.tip;
   if (!dataTip) return;
 
-  const shortcut = target.dataset.shortcut;
-  if (shortcut && !isMobile()) dataTip += `. Shortcut: ${shortcut}`;
+  // 本版已关闭全局快捷键，界面不再宣传快捷键（数据属性保留，便于将来恢复）
 
   tip(dataTip);
 }
