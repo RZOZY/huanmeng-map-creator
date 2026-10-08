@@ -17,10 +17,27 @@ const WIKI_URL = "https://github.com/Azgaar/Fantasy-Map-Generator/wiki";
 const DISCORD_URL = "https://discord.gg/X7E84HU";
 
 /**
- * The app is named after `productName`, but its data stays in the folder the name would have
- * produced before, so a rename never strands the maps stored in localStorage and IndexedDB
+ * 幻梦地图生成器 —— 独立配置目录
+ *
+ * 上游按 `productName` 推导目录名，导致本中文版与官方原版 FMG 共用同一个
+ * `%APPDATA%\\fantasy-map-generator`，两者会互相覆盖存档（地图、选项、窗口状态）。
+ * 这里改用独立目录，与官方版本彻底隔离。
+ *
+ * 首次运行时把旧目录的内容迁移过来，避免用户已有的地图"消失"。迁移只在目标目录尚不存在时执行一次。
  */
-app.setPath("userData", path.join(app.getPath("appData"), "fantasy-map-generator"));
+const LEGACY_USER_DATA = path.join(app.getPath("appData"), "fantasy-map-generator");
+const USER_DATA = path.join(app.getPath("appData"), "huameng-map-generator");
+
+if (!fs.existsSync(USER_DATA) && fs.existsSync(LEGACY_USER_DATA)) {
+  try {
+    fs.cpSync(LEGACY_USER_DATA, USER_DATA, { recursive: true });
+    console.log("已迁移配置目录:", LEGACY_USER_DATA, "->", USER_DATA);
+  } catch (error) {
+    console.error("迁移旧配置目录失败，将以全新配置启动:", error);
+  }
+}
+
+app.setPath("userData", USER_DATA);
 
 app.setAboutPanelOptions({
   applicationName: app.name,
