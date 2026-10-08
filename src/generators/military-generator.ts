@@ -540,7 +540,7 @@ class MilitaryModule {
         : cells.province[r.cell] && pack.provinces[cells.province[r.cell]]
           ? pack.provinces[cells.province[r.cell]].fullName
           : null;
-    const station = base ? `${r.name} is ${r.n ? "based" : "stationed"} in ${base}. ` : "";
+    const station = base ? `${r.name}驻地${r.n ? "位于" : "设于"}${base}。` : "";
 
     const composition = r.a
       ? Object.keys(r.u)
@@ -548,15 +548,15 @@ class MilitaryModule {
           .join("\r\n")
       : null;
     const troops = composition
-      ? `\r\n\r\nRegiment composition in ${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}:\r\n${composition}.`
+      ? `\r\n\r\n${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}编制：\r\n${composition}。`
       : "";
 
     const campaign = s.campaigns ? ra(s.campaigns) : null;
     const year = campaign
       ? rand(campaign.start, campaign.end || options.map.lore.calendar.year)
       : gauss(options.map.lore.calendar.year - 100, 150, 1, options.map.lore.calendar.year - 6);
-    const conflict = campaign ? ` during the ${campaign.name}` : "";
-    r.note = `Regiment was formed in ${year} ${options.map.lore.calendar.era}${conflict}. ${station}${troops}`;
+    const conflict = campaign ? `，正值${campaign.name}` : "";
+    r.note = `该团组建于${year} ${options.map.lore.calendar.era}${conflict}。${station}${troops}`;
   }
 
   /** Rename a regiment, addressed by its state and its own id */

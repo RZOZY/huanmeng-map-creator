@@ -15,6 +15,7 @@ import {
   si
 } from "@/utils";
 import { showMainTip, tip } from "./tooltips";
+import { BURG_GROUP_ZH } from "@/generators/burgs-generator";
 
 export function handleMouseMove(event: MouseEvent | TouchEvent): void {
   const node = event.currentTarget as SVGElement | null;
@@ -103,17 +104,7 @@ interface TipContext {
  * Returns undefined if the element is not interactive, so the layer tip is shown instead
  */
 /** 中文里类型词直接接在后面，不加空格 */
-const BURG_GROUP_LABELS: Record<string, string> = {
-  capital: "都城",
-  city: "城",
-  town: "镇",
-  village: "村",
-  hamlet: "小村",
-  fort: "要塞",
-  monastery: "修道院",
-  caravanserai: "商队驿站",
-  trading_post: "商站"
-};
+const BURG_GROUP_LABELS = BURG_GROUP_ZH;
 const EMBLEM_TYPE_LABELS: Record<string, string> = { burg: "城镇", province: "省份", state: "国家" };
 const RELIGION_TYPE_LABELS: Record<string, string> = {
   Folk: "民间信仰",
@@ -233,7 +224,7 @@ function getGoodsTip(target: SVGElement, cellId: number): string | undefined {
       .filter(([goodId]) => Goods.get(Number(goodId))?.visible)
       .map(([goodId, amount]) => {
         const name = (Goods.get(Number(goodId))?.name || "unknown").toLowerCase();
-        return `${name} ${amount}${Number(goodId) === bonusGoodId ? " (bonus)" : ""}`;
+        return `${name} ${amount}${Number(goodId) === bonusGoodId ? "（加成）" : ""}`;
       })
       .join(", ");
 

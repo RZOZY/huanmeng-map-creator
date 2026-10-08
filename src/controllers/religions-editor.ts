@@ -27,6 +27,7 @@ import { highlightElement } from "@/renderers/overlays/highlight";
 import { downloadFile, getArea, getAreaUnit, getFileName, groupByValue } from "@/utils";
 import { errorText } from "@/utils/stringUtils";
 import { debounce, ensureEl, getPointer, isLand, parseTransform, rn, si } from "../utils";
+import { religionFormEn, religionFormZh } from "@/generators/religions-generator";
 
 const dialogId = "religionsEditor" as const;
 const LEGEND_NAME = "Religions"; // the legend box this editor toggles
@@ -323,7 +324,7 @@ function religionsEditorAddLines(view: TableView<Religion>): void {
         ${getTypeOptions(r.type)}
       </select>
       <input data-tip="Religion form" class="religionForm"
-        value="${r.form}" autocorrect="off" spellcheck="false" data-col="form" />
+        value="${religionFormZh(r.form)}" autocorrect="off" spellcheck="false" data-col="form" />
       <div data-col="deity">
         <span data-tip="Click to re-generate supreme deity" class="icon-arrows-cw pointer"></span>
         <input data-tip="Religion supreme deity" class="religionDeity"
@@ -535,8 +536,10 @@ function religionChangeType(this: HTMLSelectElement): void {
 
 function religionChangeForm(this: HTMLInputElement): void {
   const religionId = +(this.parentNode as HTMLElement).dataset.id!;
-  (this.parentNode as HTMLElement).dataset.form = this.value;
-  if (this.value.trim()) Religions.setForm(religionId, this.value);
+  // 输入框里显示的是中文，回存前转回内部英文键（自定义名称原样传下去）
+  const form = religionFormEn(this.value);
+  (this.parentNode as HTMLElement).dataset.form = form;
+  if (form.trim()) Religions.setForm(religionId, form);
 }
 
 function religionChangeDeity(this: HTMLInputElement): void {

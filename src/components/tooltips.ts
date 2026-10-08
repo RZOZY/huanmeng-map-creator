@@ -73,8 +73,8 @@ export function showElementLockTip(event: Event): void {
   const locked = (event.target as HTMLElement | null)?.classList?.contains("icon-lock");
   tip(
     locked
-      ? "Locked. Click to unlock the element and allow it to be changed by regeneration tools"
-      : "Unlocked. Click to lock the element and prevent changes to it by regeneration tools"
+      ? "已锁定<br>点击解锁，重新生成工具即可改动该元素"
+      : "未锁定<br>点击锁定，防止重新生成工具改动该元素"
   );
 }
 

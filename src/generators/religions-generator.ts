@@ -396,6 +396,40 @@ const base = {
   ]
 };
 
+/** 形式名只是内部键（生成逻辑与存档都按英文名），界面显示走这张中文对照表 */
+export const RELIGION_FORM_ZH: Record<string, string> = {
+  "Shamanism": "萨满教",
+  "Animism": "万物有灵",
+  "Polytheism": "多神教",
+  "Ancestor Worship": "祖先崇拜",
+  "Nature Worship": "自然崇拜",
+  "Totemism": "图腾崇拜",
+  "Monotheism": "一神教",
+  "Dualism": "二元论",
+  "Syncretism": "调和论",
+  "Pantheism": "泛神论",
+  "Non-theism": "非有神论",
+  "Philosophical": "哲理型",
+  "Ethical": "伦理型",
+  "Deism": "自然神论",
+  "Henotheism": "单一主神教",
+  "Cult": "教派",
+  "Dark Cult": "黑暗教派",
+  "Sect": "宗派",
+  "Heresy": "异端"
+};
+
+/** 取得宗教形式名的中文显示名；没有对照时原样返回 */
+export function religionFormZh(form: string): string {
+  return RELIGION_FORM_ZH[form] ?? form;
+}
+
+/** 把界面上的中文形式名转回内部英文键；自定义名称原样返回 */
+export function religionFormEn(value: string): string {
+  const hit = Object.entries(RELIGION_FORM_ZH).find(([, zh]) => zh === value);
+  return hit ? hit[0] : value;
+}
+
 const forms: Record<string, Record<string, number>> = {
   Folk: {
     Shamanism: 4,
@@ -1402,7 +1436,7 @@ class ReligionsModule {
     }
     const meaning = this.generateMeaning();
     const cultureName = Names.getCulture(culture);
-    return `${cultureName}, The ${meaning}`;
+    return `${cultureName} · ${meaning}`;
   }
 
   private generateReligionName(variety: string, form: string, deity: string, center: number): [string, string] {

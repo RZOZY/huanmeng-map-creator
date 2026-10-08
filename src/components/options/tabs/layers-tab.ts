@@ -81,7 +81,7 @@ function render(): void {
 
       const item = document.createElement("li");
       item.dataset.layer = layer.id;
-      item.dataset.tip = `${button.label.replace(/<\/?u>/g, "")}: click to toggle, drag to raise or lower the layer. Ctrl + click to edit layer style`;
+      item.dataset.tip = `${button.label.replace(/<\/?u>/g, "")}：点击切换图层，拖动调整图层顺序<br>Ctrl + 点击编辑图层样式`;
       // 本版关闭快捷键，图层项不再带 data-shortcut（否则提示里会宣传已停用的快捷键）
       item.innerHTML = button.label;
       item.classList.toggle("buttonoff", !Layers.isOn(layer.id));

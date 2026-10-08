@@ -18,6 +18,7 @@ import type { Burg } from "@/generators/burgs-generator";
 import { removeEmblem } from "@/renderers/draw-emblems";
 import { downloadFile, getFileName, getHeight, getLatitude, getLongitude, uploadFile } from "@/utils";
 import { convertTemperature, createFileInput, ensureEl, getTemperatureLikeness, rn, si } from "../utils";
+import { burgGroupZh } from "@/generators/burgs-generator";
 
 type Filters = { stateId?: number | null; cultureId?: number | null };
 type FilterState = { search: string; stateId: number; cultureId: number };
@@ -358,7 +359,7 @@ function renderBurgsPage(view: TableView<Burg>): void {
         <input data-tip="Burg province" value="${province}" data-col="province" disabled />
         <input data-tip="Burg state" value="${state}" data-col="state" disabled />
         <input data-tip="Dominant culture" value="${culture}" data-col="culture" disabled />
-        <input data-tip="Burg group" value="${b.group}" data-col="group" disabled />
+        <input data-tip="Burg group" value="${burgGroupZh(b.group ?? "")}" data-col="group" disabled />
         <div data-col="population">
           <span data-tip="Burg population" class="icon-male"></span>
           <input data-tip="Burg population" value=${si(population)} disabled />

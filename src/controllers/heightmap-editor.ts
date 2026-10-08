@@ -332,16 +332,16 @@ function redrawDrainage(): void {
 }
 
 function showModeDialog(tool?: string): void {
-  alertMessage.innerHTML = /* html */ `Heightmap is a core element on which all other data (rivers, burgs, states etc) is based. So the best edit approach is to
-    <i>erase</i> the secondary data and let the system automatically regenerate it on edit completion.
-    <p><i>Erase</i> mode also allows you Convert an Image into a heightmap or use Template Editor.</p>
-    <p>You can <i>keep</i> the data, but you won't be able to change the coastline.</p>
-    <p>Try <i>risk</i> mode to change the coastline and keep the data. The data will be restored as much as possible, but it can cause unpredictable errors.</p>
-    <p>Please <span class="pseudoLink" onclick="window.Services.Save.toMachine()">save the map</span> before editing the heightmap!</p>
-    <p style="margin-bottom: 0">Check out ${link(
+  alertMessage.innerHTML = /* html */ `高度图是核心，河流、城镇、国家等所有数据都建立在它之上。最好的编辑方式是
+    <i>擦除</i>次要数据，由系统在编辑完成时自动重新生成。
+    <p><i>擦除</i>模式还可以把图像转换成高度图，或使用模板编辑器。</p>
+    <p>也可以用<i>保持</i>模式保留数据，但那样将无法再更改海岸线。</p>
+    <p><i>风险</i>模式可以更改海岸线并保留数据。数据会尽可能还原，但可能引发难以预料的问题。</p>
+    <p>编辑高度图前，请先<span class="pseudoLink" onclick="window.Services.Save.toMachine()">保存地图</span>！</p>
+    <p style="margin-bottom: 0">详见 ${link(
       "https://github.com/Azgaar/Fantasy-Map-Generator/wiki/Heightmap-customization",
-      "wiki"
-    )} for guidance.</p>`;
+      "维基文档"
+    )}。</p>`;
 
   $("#alert").dialog({
     resizable: false,

@@ -22,6 +22,24 @@ const BURG_PAINT = { fill: "#ffffff", stroke: "#3e3e4b" };
 
 export const isAutoBurgLimit = (): boolean => options.generation.burgs.limit === AUTO_BURG_LIMIT;
 
+/** 城镇分组只是内部键（图标与标签都按它取样式），界面显示走这张中文对照表 */
+export const BURG_GROUP_ZH: Record<string, string> = {
+  capital: "都城",
+  city: "城",
+  town: "镇",
+  village: "村",
+  hamlet: "小村",
+  fort: "要塞",
+  monastery: "修道院",
+  caravanserai: "商队驿站",
+  trading_post: "商站"
+};
+
+/** 取得城镇分组的中文显示名；没有对照时原样返回 */
+export function burgGroupZh(group: string): string {
+  return BURG_GROUP_ZH[group] ?? group;
+}
+
 export interface Burg {
   cell: number;
   x: number;

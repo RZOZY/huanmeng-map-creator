@@ -153,7 +153,7 @@ describe("feature naming", () => {
 
   it("names oceans with an adjective or a map side instead of a culture name", () => {
     for (let i = 0; i < 20; i++) {
-      expect(Features.getName(pack.features[3])).toMatch(/^(\w+|Western|Eastern|Northern|Southern)$/);
+      expect(Features.getName(pack.features[3])).toMatch(/^([\w\u4e00-\u9fff]+|西境|东境|北境|南境)$/);
       expect(Features.getName(pack.features[3])).not.toMatch(/^name-of-/);
     }
   });
