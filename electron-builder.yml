@@ -39,8 +39,6 @@ nsis:
   buildUniversalInstaller: false
 # 默认不自动发布：本项目只发便携 ZIP，NSIS 会被 Defender 误报
 # 需要发布时显式传 --publish always
-publish:
-  provider: github
-  releaseType: draft
-  owner: RZOZY
-  repo: humeng-map-generator
+# 本项目只发布便携 ZIP（NSIS 会被 Defender 误报），发布一律用 gh release create 手工做。
+# 这里刻意不配置 publish provider —— 一旦配置，electron-builder 会在打包时按 GitHub
+# 发布器自动上传当前平台的安装包，实测即便传 --publish never 也可能触发。
