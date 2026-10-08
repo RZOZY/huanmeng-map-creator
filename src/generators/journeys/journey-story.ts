@@ -278,8 +278,8 @@ const LORE_WORDS: Record<string, () => string> = {
   banner: () => ra(BANNERS),
   cargo: () => ra(CARGO),
   beast: () => ra(BEASTS),
-  relic: () => `${ra(COMPANY_ADJECTIVES)} ${ra(RELICS)}`,
-  tavern: () => `The ${ra(TAVERN_QUALIFIERS)} ${ra(TAVERN_SUBJECTS)}`
+  relic: () => `${ra(COMPANY_ADJECTIVES)}${ra(RELICS)}`,
+  tavern: () => `${ra(TAVERN_QUALIFIERS)}${ra(TAVERN_SUBJECTS)}`
 };
 
 /** Pick one of the templates and fill its {tokens} */
@@ -475,10 +475,9 @@ function nameHalt(archetype: JourneyArchetype, leg: PlannedLeg, cellId: number, 
   return phrase(archetype.bivouac, { wild });
 }
 
-function personName(burg: Burg): string {
-  const culture = burg.culture;
-  if (culture === undefined || !pack.cultures?.[culture]) return ra(NAMELESS);
-  return Names.getCultureShort(culture) || ra(NAMELESS);
+function personName(_burg: Burg): string {
+  // 中文人名取自专用人名表：文化简称在中文里听起来像国名（"周王朝"），不适合当人名后缀
+  return ra(NAMELESS);
 }
 
 const burgName = (burg: Burg): string => burg.name || `城${burg.i}`;
