@@ -997,31 +997,52 @@ async function updateGlobeTexure(addMesh?: boolean) {
  * 两极就成了平滑的极冠（底色取自贴图边缘，因此跟随当前配色方案）。
  */
 function fadePoles(ctx: CanvasRenderingContext2D, width: number, height: number): void {
-  // 先给极区做轻度模糊，把已经收敛的地形细节抹开，再渐隐到底色
-  const blurBand = Math.max(2, Math.round(height * 0.08));
+  // 等距圆柱投影的地图一路铺到 ±90°，而球面上整个顶边会收成一个点：
+  // 极区的地形遂被挤成一圈放射状的「花瓣」，看起来完全不像正常星球。
+  //
+  // 参考现实地球仪的做法（南极洲是一整块平滑的白色大陆），
+  // 这里把两极各约 1/7 的高度先重度模糊、再压平成一个平滑极冠，
+  // 极冠颜色取自贴图最边缘处的平均色，因此跟随当前配色方案。
+  const capRatio = 1 / 7;
+  const cap = Math.max(3, Math.round(height * capRatio));
+
   for (const dir of [1, -1]) {
-    const y = dir > 0 ? 0 : height - blurBand;
+    const y = dir > 0 ? 0 : height - cap;
+    const edgeY = dir > 0 ? 0 : height - 1;
+
+    // 极冠底色：取边缘一行若干采样点的平均，避免单点取到岛屿等杂色
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    const samples = 24;
+    for (let s = 0; s < samples; s++) {
+      const { data } = ctx.getImageData(Math.floor((width * (s + 0.5)) / samples), edgeY, 1, 1);
+      r += data[0];
+      g += data[1];
+      b += data[2];
+    }
+    r = Math.round(r / samples);
+    g = Math.round(g / samples);
+    b = Math.round(b / samples);
+
+    // 先在该带内严重模糊，把放射状的花瓣抹平
     ctx.save();
     ctx.beginPath();
-    ctx.rect(0, y, width, blurBand);
+    ctx.rect(0, y, width, cap);
     ctx.clip();
-    ctx.filter = `blur(${Math.max(1, Math.round(blurBand / 6))}px)`;
+    ctx.filter = `blur(${Math.max(2, Math.round(cap / 5))}px)`;
     ctx.drawImage(ctx.canvas, 0, 0);
     ctx.restore();
-  }
 
-  const band = Math.max(2, Math.round(height * 0.06));
-  for (const dir of [1, -1]) {
-    const edgeY = dir > 0 ? 0 : height - 1;
-    const { data } = ctx.getImageData(Math.floor(width / 2), edgeY, 1, 1);
-    const [r, g, b] = data;
+    // 再向极冠底色渐变：靠近极点完全实色，向赤道侧逐渐透明
     const from = dir > 0 ? 0 : height;
-    const grad = ctx.createLinearGradient(0, from, 0, from + dir * band);
+    const grad = ctx.createLinearGradient(0, from, 0, from + dir * cap);
     grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
-    grad.addColorStop(0.55, `rgba(${r},${g},${b},0.55)`);
+    grad.addColorStop(0.45, `rgba(${r},${g},${b},0.92)`);
+    grad.addColorStop(0.75, `rgba(${r},${g},${b},0.55)`);
     grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
     ctx.fillStyle = grad;
-    ctx.fillRect(0, Math.min(from, from + dir * band), width, band);
+    ctx.fillRect(0, Math.min(from, from + dir * cap), width, cap);
   }
 }
 
