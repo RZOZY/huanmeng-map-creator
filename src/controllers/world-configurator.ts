@@ -18,20 +18,20 @@ function open(): void {
   updateWindDirections();
 
   $("#worldConfigurator").dialog({
-    title: "Configure World",
+    title: "配置世界",
     resizable: false,
     width: "minmax(40em, 85vw)",
-    buttons: { "Update world": updateWorld },
+    buttons: { "应用并更新世界": updateWorld },
     open: function (this: HTMLElement) {
       const checkbox = /* html */ `<div class="dontAsk" data-tip="Automatically update world on input changes and button clicks">
         <input id="wcAutoChange" class="checkbox" type="checkbox" checked />
-        <label for="wcAutoChange" class="checkbox-label"><i>auto-apply changes</i></label>
+        <label for="wcAutoChange" class="checkbox-label"><i>自动应用更改</i></label>
       </div>`;
       const pane = this.parentElement?.querySelector(".ui-dialog-buttonpane");
       pane?.insertAdjacentHTML("afterbegin", checkbox);
 
       const button = this.parentElement?.querySelector(".ui-dialog-buttonset > button");
-      button?.addEventListener("mousemove", () => tip("Apply current settings to the map"));
+      button?.addEventListener("mousemove", () => tip("把当前设置应用到地图"));
     },
     close: () => destroyDialog("worldConfigurator")
   });
@@ -57,9 +57,9 @@ function createDialogHtml(): string {
   return /* html */ `<div id="worldConfigurator" class="dialog stable">
     <div style="display: flex">
       <div id="worldControls">
-        ${temperatureControl("temperatureEquator", "Equator", "Set temperature at equator")}
-        ${temperatureControl("temperatureNorthPole", "North Pole", "Set the North Pole average yearly temperature")}
-        ${temperatureControl("temperatureSouthPole", "South Pole", "Set the South Pole average yearly temperature")}
+        ${temperatureControl("temperatureEquator", "赤道", "设置赤道处的平均气温")}
+        ${temperatureControl("temperatureNorthPole", "北极", "设置北极的年平均气温")}
+        ${temperatureControl("temperatureSouthPole", "南极", "设置南极的年平均气温")}
         <div>
           <i data-locked="0" id="lock_mapSize" class="icon-lock-open"></i>
           <label data-tip="Set map size relative to the world size">
@@ -115,15 +115,15 @@ function createDialogHtml(): string {
           <span id="mapSize"></span> px = <span id="mapSizeFriendly"></span>
         </div>
         <div>
-          <i data-tip="Length of Meridian. Almost half of the equator length">Meridian length:</i><br />
-          <span id="meridianLength" data-tip="Length of Meridian in pixels"></span> px =
+          <i data-tip="经线长度，约为赤道长度的一半">经线长度：</i><br />
+          <span id="meridianLength" data-tip="经线长度（像素）"></span> px =
           <span
             id="meridianLengthFriendly"
-            data-tip="Length of Meridian is friendly units (depends on user configuration)"
+            data-tip="经线长度（按所选单位，取决于你的单位设置）"
           ></span>
           <span
             id="meridianLengthEarth"
-            data-tip="Fantasy world Meridian length relative to real-world Earth (20k km)"
+            data-tip="本幻想世界的经线长度相对于现实地球（2 万公里）的比例"
           ></span>
         </div>
         <div data-tip="Map coordinates on globe"><i>Coords:</i> <span id="mapCoordinates"></span></div>
@@ -150,7 +150,7 @@ function createDialogHtml(): string {
             <line x1="5" x2="220" y1="187" y2="187" />
             <line x1="5" x2="220" y1="200" y2="200" />
           </g>
-          <g id="globeWindArrows" data-tip="Click to change wind direction" stroke-linejoin="round">
+          <g id="globeWindArrows" data-tip="点击更改风向" stroke-linejoin="round">
             <circle cx="210" cy="6" r="12" />
             <path data-tier="0" d="M210,11 v-10 l-3,3 m6,0 l-3,-3" transform="rotate(225 210 6)" />
             <circle cx="210" cy="30" r="12" />
@@ -165,8 +165,8 @@ function createDialogHtml(): string {
             <path data-tier="5" d="M210,199 v-10 l-3,3 m6,0 l-3,-3" transform="rotate(315 210 194)" />
           </g>
           <g id="globaAxisLabels">
-            <text x="82%" y="-4%">wind</text>
-            <text x="-8%" y="-4%">latitude</text>
+            <text x="82%" y="-4%">风向</text>
+            <text x="-8%" y="-4%">纬度</text>
           </g>
           <g id="globeLatLabels">
             <text x="-15" y="5">90°</text>
@@ -184,7 +184,7 @@ function createDialogHtml(): string {
           <path id="globeGraticule" />
           <path id="globeArea" />
         </svg>
-        <button id="restoreWinds" data-tip="Click to restore default (Earth-based) wind directions">
+        <button id="restoreWinds" data-tip="点击恢复默认风向（按现实地球的风带）">
           Restore winds
         </button>
       </div>

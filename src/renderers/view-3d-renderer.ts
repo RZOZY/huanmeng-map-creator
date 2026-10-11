@@ -982,12 +982,47 @@ async function updateGlobeTexure(addMesh?: boolean) {
   const img2 = new Image();
   img2.onload = () => {
     ctx.drawImage(img2, dx, dy, mapWidth, mapHeight);
+    fadePoles(ctx, width, height);
     if (texture) texture.dispose();
     texture = new Three.CanvasTexture(ctx.canvas);
     material.map = texture;
     if (addMesh) addGlobe3dMesh();
   };
   img2.src = await Services.ExportMap.getMapURL("mesh", { noScaleBar: true, fullMap: true, noVignette: true });
+}
+
+/**
+ * 极点附近的贴图行会全部收敛到一个点：地图顶部那一横条地形被挤成放射状的「星芒」，
+ * 看起来完全不像正常星球。这里把靠近两极的若干行渐隐到该处的底色，
+ * 两极就成了平滑的极冠（底色取自贴图边缘，因此跟随当前配色方案）。
+ */
+function fadePoles(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+  // 先给极区做轻度模糊，把已经收敛的地形细节抹开，再渐隐到底色
+  const blurBand = Math.max(2, Math.round(height * 0.08));
+  for (const dir of [1, -1]) {
+    const y = dir > 0 ? 0 : height - blurBand;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, y, width, blurBand);
+    ctx.clip();
+    ctx.filter = `blur(${Math.max(1, Math.round(blurBand / 6))}px)`;
+    ctx.drawImage(ctx.canvas, 0, 0);
+    ctx.restore();
+  }
+
+  const band = Math.max(2, Math.round(height * 0.06));
+  for (const dir of [1, -1]) {
+    const edgeY = dir > 0 ? 0 : height - 1;
+    const { data } = ctx.getImageData(Math.floor(width / 2), edgeY, 1, 1);
+    const [r, g, b] = data;
+    const from = dir > 0 ? 0 : height;
+    const grad = ctx.createLinearGradient(0, from, 0, from + dir * band);
+    grad.addColorStop(0, `rgba(${r},${g},${b},1)`);
+    grad.addColorStop(0.55, `rgba(${r},${g},${b},0.55)`);
+    grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, Math.min(from, from + dir * band), width, band);
+  }
 }
 
 function addGlobe3dMesh() {
