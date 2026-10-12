@@ -15,7 +15,22 @@ const SHOT_DIR = process.env.GLOBE_SHOT_DIR || ".";
 const WORLD = { latT: 180, latN: 90, latS: -90, lonT: 320, lonW: -160, lonE: 160 };
 const REGION = { latT: 90, latN: 60, latS: -30, lonT: 180, lonW: -90, lonE: 90 };
 
+/** 版本变了会弹「更新说明」，它会盖住球面并污染像素测量；开球前统一关掉 */
+async function dismissStartupDialogs(page: any): Promise<void> {
+  await page.evaluate(() => {
+    for (const button of document.querySelectorAll(".ui-dialog-titlebar-close")) (button as HTMLElement).click();
+  });
+  await page.waitForTimeout(400);
+}
+
+/** 截图：先关掉启动弹窗，否则弹窗会盖在元素截图上 */
+async function shot(page: any, name: string): Promise<void> {
+  await dismissStartupDialogs(page);
+  await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/" + name + ".png" });
+}
+
 async function openGlobe(page: any): Promise<void> {
+  await dismissStartupDialogs(page);
   await page.evaluate(() => (window as any).Controllers.View3d.open("viewGlobe"));
   await page.waitForSelector("#canvas3d", { state: "attached", timeout: 60_000 });
   await page.waitForFunction(async () => (await (window as any).Controllers.View3d.isOn()) === true, {
@@ -189,15 +204,15 @@ test.describe("矢量球面（地球仪）", () => {
 
     await openGlobe(page);
     await expectGlobeRendered(page);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-1.png" });
+    await shot(page, "globe-1");
 
     await drag(page, 300, 0);
     await expectGlobeRendered(page);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-2.png" });
+    await shot(page, "globe-2");
 
     await drag(page, 0, -260); // 抬到北极方向
     await expectGlobeRendered(page);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-3-pole.png" });
+    await shot(page, "globe-3-pole");
 
     // 线画（海岸线/国界/河流）确实投到了球上：球面用的是平面图 SVG 里的描边路径
     const strokeCount = await page.evaluate(() => {
@@ -242,7 +257,7 @@ test.describe("矢量球面（地球仪）", () => {
 
     await openGlobe(page);
     await expectGlobeRendered(page);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-region.png" });
+    await shot(page, "globe-region");
 
     expect(externalRequests).toEqual([]);
     expect(errors).toEqual([]);
@@ -258,17 +273,45 @@ test.describe("矢量球面（地球仪）", () => {
 
     await openGlobe(page);
     await expectGlobeRendered(page);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-texture-off.png" });
+    await shot(page, "globe-texture-off");
     const before = await globePixelSignature(page);
 
     // 贴图是默认关闭的图层：打开它，球面应当跟着变（陆地叠上纸纹）
     await page.evaluate(() => (window as any).Layers.show("texture"));
     await page.evaluate(() => (window as any).Controllers.View3d.update());
     await page.waitForTimeout(2500);
-    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-texture-on.png" });
+    await shot(page, "globe-texture-on");
     const after = await globePixelSignature(page);
 
     console.log("纸纹图层：关 " + before + " → 开 " + after);
+    expect(after).not.toBe(before);
+    expect(errors).toEqual([]);
+  });
+  test("地形符号：开启 relief 图层后球面叠上山/林图标", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/");
+    await waitForMap(page);
+    await page.evaluate((coords: unknown) => {
+      Object.assign((window as any).options.map.geography.coordinates, coords as object);
+    }, WORLD);
+
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+    await shot(page, "globe-relief-off");
+    const before = await globePixelSignature(page);
+
+    // 地形符号的图层默认是关的，图标集也是异步加载的：打开后等图标落地再让球面重建
+    await page.evaluate(() => (window as any).Layers.show("relief"));
+    await page.waitForTimeout(2000);
+    await page.evaluate(() => (window as any).Controllers.View3d.update());
+    await page.waitForTimeout(2500);
+    await dismissStartupDialogs(page);
+    await page.screenshot({ path: SHOT_DIR + "/map-relief-on.png" });
+    await shot(page, "globe-relief-on");
+    const after = await globePixelSignature(page);
+
+    console.log("地形符号：关 " + before + " → 开 " + after);
     expect(after).not.toBe(before);
     expect(errors).toEqual([]);
   });

@@ -87,6 +87,7 @@ let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
 let globeLineMesh: THREE.Mesh | null = null; // 海岸线/国界/河流等线画（带状三角形，可调宽、可虚线）
 let globeLineGeometry: THREE.BufferGeometry | null = null;
 let globeLineMaterial: THREE.MeshBasicMaterial | null = null;
+let reliefRetry = false; // 地形符号图标集是异步加载的，只重试一次
 let globeFillMesh: THREE.Mesh | null = null; // 河流/湖泊等填充面
 let globeFillGeometry: THREE.BufferGeometry | null = null;
 let globeFillMaterial: THREE.MeshBasicMaterial | null = null;
@@ -1168,6 +1169,19 @@ function addGlobeLines() {
     // 带状三角形：双面可见，深度不写（线贴在球面上，别抢深度）
     globeLineMaterial = new Three.MeshBasicMaterial({ vertexColors: true, side: Three.DoubleSide });
     globeLineMaterial.depthWrite = false; // 线贴在面上，别用它抢深度
+  }
+
+  // 图标集是异步加载的：这一轮没取到地形符号就稍后重建一次（只重试一次）
+  if (
+    data.relief === 0 &&
+    (pack.relief?.length ?? 0) > 0 &&
+    !reliefRetry &&
+    document.querySelector('#map g[data-layer="relief"]')
+  ) {
+    reliefRetry = true;
+    window.setTimeout(() => {
+      if (active && scene) addGlobeLines();
+    }, 1500);
   }
 
   globeLineGeometry = lineGeometry;

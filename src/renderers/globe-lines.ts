@@ -6,6 +6,7 @@
  * 国界的虚线都表现不出来。这里把每条线按 stroke-width 展开成**世界空间的带状三角形**，
  * 并沿折线按 stroke-dasharray 切出实线段，所以球面上的线宽与虚线节奏和平面图一致。
  */
+import { Relief } from "@/generators/relief-generator";
 import { parsePathPoints } from "@/utils/pathUtils";
 import type { Point } from "@/types/global";
 import { DEFAULT_GLOBE_LAYER_STYLE, type GlobeLayerStyle, createGlobeProjector } from "./globe-vector";
@@ -15,6 +16,7 @@ export type GlobeLineData = {
   colors: number[]; // 与 positions 一一对应
   paths: number; // 取到的子路径数
   segments: number; // 生成的带条数
+  relief: number; // 投上球的地形符号数（图标集是异步加载的，0 表示可能还没加载好）
 };
 
 /** 不画到球上的图层：网格与单元这类辅助线，以及贴图、高度图 */
@@ -74,6 +76,18 @@ function parseDashArray(value: string): number[] {
 
   // SVG 规则：奇数个值时重复一遍
   return parts.length % 2 === 1 ? [...parts, ...parts] : parts;
+}
+
+/** viewBox="x y w h" → 数字；缺失时按图标集的 100x100 处理 */
+function parseViewBox(value: string | null): { x: number; y: number; width: number; height: number } {
+  const parts = (value ?? "")
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number.parseFloat);
+  if (parts.length === 4 && parts.every(part => Number.isFinite(part)) && parts[2] > 0 && parts[3] > 0) {
+    return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
+  }
+  return { x: 0, y: 0, width: 100, height: 100 };
 }
 
 const cross = (a: number[], b: number[]) => [
@@ -345,5 +359,100 @@ export function buildGlobeLineData(): GlobeLineData | null {
     }
   }
 
-  return segments ? { positions, colors, paths, segments } : null;
+  // 地形符号（山、林…）：图层默认关闭；开启后把 pack.relief 里每个图标的路径投到球上。
+  // 图标是描边线画，符号定义在图标集加载完成后才存在于 DOM，所以取不到时会 count 0 让上层稍后重试。
+  let reliefIcons = 0;
+  const reliefGroup = root.querySelector<SVGGElement>('g[data-layer="relief"]');
+  if (reliefGroup && getComputedStyle(reliefGroup).display !== "none") {
+    const sample = reliefGroup.querySelector<SVGUseElement>("use");
+    const sampleStyle = sample ? getComputedStyle(sample) : null;
+    const fallbackStroke = typeof styles?.relief?.attrs?.stroke === "string" ? styles.relief.attrs.stroke : "#5c5c70";
+    const channels = colorChannels(
+      sampleStyle && sampleStyle.stroke !== "none" ? sampleStyle.stroke : fallbackStroke
+    );
+    // 图标大多是填充路径（stroke="none"）：fill/stroke 都要照平面图的实际值来，不能一律当描边画
+    const inheritedFill = sampleStyle?.fill ?? "none";
+    const inheritedStroke = sampleStyle && sampleStyle.stroke !== "none" ? sampleStyle.stroke : fallbackStroke;
+    const inheritedStrokeWidth = Number.parseFloat(sampleStyle?.strokeWidth ?? "1");
+    const runtimeThree = threeRuntime();
+    const groupOpacity = Number.parseFloat(getComputedStyle(reliefGroup).opacity);
+    const opacity = Number.isFinite(groupOpacity) ? groupOpacity : 1;
+    const color: [number, number, number] | null = channels
+      ? [channels[0] * opacity, channels[1] * opacity, channels[2] * opacity]
+      : null;
+    const iconScale = typeof styles?.relief?.options?.size === "number" ? styles.relief.options.size : 1;
+    const set = styles?.relief?.options?.set;
+
+    if (color) {
+      for (const icon of pack.relief ?? []) {
+        const symbolId = Relief.symbolId(icon, set);
+        const symbol = document.getElementById(symbolId);
+        if (!symbol) continue;
+
+        const frame = parseViewBox(symbol.getAttribute("viewBox"));
+        const drawn = icon.s * iconScale;
+        const shift = (drawn - icon.s) / 2; // 与平面图一致：以图标中心缩放
+        const left = icon.x - shift;
+        const top = icon.y - shift;
+        let drawnPaths = 0;
+
+        for (const path of symbol.querySelectorAll<SVGPathElement>("path")) {
+          const d = path.getAttribute("d");
+          if (!d) continue;
+
+          const contours = d
+            .split(/(?=[Mm])/)
+            .map(subpath => parsePathPoints(subpath))
+            .filter(points => points.length >= 2);
+          if (!contours.length) continue;
+
+          const toMap = (points: Point[]): Point[] =>
+            points.map(([px, py]) => [
+              left + ((px - frame.x) / frame.width) * drawn,
+              top + ((py - frame.y) / frame.height) * drawn
+            ]);
+
+          // 描边：路径自带的 stroke-width 是图标单位，要按缩放换算；没有则用 <use> 的继承值（地图像素）
+          const strokeAttr = path.getAttribute("stroke") ?? inheritedStroke;
+          if (strokeAttr && strokeAttr !== "none") {
+            const strokeColor = colorChannels(strokeAttr);
+            const ownWidth = Number.parseFloat(path.getAttribute("stroke-width") ?? "");
+            const widthPx = Number.isFinite(ownWidth) && ownWidth > 0 ? ownWidth * (drawn / frame.width) : inheritedStrokeWidth;
+            if (strokeColor) {
+              const tint: [number, number, number] = [strokeColor[0] * opacity, strokeColor[1] * opacity, strokeColor[2] * opacity];
+              for (const contour of contours) {
+                if (contour.length < 2) continue;
+                emitPath(toMap(contour), Math.max(0.3, widthPx) / 2, [], tint);
+              }
+            }
+          }
+
+          // 填充：图标多为填充路径，用 earcut 三角化（图标很小，不必细分）
+          const fillAttr = path.getAttribute("fill") ?? inheritedFill;
+          if (fillAttr && fillAttr !== "none" && runtimeThree) {
+            const fillColor = colorChannels(fillAttr);
+            if (fillColor) {
+              const outer = toMap(contours[0]).map(([x, y]) => new runtimeThree.Vector2(x, y));
+              const holes = contours.slice(1).map(contour => toMap(contour).map(([x, y]) => new runtimeThree.Vector2(x, y)));
+              const vertices = [...outer, ...holes.flat()];
+              const faces = runtimeThree.ShapeUtils.triangulateShape(outer, holes);
+              const tint: [number, number, number] = [fillColor[0] * opacity, fillColor[1] * opacity, fillColor[2] * opacity];
+              for (const face of faces) {
+                for (const index of face) {
+                  const vertex = vertices[index];
+                  const projected = project(vertex.x, vertex.y);
+                  positions.push(projected[0] * LINE_RADIUS, projected[1] * LINE_RADIUS, projected[2] * LINE_RADIUS);
+                  colors.push(tint[0], tint[1], tint[2]);
+                }
+              }
+            }
+          }
+          drawnPaths++;
+        }
+        if (drawnPaths > 0) reliefIcons++;
+      }
+    }
+  }
+
+  return segments ? { positions, colors, paths, segments, relief: reliefIcons } : null;
 }
