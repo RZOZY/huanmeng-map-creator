@@ -277,20 +277,86 @@ export function buildGlobeLineData(): GlobeLineData | null {
   };
 
   /** 沿折线走，按虚线节奏只把「实」的那几段交给 emitSpan；pattern 为空即整条实线 */
+  const pushTriangle = (a: number[], b: number[], c: number[], color: [number, number, number]) => {
+    pushVertex(a, color);
+    pushVertex(b, color);
+    pushVertex(c, color);
+  };
+
+  /**
+   * 拐角补片：相邻两段带条各自独立展开，在转角**外侧**会留下一个楔形缺口。
+   * 这里按斜接（miter）补上；夹角太尖时限制斜接长度，退化成斜切。
+   */
+  const emitJoin = (prev: Point, joint: Point, next: Point, halfWidth: number, color: [number, number, number]) => {
+    const toWorld = (point: [number, number, number]) => [
+      point[0] * LINE_RADIUS,
+      point[1] * LINE_RADIUS,
+      point[2] * LINE_RADIUS
+    ];
+    const A = toWorld(project(prev[0], prev[1]));
+    const B = toWorld(project(joint[0], joint[1]));
+    const C = toWorld(project(next[0], next[1]));
+
+    const normal = normalize(B);
+    const t1 = normalize([B[0] - A[0], B[1] - A[1], B[2] - A[2]]);
+    const t2 = normalize([C[0] - B[0], C[1] - B[1], C[2] - B[2]]);
+    const s1 = normalize(cross(t1, normal));
+    const s2 = normalize(cross(t2, normal));
+
+    const width = halfWidth * worldPerMapPixel;
+    const alignment = s1[0] * s2[0] + s1[1] * s2[1] + s1[2] * s2[2];
+    if (alignment > 0.999) return; // 几乎同向，相邻带条自己就盖住了
+
+    // 外侧：按左转/右转决定用哪一侧的法向来补
+    const turn = cross(t1, t2);
+    const turnSign = turn[0] * normal[0] + turn[1] * normal[1] + turn[2] * normal[2] > 0 ? -1 : 1;
+    const side1 = [s1[0] * turnSign, s1[1] * turnSign, s1[2] * turnSign];
+    const side2 = [s2[0] * turnSign, s2[1] * turnSign, s2[2] * turnSign];
+
+    const e1 = [B[0] + side1[0] * width, B[1] + side1[1] * width, B[2] + side1[2] * width];
+    const e2 = [B[0] + side2[0] * width, B[1] + side2[1] * width, B[2] + side2[2] * width];
+
+    const bisector = normalize([side1[0] + side2[0], side1[1] + side2[1], side1[2] + side2[2]]);
+    const cosHalf = Math.max(bisector[0] * side1[0] + bisector[1] * side1[1] + bisector[2] * side1[2], 0.25);
+    const miter = [
+      B[0] + bisector[0] * (width / cosHalf),
+      B[1] + bisector[1] * (width / cosHalf),
+      B[2] + bisector[2] * (width / cosHalf)
+    ];
+
+    pushTriangle(e1, miter, e2, color);
+    pushTriangle(e1, e2, B, color);
+    segments++;
+  };
+
+  /** 一条连续的实线：逐段展开带条，再在每个拐角补片 */
+  const emitRun = (run: Point[], halfWidth: number, color: [number, number, number]) => {
+    if (run.length < 2) return;
+    for (let i = 1; i < run.length; i++) emitSpan(run[i - 1], run[i], halfWidth, color);
+    for (let i = 1; i < run.length - 1; i++) emitJoin(run[i - 1], run[i], run[i + 1], halfWidth, color);
+  };
+
+  /**
+   * 沿折线走：实线整条一个 run；虚线按 stroke-dasharray 切成一段段连续的实线，
+   * 每段自己一个 run —— 拐角补片只在同一段实线内部生成，不会把虚线之间连起来。
+   */
   const emitPath = (points: Point[], halfWidth: number, pattern: number[], color: [number, number, number]) => {
     if (!pattern.length) {
+      const run: Point[] = [points[0]];
       for (let i = 1; i < points.length; i++) {
         const [x0, y0] = points[i - 1];
         const [x1, y1] = points[i];
         if (Math.hypot(x1 - x0, y1 - y0) < MIN_SEGMENT) continue;
-        emitSpan(points[i - 1], points[i], halfWidth, color);
+        run.push(points[i]);
       }
+      emitRun(run, halfWidth, color);
       return;
     }
 
     let patternIndex = 0;
-    let remaining = pattern[0];
+    let remaining = Math.max(pattern[0], MIN_SEGMENT);
     let on = true;
+    let run: Point[] = [];
 
     for (let i = 1; i < points.length; i++) {
       let x0 = points[i - 1][0];
@@ -304,19 +370,30 @@ export function buildGlobeLineData(): GlobeLineData | null {
         const ratio = step / length;
         const nx = x0 + (x1 - x0) * ratio;
         const ny = y0 + (y1 - y0) * ratio;
-        if (on && step >= MIN_SEGMENT) emitSpan([x0, y0], [nx, ny], halfWidth, color);
+
+        if (on) {
+          if (run.length === 0) run.push([x0, y0]);
+          run.push([nx, ny]);
+        }
 
         x0 = nx;
         y0 = ny;
         length -= step;
         remaining -= step;
+
         if (remaining <= MIN_SEGMENT) {
           patternIndex = (patternIndex + 1) % pattern.length;
           remaining = Math.max(pattern[patternIndex], MIN_SEGMENT);
           on = !on;
+          if (!on) {
+            emitRun(run, halfWidth, color);
+            run = [];
+          }
         }
       }
     }
+
+    emitRun(run, halfWidth, color);
   };
 
   for (const group of root.querySelectorAll<SVGGElement>("g[data-layer]")) {

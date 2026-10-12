@@ -120,6 +120,14 @@ async function drag(page: any, dx: number, dy: number): Promise<void> {
   await page.waitForTimeout(400);
 }
 
+/** 滚轮拉近：检查线画拐角、贴图细节时要看得清 */
+async function zoomGlobe(page: any, delta: number): Promise<void> {
+  const box = await page.locator("#canvas3d").boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, delta);
+  await page.waitForTimeout(700);
+}
+
 const collectErrors = (page: any): string[] => {
   const errors: string[] = [];
   page.on("pageerror", (error: Error) => errors.push("pageerror: " + error.message));
@@ -213,6 +221,11 @@ test.describe("矢量球面（地球仪）", () => {
     await drag(page, 0, -260); // 抬到北极方向
     await expectGlobeRendered(page);
     await shot(page, "globe-3-pole");
+
+    // 拉近看线画：带条之间的拐角补片不该留下楔形缺口
+    await zoomGlobe(page, -1400);
+    await expectGlobeRendered(page);
+    await shot(page, "globe-4-zoom");
 
     // 线画（海岸线/国界/河流）确实投到了球上：球面用的是平面图 SVG 里的描边路径
     const strokeCount = await page.evaluate(() => {
