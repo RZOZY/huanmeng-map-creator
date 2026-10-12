@@ -2,6 +2,7 @@ import { Color } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildGlobeVectorMeshData,
+  DEFAULT_GLOBE_LAYER_STYLE,
   clipPolygonToMapRect,
   hexToColorChannels,
   signedPolygonArea
@@ -33,13 +34,14 @@ function installFixture(coordinates: typeof WORLD | typeof REGION) {
   for (let y = SPACING / 2; y < H; y += SPACING)
     for (let x = SPACING / 2; x < W; x += SPACING) points.push([x + jitter(), y + jitter()]);
 
-  const heights = new Uint8Array(points.length).fill(10); // 默认全是水
+  const heights = new Uint8Array(points.length).fill(10);
+  const terrain = new Int8Array(points.length).fill(1); // 浅海：水深分带按 1 处理 // 默认全是水
   heights[0] = 30; // 有主陆地
   heights[20] = 30; // 无主陆地
 
   const biomes = Array.from({ length: 13 }, (_, i) => ({ color: i === 5 ? BIOME_COLOR : MARINE_COLOR }));
 
-  vi.stubGlobal("grid", { spacing: SPACING, points, boundary, cells: { h: heights } });
+  vi.stubGlobal("grid", { spacing: SPACING, points, boundary, cellsX: W / SPACING, cells: { h: heights, t: terrain } });
   vi.stubGlobal("pack", {
     cells: {
       i: [0, 1, 2],
@@ -51,6 +53,8 @@ function installFixture(coordinates: typeof WORLD | typeof REGION) {
     biomes
   });
   vi.stubGlobal("options", { map: { graph: { width: W, height: H }, geography: { coordinates } } });
+
+  return { heights, terrain };
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -175,24 +179,50 @@ describe("buildGlobeVectorMeshData", () => {
     expect(latMax).toBeCloseTo(REGION.latN, 6);
   });
 
-  it("取色：有主陆地用国家色、无主陆地用生物群系色、水域用海洋色", () => {
+  it("取色：国色按 states 层的透明度压在生物群系上，水域用水深分带", () => {
     installFixture(WORLD);
-    const data = buildGlobeVectorMeshData();
+    // 关掉地形阴影，单独验合成规则
+    const data = buildGlobeVectorMeshData({ ...DEFAULT_GLOBE_LAYER_STYLE, reliefVisible: false });
     expect(data).not.toBeNull();
 
     const distinct = new Set<string>();
     for (let i = 0; i < data!.colors.length; i += 3) {
-      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join(","));
+      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join(
+));
     }
 
-    const channels = (hex: string) => {
-      const [r, g, b] = hexToColorChannels(hex);
-      return [r, g, b].map(v => v.toFixed(6)).join(",");
+    const channels = (rgb: number[]) => rgb.map(v => v.toFixed(6)).join(
+);
+    // 与 mixHex 同一套算法：0..255 通道空间取整后再归一
+    const blend = (baseHex: string, overHex: string, t: number) => {
+      const base = hexToColorChannels(baseHex).map(v => v * 255);
+      const over = hexToColorChannels(overHex).map(v => v * 255);
+      return base.map((value, index) => Math.round(value + (over[index] - value) * t) / 255);
     };
 
-    expect(distinct.size).toBe(3); // 既不能漏成兜底色，也不该出现计划外的颜色
-    expect(distinct.has(channels(STATE_COLOR))).toBe(true);
-    expect(distinct.has(channels(BIOME_COLOR))).toBe(true);
-    expect(distinct.has(channels(MARINE_COLOR))).toBe(true);
+    expect(distinct.size).toBe(3); // 有主陆地=生物群系+国色、无主陆地=生物群系、水域=海洋色
+    expect(distinct.has(channels(blend(MARINE_COLOR, STATE_COLOR, 0.4)))).toBe(true);
+    expect(distinct.has(channels(hexToColorChannels(BIOME_COLOR)))).toBe(true);
+    expect(distinct.has(channels(hexToColorChannels(MARINE_COLOR)))).toBe(true);
+  });
+
+  it("水深分带：深海压暗、近岸提亮", () => {
+    const { terrain } = installFixture(WORLD);
+    terrain[1] = -2; // 深海
+    terrain[2] = -1; // 近岸
+    const data = buildGlobeVectorMeshData({ ...DEFAULT_GLOBE_LAYER_STYLE, reliefVisible: false });
+    expect(data).not.toBeNull();
+
+    const distinct = new Set<string>();
+    for (let i = 0; i < data!.colors.length; i += 3) {
+      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join(
+));
+    }
+
+    const marine = hexToColorChannels(MARINE_COLOR);
+    const shaded = (factor: number) => marine.map(v => (v * factor).toFixed(6)).join(
+);
+    expect(distinct.has(shaded(0.9))).toBe(true);
+    expect(distinct.has(shaded(1.06))).toBe(true);
   });
 });

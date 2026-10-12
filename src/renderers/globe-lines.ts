@@ -6,7 +6,38 @@
  * 取不到 SVG（例如单测环境）时返回 null，渲染器就当作没有线画。
  */
 import { parsePathPoints } from "@/utils/pathUtils";
-import { createGlobeProjector } from "./globe-vector";
+import { DEFAULT_GLOBE_LAYER_STYLE, type GlobeLayerStyle, createGlobeProjector } from "./globe-vector";
+
+/**
+ * 球面该按平面图当前的哪些图层、什么透明度上色。
+ * 图层开关与样式都取自实时 SVG / styles，所以菜单里怎么调，球面就怎么变。
+ */
+export function readGlobeLayerStyle(): GlobeLayerStyle {
+  const group = (layer: string) => document.querySelector<SVGGElement>(`#map g[data-layer="${layer}"]`);
+  const visible = (layer: string) => {
+    const element = group(layer);
+    return element !== null && getComputedStyle(element).display !== "none";
+  };
+
+  // 国色的半透明度写在 statesBody 分组上（path 自身是 1），必须从这里读
+  const stateGroup = document.querySelector<SVGGElement>("#map g#statesBody");
+  const styleOpacity = (styles?.states?.groups as Record<string, { attrs?: { opacity?: unknown } }> | undefined)
+    ?.statesBody?.attrs?.opacity;
+  const domOpacity = stateGroup ? Number.parseFloat(getComputedStyle(stateGroup).opacity) : Number.NaN;
+  const stateOpacity = typeof styleOpacity === "number" ? styleOpacity : domOpacity;
+
+  const oceanFill = styles?.ocean?.groups?.base?.attrs?.fill;
+  const landFill = styles?.landmass?.attrs?.fill;
+
+  return {
+    statesVisible: visible("states"),
+    stateOpacity: Number.isFinite(stateOpacity) ? stateOpacity : DEFAULT_GLOBE_LAYER_STYLE.stateOpacity,
+    biomesVisible: visible("biomes"),
+    reliefVisible: visible("relief"),
+    landColor: typeof landFill === "string" ? landFill : DEFAULT_GLOBE_LAYER_STYLE.landColor,
+    oceanColor: typeof oceanFill === "string" ? oceanFill : DEFAULT_GLOBE_LAYER_STYLE.oceanColor
+  };
+}
 
 export type GlobeLineData = {
   positions: number[]; // 线段端点对
@@ -71,9 +102,17 @@ export function buildGlobeLineData(): GlobeLineData | null {
   const groups = root.querySelectorAll<SVGGElement>("g[data-layer]");
   for (const group of groups) {
     if (EXCLUDED_LAYERS.has(group.dataset.layer ?? "")) continue;
-    if (getComputedStyle(group).display === "none") continue; // 该图层当前是关掉的
+    const groupStyle = getComputedStyle(group);
+    if (groupStyle.display === "none") continue; // 该图层当前是关掉的
+    // 图层自身的 opacity（比如国界 0.8）要乘进线色，否则球面上的线比平面图重
+    const groupOpacity = Number.parseFloat(groupStyle.opacity);
+    const opacity = Number.isFinite(groupOpacity) ? groupOpacity : 1;
+    if (opacity <= 0.02) continue;
 
     for (const path of group.querySelectorAll<SVGPathElement>("path")) {
+      // 国名的白色外发光（blur 过的粗描边）在平面图里压在填充之下，当线画会变成一圈毛刺
+      if (path.closest("#statesHalo")) continue;
+
       const d = path.getAttribute("d");
       if (!d) continue;
 
@@ -81,8 +120,9 @@ export function buildGlobeLineData(): GlobeLineData | null {
       if (style.display === "none" || style.visibility === "hidden") continue;
       if (Number.parseFloat(style.strokeWidth) <= 0) continue;
       if (Number.parseFloat(style.strokeOpacity || "1") <= 0.02) continue;
-      const stroke = colorChannels(style.stroke);
-      if (!stroke) continue;
+      const channels = colorChannels(style.stroke);
+      if (!channels) continue;
+      const stroke: [number, number, number] = [channels[0] * opacity, channels[1] * opacity, channels[2] * opacity];
 
       // 每条子路径单独成链：否则 M 起点之间会连出一条假线
       for (const subpath of d.split(/(?=[Mm])/)) {

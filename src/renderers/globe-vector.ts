@@ -21,6 +21,30 @@ import { SEA_LEVEL } from "@/utils";
 
 export type Polygon2D = [number, number][];
 
+/**
+ * 球面该按平面图的哪些图层、什么透明度来上色。
+ * 平面图的国色是「40% 半透明压在生物群系上」，直接用纯色就会变成色块，所以这里照抄它的合成方式。
+ * 由 globe-lines.readGlobeLayerStyle() 从实时 SVG 读出（图层开关 + 实际透明度 + 底色），
+ * 单测用默认值。
+ */
+export type GlobeLayerStyle = {
+  statesVisible: boolean;
+  stateOpacity: number; // 来自平面图 states 层的 opacity，默认 0.4
+  biomesVisible: boolean;
+  reliefVisible: boolean; // 地形阴影开关（跟随 relief 图层）
+  landColor: string; // 生物群系关闭时的陆地底色（landmass 填充）
+  oceanColor: string;
+};
+
+export const DEFAULT_GLOBE_LAYER_STYLE: GlobeLayerStyle = {
+  statesVisible: true,
+  stateOpacity: 0.4,
+  biomesVisible: true,
+  reliefVisible: true,
+  landColor: "#eef6fb",
+  oceanColor: "#466eab"
+};
+
 export type GlobeVectorMeshData = {
   positions: number[]; // 每三个一组，非索引三角形列表
   colors: number[]; // 与 positions 一一对应，线性色彩空间（可直接作为顶点色）
@@ -74,6 +98,14 @@ export function clipPolygonToMapRect(polygon: Polygon2D, width: number, height: 
     }
   }
   return output;
+}
+
+/** 两个颜色按 t 混合（0..255 通道空间，与浏览器的图层合成一致） */
+function mixHex(base: string, over: string, t: number): string {
+  const [br, bg, bb] = parseHexColor(base);
+  const [or, og, ob] = parseHexColor(over);
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * t);
+  return `rgb(${mix(br, or)}, ${mix(bg, og)}, ${mix(bb, ob)})`;
 }
 
 function parseHexColor(hex: string): [number, number, number] {
@@ -141,7 +173,9 @@ export function createGlobeProjector() {
   };
 }
 
-export function buildGlobeVectorMeshData(): GlobeVectorMeshData | null {
+export function buildGlobeVectorMeshData(
+  style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE
+): GlobeVectorMeshData | null {
   const width = options.map.graph.width;
   const height = options.map.graph.height;
   const world = options.map.geography.coordinates.latT > 179; // 只用于回报构建结果，投影本身在工厂里
@@ -156,21 +190,54 @@ export function buildGlobeVectorMeshData(): GlobeVectorMeshData | null {
   }
 
   const colorCache = new Map<string, [number, number, number]>();
-  /** 有主陆地 → 国家色；无主陆地 → 生物群系色；水域 → 海洋色（生物群系 0 即海洋） */
+
+  /** 地形阴影：西北来光，按与西北相邻单元的高度差压暗/提亮（跟随 relief 图层的开关） */
+  const heights = grid.cells.h;
+  const terrainType = grid.cells.t;
+  const cellsX = grid.cellsX;
+  const shadeOf = (cell: number, onLand: boolean): number => {
+    if (!onLand) {
+      // 海洋按水深分带：深海压暗、近岸提亮，和平面图的浅深带一致
+      const type = terrainType[cell];
+      if (type <= -2) return 0.9;
+      if (type === -1) return 1.06;
+      return 1;
+    }
+    if (!style.reliefVisible) return 1;
+    const left = cell % cellsX === 0 ? heights[cell] : heights[cell - 1];
+    const up = cell < cellsX ? heights[cell] : heights[cell - cellsX];
+    const rise = (left + up) / 2 - heights[cell];
+    return Math.max(0.86, Math.min(1.14, 1 - rise * 0.012));
+  };
+
+  /**
+   * 按平面图的合成方式取色：生物群系打底 → 国色按 states 层的透明度压上去
+   * → 再乘地形/水深的明暗
+   */
   const colorOfGridCell = (cell: number): [number, number, number] => {
     const packCell = packOfGrid.get(cell);
-    const onLand = grid.cells.h[cell] >= SEA_LEVEL;
-    let hex = onLand ? LAND_FALLBACK_COLOR : WATER_FALLBACK_COLOR;
+    const onLand = heights[cell] >= SEA_LEVEL;
+    let hex = onLand ? style.landColor : style.oceanColor;
+
     if (packCell !== undefined) {
-      const stateId = pack.cells.state[packCell];
-      const state = stateId ? pack.states[stateId] : undefined;
       const biome = pack.biomes?.[pack.cells.biome[packCell]];
-      hex = state?.color ?? biome?.color ?? hex;
+      if (biome?.color && (onLand ? style.biomesVisible : true)) hex = biome.color;
+
+      const stateId = pack.cells.state[packCell];
+      const stateColor = stateId ? pack.states[stateId]?.color : undefined;
+      if (onLand && style.statesVisible && stateColor) hex = mixHex(hex, stateColor, style.stateOpacity);
+    } else if (!onLand) {
+      hex = WATER_FALLBACK_COLOR;
     }
-    const cached = colorCache.get(hex);
+
+    const shade = shadeOf(cell, onLand);
+    const key = hex + "|" + shade.toFixed(3);
+    const cached = colorCache.get(key);
     if (cached) return cached;
-    const parsed = hexToColorChannels(hex);
-    colorCache.set(hex, parsed);
+
+    const base = hexToColorChannels(hex);
+    const parsed: [number, number, number] = [base[0] * shade, base[1] * shade, base[2] * shade];
+    colorCache.set(key, parsed);
     return parsed;
   };
 

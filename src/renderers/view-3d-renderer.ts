@@ -15,8 +15,9 @@ import {
   generateSatelliteTexture
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
-import { buildGlobeLineData } from "./globe-lines";
-import { buildGlobeVectorMeshData, WATER_FALLBACK_COLOR } from "./globe-vector";
+import { buildGlobeLabelData, type GlobeLabelData } from "./globe-labels";
+import { buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
+import { buildGlobeVectorMeshData, createGlobeProjector, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
 export { heightAt, isCached } from "./erosion-bake";
@@ -85,6 +86,8 @@ let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
 let globeLineMesh: THREE.LineSegments | null = null; // 海岸线/国界/河流等线画
 let globeLineGeometry: THREE.BufferGeometry | null = null;
 let globeLineMaterial: THREE.LineBasicMaterial | null = null;
+let globeLabelGroup: THREE.Group | null = null; // 地名标签
+let globeLabelItems: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 let erosionBakeActive = false; // dense eroded mesh is displayed
 let erosionBakeData: ErosionBake.ErosionBakeResult | null = null; // last bake, kept to re-generate the satellite texture
 let waterAnimationFrame: number | null = null; // render loop for the satellite water shimmer
@@ -144,6 +147,7 @@ const stop = () => {
   globeLineMesh = null;
   globeLineGeometry = null;
   globeLineMaterial = null;
+  disposeGlobeLabels();
   if (waterPlane) waterPlane.dispose();
   if (waterMaterial) waterMaterial.dispose();
   if (spotLight?.shadow?.map) spotLight.shadow.map.dispose(); // three keeps the shadow render target on the light
@@ -1000,7 +1004,7 @@ function addGlobeVectorMesh() {
     addGlobeBaseSphere(pack.biomes?.[0]?.color ?? WATER_FALLBACK_COLOR);
   }
 
-  const data = buildGlobeVectorMeshData();
+  const data = buildGlobeVectorMeshData(readGlobeLayerStyle());
   if (!data) return;
 
   const nextGeometry = new Three.BufferGeometry();
@@ -1024,7 +1028,101 @@ function addGlobeVectorMesh() {
   scene.add(mesh);
 
   addGlobeLines();
+  addGlobeLabels();
   render();
+}
+
+const LABEL_RADIUS = 1.012; // 标签略高于线画，避免被线压住
+// 标签字号在地图里是按「占地图高度百分比」定的，直接换算到半径 1 的球上会大得离谱：
+// 球面一次显示全世界，所以按世界尺寸夹在 1.1%..4.2% 半径之间
+const LABEL_WORLD_MIN = 0.011;
+const LABEL_WORLD_MAX = 0.042;
+
+/** 把一条标签画成画布贴图：白描边 + 字色，作用与平面图的 text-shadow 相当 */
+function createLabelTexture(label: GlobeLabelData): { texture: THREE.CanvasTexture; width: number; height: number } | null {
+  const fontPx = 48; // 画布内的字号固定，缩放在几何尺寸上做
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const font = `${fontPx}px "${label.fontFamily}", serif`;
+  context.font = font;
+  const textWidth = Math.max(1, context.measureText(label.text).width);
+  const width = Math.ceil(textWidth + fontPx * 0.6);
+  const height = Math.ceil(fontPx * 1.7);
+  canvas.width = width;
+  canvas.height = height;
+
+  context.font = font;
+  context.textAlign = "center";
+  context.textBaseline = "middle";
+  context.lineJoin = "round";
+  context.lineWidth = fontPx * 0.2;
+  context.strokeStyle = "rgba(255,255,255,0.9)";
+  context.strokeText(label.text, width / 2, height / 2);
+  context.globalAlpha = Math.max(0.15, Math.min(1, label.opacity));
+  context.fillStyle = label.color;
+  context.fillText(label.text, width / 2, height / 2);
+
+  return { texture: new Three.CanvasTexture(canvas), width, height };
+}
+
+/** 地名标签：每个一条贴片，沿球面法线朝外，背面的由 doWorkOnRender 剔除 */
+function addGlobeLabels() {
+  if (!scene || globeLabelGroup) return;
+  const data = buildGlobeLabelData();
+  if (!data.length) return;
+
+  const project = createGlobeProjector();
+  const mapWidth = options.map.graph.width;
+  const worldPerMapPixel = (Math.PI * 2) / mapWidth; // 地图宽度铺满整圈
+  const group = new Three.Group();
+  const items: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
+
+  for (const label of data) {
+    const drawn = createLabelTexture(label);
+    if (!drawn) continue;
+
+    const anchor = new Three.Vector3(...project(label.mapX, label.mapY));
+    const normal = anchor.clone().normalize();
+    const north = new Three.Vector3(...project(label.mapX, label.mapY - 4));
+    const up = north.sub(anchor).sub(normal.clone().multiplyScalar(north.clone().sub(anchor).dot(normal)));
+    if (up.lengthSq() < 1e-8) up.set(0, 1, 0).sub(normal.clone().multiplyScalar(normal.y));
+    up.normalize();
+    const side = new Three.Vector3().crossVectors(up, normal).normalize();
+
+    const scale = Math.max(LABEL_WORLD_MIN, Math.min(LABEL_WORLD_MAX, label.fontPx * worldPerMapPixel));
+    const geometry = new Three.PlaneGeometry(drawn.width * (scale / 48), drawn.height * (scale / 48));
+    const material = new Three.MeshBasicMaterial({
+      map: drawn.texture,
+      transparent: true,
+      depthWrite: false,
+      side: Three.DoubleSide
+    });
+    const mesh = new Three.Mesh(geometry, material);
+    mesh.position.copy(normal).multiplyScalar(LABEL_RADIUS);
+    mesh.quaternion.setFromRotationMatrix(new Three.Matrix4().makeBasis(side, up, normal));
+    mesh.renderOrder = 2;
+    group.add(mesh);
+    items.push({ mesh, normal });
+  }
+
+  if (!items.length) return;
+  globeLabelGroup = group;
+  globeLabelItems = items;
+  scene.add(group);
+}
+
+function disposeGlobeLabels() {
+  for (const { mesh } of globeLabelItems) {
+    mesh.geometry.dispose();
+    const material = mesh.material as THREE.MeshBasicMaterial;
+    material.map?.dispose();
+    material.dispose();
+  }
+  globeLabelItems = [];
+  if (globeLabelGroup && scene) scene.remove(globeLabelGroup);
+  globeLabelGroup = null;
 }
 
 /** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓 */
@@ -1136,6 +1234,11 @@ function doWorkOnRender() {
     const isVisible = dist < 100 * label.size && dist > label.size * 6;
     label.visible = isVisible;
     if (lines[i]) lines[i].visible = isVisible;
+  }
+
+  // 球面标签：只有朝向镜头那一面的才显示（否则会从背面透出来）
+  for (const { mesh, normal } of globeLabelItems) {
+    mesh.visible = normal.dot(camera.position.clone().sub(mesh.position)) > 0.05;
   }
 }
 
