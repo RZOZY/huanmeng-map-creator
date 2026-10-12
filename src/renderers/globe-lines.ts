@@ -26,10 +26,13 @@ export type GlobeLineData = {
   relief: number; // 投上球的地形符号数（图标集是异步加载的，0 表示可能还没加载好）
 };
 
-/** 分级：0 = 远看（整球），1 = 拉近。远看时跳过亚像素描边与一半地形符号 */
-export const GLOBE_DETAIL_FAR = 0;
-export const GLOBE_DETAIL_NEAR = 1;
-const FAR_MIN_STROKE = 0.5; // 地图像素。低于它的描边（省界 0.12px 之类）在整球视距下是亚像素
+/**
+ * 细节比例：0 = 整球视距，1 = 贴脸。线宽下限与地形符号密度都由它连续算出来，
+ * 渲染器只在跨「档」时重建几何（GLOBE_DETAIL_STEPS 档），免得滚一次轮子就重建一次。
+ */
+export const GLOBE_DETAIL_STEPS = 4;
+const FAR_MIN_STROKE = 0.6; // 地图像素。整球视距下低于它的描边（省界 0.12px 之类）是亚像素
+const FAR_RELIEF_STEP = 2; // 整球视距下地形符号隔一个画一个
 const CHUNKS = 8;
 
 /** 不画到球上的图层：网格与单元这类辅助线，以及贴图、高度图 */
@@ -300,13 +303,16 @@ export function buildGlobeFillData(): { positions: number[]; colors: number[]; p
   return positions.length ? { positions, colors, paths } : null;
 }
 
-export function buildGlobeLineData(detail: number = GLOBE_DETAIL_NEAR): GlobeLineData | null {
+export function buildGlobeLineData(detail = 1): GlobeLineData | null {
   TIME && console.time("globeLines");
   const root = document.querySelector("#map");
   if (!root) return null;
 
   const project = createGlobeProjector();
   const worldPerMapPixel = (Math.PI * 2) / options.map.graph.width; // 地图宽度铺满整圈
+  const level = Math.max(0, Math.min(1, detail));
+  const minStroke = (1 - level) * FAR_MIN_STROKE; // 越远越粗的线才留
+  const reliefStep = Math.max(1, Math.round(1 + (1 - level) * (FAR_RELIEF_STEP - 1)));
   const positions: number[] = [];
   const colors: number[] = [];
   let paths = 0;
@@ -492,7 +498,7 @@ export function buildGlobeLineData(detail: number = GLOBE_DETAIL_NEAR): GlobeLin
       if (!channels) continue;
       const color: [number, number, number] = [channels[0] * opacity, channels[1] * opacity, channels[2] * opacity];
 
-      if (detail === GLOBE_DETAIL_FAR && strokeWidth < FAR_MIN_STROKE) continue; // 整球视距下这类线是亚像素
+      if (strokeWidth < minStroke) continue; // 这一档视距下这类线是亚像素
 
       const halfWidth = Math.max(MIN_STROKE_WIDTH, Math.min(MAX_STROKE_WIDTH, strokeWidth)) / 2;
       const pattern = parseDashArray(style.strokeDasharray);
@@ -535,7 +541,7 @@ export function buildGlobeLineData(detail: number = GLOBE_DETAIL_NEAR): GlobeLin
       let reliefIndex = -1;
       for (const icon of pack.relief ?? []) {
         reliefIndex++;
-        if (detail === GLOBE_DETAIL_FAR && reliefIndex % 2 === 1) continue; // 整球视距下一半图标也看不出差别
+        if (reliefIndex % reliefStep !== 0) continue; // 按视距抽稀：整球时隔一个画一个
         const symbolId = Relief.symbolId(icon, set);
         const symbol = cachedSymbol(symbolId);
         if (!symbol) continue;

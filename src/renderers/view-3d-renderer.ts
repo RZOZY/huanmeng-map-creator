@@ -16,8 +16,8 @@ import {
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
-import { buildGlobeFillData, buildGlobeLineData, GLOBE_DETAIL_FAR, GLOBE_DETAIL_NEAR, readGlobeLayerStyle } from "./globe-lines";
-import { type GlobeOverlaySpec, landOverlaySpec, waterOverlaySpec } from "./globe-texture";
+import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
+import { type GlobeOverlaySpec, landOverlaySpec, textureLayerVisible, waterOverlaySpec } from "./globe-texture";
 import {
   buildGlobeVectorMeshData,
   createGlobeProjector,
@@ -93,7 +93,7 @@ let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
 let globeLineGroup: THREE.Group | null = null; // 线画按经度分块，每块一个网格
 let globeLineChunks: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 let globeLineMaterial: THREE.MeshBasicMaterial | null = null;
-let globeLineDetail = GLOBE_DETAIL_NEAR; // 当前细节级别（按相机距离切换）
+let globeLineLevel = -1; // 上次重建线画时用的细节比例（-1 = 还没建过）
 let reliefRetry = false; // 地形符号图标集是异步加载的，只重试一次
 let globeFillMesh: THREE.Mesh | null = null; // 河流/湖泊等填充面
 let globeFillGeometry: THREE.BufferGeometry | null = null;
@@ -1030,6 +1030,7 @@ function addGlobeBaseSphere(oceanColor: string) {
 /** 用地图自己的 Voronoi 单元构建矢量球面（逐单元上色） */
 /** 贴图叠加层：陆地纸纹 + 海面图案，逐像素铺在球面上（替代以前的逐单元取样） */
 const globeOverlayTextures = new Map<string, THREE.Texture>();
+const globeOverlayFailures = new Set<string>(); // 读不出来的贴图：别再重试，球面保持顶点色
 let globeOverlayLandMesh: THREE.Mesh | null = null;
 let globeOverlayWaterMesh: THREE.Mesh | null = null;
 let globeOverlayLandMaterial: THREE.MeshBasicMaterial | null = null;
@@ -1039,10 +1040,17 @@ let globeOverlayGeometry: GlobeVectorMeshData["overlays"] | null = null; // 最�
 const OVERLAY_RADIUS = 1.0004; // 在球面之上、填充与线画之下
 
 /** 取纹理（按 href 缓存）并按铺法设 repeat/offset；纹理解码后重画一层 */
-function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture {
+function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture | null {
+  if (globeOverlayFailures.has(href)) return null;
+
   let texture = globeOverlayTextures.get(href);
   if (!texture) {
-    texture = new Three.TextureLoader().load(href, () => addGlobeOverlays());
+    texture = new Three.TextureLoader().load(href, () => addGlobeOverlays(), undefined, () => {
+      globeOverlayFailures.add(href);
+      globeOverlayTextures.delete(href);
+      WARN && console.warn("[globe] 贴图读取失败，保持顶点色：" + href);
+      addGlobeOverlays();
+    });
     texture.wrapS = Three.RepeatWrapping;
     texture.wrapT = Three.RepeatWrapping;
     globeOverlayTextures.set(href, texture);
@@ -1076,7 +1084,9 @@ function applyGlobeOverlay(which: "land" | "water", geometry: GlobeOverlayGeomet
     if (which === "land") globeOverlayLandMaterial = material;
     else globeOverlayWaterMaterial = material;
   }
-  material.map = overlayTexture(spec.href, spec);
+  const texture = overlayTexture(spec.href, spec);
+  if (!texture) return void applyGlobeOverlay(which, undefined, null);
+  material.map = texture;
   material.opacity = Math.max(0, Math.min(1, spec.opacity));
   material.needsUpdate = true;
 
@@ -1098,11 +1108,14 @@ function addGlobeOverlays() {
   applyGlobeOverlay("water", globeOverlayGeometry.water, waterOverlaySpec(width, height));
 
   const landHref = typeof styles?.texture?.options?.href === "string" ? styles.texture.options.href : null;
-  if (!landHref) return void applyGlobeOverlay("land", undefined, null);
+  // 懒加载：纸纹图层关着就不去读它；读失败过的也不再重试
+  if (!landHref || !textureLayerVisible() || globeOverlayFailures.has(landHref))
+    return void applyGlobeOverlay("land", undefined, null);
 
   // 先把纹理请求上（可能还在解码）；尺寸到位后 onLoad 会再走一遍这里
   const requested = globeOverlayTextures.get(landHref);
   const texture = requested ?? overlayTexture(landHref, { href: landHref, repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0, opacity: 1 });
+  if (!texture) return void applyGlobeOverlay("land", undefined, null);
   const image = texture.image as { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number } | undefined;
   const imageWidth = image?.naturalWidth ?? image?.width ?? 0;
   const imageHeight = image?.naturalHeight ?? image?.height ?? 0;
@@ -1156,7 +1169,7 @@ function buildGlobeSignatures(): GlobeSignatures {
     surface: [mapState, layersOf(["ocean", "landmass", "biomes", "states", "relief", "texture"]), styleState, grid.points.length].join("#"),
     lines: [mapState, allLayers, styleState, pack.relief?.length ?? 0].join("#"),
     fills: [mapState, layersOf(["rivers", "lakes", "ice"]), styleState].join("#"),
-    labels: [mapState, labelState, globeDetailForCamera()].join("#")
+    labels: [mapState, labelState].join("#")
   };
 }
 function addGlobeVectorMesh() {
@@ -1312,7 +1325,7 @@ function cachedLabelTexture(label: GlobeLabelData): CachedLabelTexture | null {
 /** 地名标签：每个一条贴片，沿球面法线朝外，背面的由 doWorkOnRender 剔除 */
 function addGlobeLabels() {
   if (!scene || globeLabelGroup) return;
-  const data = buildGlobeLabelData(globeDetailForCamera() === GLOBE_DETAIL_FAR ? FAR_MIN_LABEL_FONT : 0);
+  const data = buildGlobeLabelData(Math.round(FAR_MIN_LABEL_FONT * (1 - globeDetailForCamera())));
   if (!data.length) return;
 
   const project = createGlobeProjector();
@@ -1396,16 +1409,17 @@ function disposeGlobeLabels() {
 
 /** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓 */
 /** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓（按经度分块） */
-/** 按相机距离定细节级别：整球视距用 FAR，拉近用 NEAR */
+/** 视距 → 细节比例（0 = 整球，1 = 贴脸）：贴脸 2.2、整球 4.2，中间线性 */
 function globeDetailForCamera(): number {
-  const distance = camera?.position.length() ?? 0;
-  return distance > 3.4 ? GLOBE_DETAIL_FAR : GLOBE_DETAIL_NEAR;
+  const distance = camera?.position.length() ?? 3;
+  return Math.max(0, Math.min(1, (4.2 - distance) / 2));
 }
+
 
 function addGlobeLines(detail?: number) {
   if (!scene) return;
-  const level = detail ?? globeDetailForCamera(); // 不给就按当前视距定，免得开局先按近景算一遍
-  globeLineDetail = level;
+  const level = detail ?? globeDetailForCamera(); // 不给就按当前视距定
+  globeLineLevel = level;
   const data = buildGlobeLineData(level);
 
   if (globeLineGroup) scene.remove(globeLineGroup);
@@ -1562,9 +1576,11 @@ function doWorkOnRender() {
     if (lines[i]) lines[i].visible = isVisible;
   }
 
-  // 球面标签：只有朝向镜头那一面的才显示（否则会从背面透出来）
+  // 球面标签：只画朝向镜头的一面；贴着球缘的（投影被压扁、读不清）也一并去掉
+  const labelView = camera.position.clone().normalize();
+  const labelLimb = 1 / (camera.position.length() || 1) + 0.06;
   for (const { mesh, normal } of globeLabelItems) {
-    mesh.visible = normal.dot(camera.position.clone().sub(mesh.position)) > 0.05;
+    mesh.visible = normal.dot(labelView) > labelLimb;
   }
 
   // 线画分块：整球视距下只有约 1/3 的块朝向镜头，背面那些直接不画
@@ -1576,11 +1592,11 @@ function doWorkOnRender() {
       mesh.visible = normal.dot(view) > horizon;
     }
 
-    // 细节级别：整球看时省掉亚像素描边与一半地形符号，拉近再全部补回来
-    const detail = distance > 3.4 ? GLOBE_DETAIL_FAR : GLOBE_DETAIL_NEAR;
-    if (detail !== globeLineDetail) {
-      globeLineDetail = detail;
-      addGlobeLines(detail);
+    // 细节等级带迟滞：只有真的拉动镜头（跨过 0.18）才重建，免得相机微漂就重算
+    const level = globeDetailForCamera();
+    if (globeLineLevel < 0 || Math.abs(level - globeLineLevel) > 0.18) {
+
+      addGlobeLines(level);
       // 级别变了，标签集合也要按视距重选（远看只留读得清的大名字）
       disposeGlobeLabels();
       addGlobeLabels();

@@ -37,6 +37,17 @@ export function waterOverlaySpec(mapWidth: number, mapHeight: number): GlobeOver
   };
 }
 
+/** 纸纹图层的元素：它是个可以关掉的图层，关掉时平面图也不画 */
+function textureLayerElement(): SVGGElement | null {
+  return document.querySelector<SVGGElement>('#map g[data-layer="texture"]');
+}
+
+/** 纸纹图层当前是否开着：渲染器靠它决定要不要去读贴图（懒加载） */
+export function textureLayerVisible(): boolean {
+  const element = textureLayerElement();
+  return element !== null && getComputedStyle(element).display !== "none";
+}
+
 /** 纸纹：默认关闭的图层；开启后压在陆地上 */
 export function landOverlaySpec(
   mapWidth: number,
@@ -44,7 +55,7 @@ export function landOverlaySpec(
   imageWidth: number,
   imageHeight: number
 ): GlobeOverlaySpec | null {
-  const element = document.querySelector<SVGGElement>('#map g[data-layer="texture"]');
+  const element = textureLayerElement();
   if (!element || getComputedStyle(element).display === "none") return null; // 图层关着就不画
 
   const href = styles?.texture?.options?.href;

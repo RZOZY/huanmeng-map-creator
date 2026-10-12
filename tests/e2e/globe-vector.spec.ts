@@ -358,4 +358,29 @@ test.describe("矢量球面（地球仪）", () => {
     expect(rebuilt).not.toContain("球面");
     expect(rebuilt).toContain("线画");
   });
+
+  test("贴图缺失时降级：球面照常渲染，只留警告", async ({ page }) => {
+    const errors = collectErrors(page);
+    const warnings: string[] = [];
+    page.on("console", (message: any) => {
+      if (message.type() === "warning") warnings.push(message.text());
+    });
+
+    await page.goto("/");
+    await waitForMap(page);
+
+    // 纸纹指向一个不存在的文件，再打开该图层 —— 球面应当退回纯顶点色
+    await page.evaluate(() => {
+      (window as any).styles.texture.options.href = "images/textures/does-not-exist.jpg";
+      (window as any).Layers.show("texture");
+    });
+
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+    await shot(page, "globe-texture-missing");
+
+    console.log("贴图缺失：警告 " + warnings.filter(line => line.includes("贴图")).length + " 条");
+    // 资源 404 本身会记一条浏览器错误，这里只要求没有 JS 层错误
+    expect(errors.filter(line => !line.includes("Failed to load resource"))).toEqual([]);
+  });
 });
