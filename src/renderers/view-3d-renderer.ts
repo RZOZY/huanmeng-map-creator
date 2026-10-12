@@ -159,6 +159,7 @@ const stop = () => {
   globeFillGeometry = null;
   globeFillMaterial = null;
   disposeGlobeLabels();
+  disposeLabelTextureCache();
   if (waterPlane) waterPlane.dispose();
   if (waterMaterial) waterMaterial.dispose();
   if (spotLight?.shadow?.map) spotLight.shadow.map.dispose(); // three keeps the shadow render target on the light
@@ -1011,10 +1012,60 @@ function ensureGlobeTextures() {
   if (globeTexturesRequested) return;
   globeTexturesRequested = true;
   void loadGlobeTextures().then(() => {
+    globeSignatures.surface = ""; // 贴图到位，球面颜色要重算
     if (active && scene && mesh) addGlobeVectorMesh();
   });
 }
 
+/** 球面各部分的输入指纹：一样就说明这一轮不用重建那部分 */
+type GlobeSignatures = { surface: string; lines: string; fills: string; labels: string };
+const globeSignatures: GlobeSignatures = { surface: "", lines: "", fills: "", labels: "" };
+
+/** 图层可见性与元素数、相关样式、地图尺寸与坐标、主要数据量 —— 够便宜，也能覆盖实际会变的输入 */
+function buildGlobeSignatures(): GlobeSignatures {
+  const layerStates = new Map<string, string>();
+  for (const group of document.querySelectorAll<SVGGElement>("#map g[data-layer]")) {
+    const id = group.dataset.layer ?? "";
+    layerStates.set(id, getComputedStyle(group).display === "none" ? "off" : String(group.childElementCount));
+  }
+
+  // 各部分的依赖不同：只切河流时球面不该跟着重建
+  const layersOf = (ids: string[]) => ids.map(id => id + ":" + (layerStates.get(id) ?? "?")).join(",");
+  const allLayers = [...layerStates].map(([id, state]) => id + ":" + state).join(",");
+
+  const styleState = JSON.stringify({
+    ocean: styles.ocean,
+    landmass: styles.landmass,
+    states: styles.states,
+    biomes: styles.biomes,
+    relief: styles.relief,
+    texture: styles.texture
+  });
+
+  const mapState = [
+    options.map.graph.width,
+    options.map.graph.height,
+    options.map.geography.coordinates.latT,
+    options.map.geography.coordinates.lonT
+  ].join("|");
+
+  const nameLength = (list: { name?: string }[] | undefined) =>
+    (list ?? []).reduce((sum, item) => sum + (item.name?.length ?? 0), 0);
+  const labelState = [
+    nameLength(pack.states),
+    nameLength(pack.provinces),
+    nameLength(pack.burgs),
+    nameLength(pack.rivers),
+    nameLength(pack.routes)
+  ].join("/");
+
+  return {
+    surface: [mapState, layersOf(["ocean", "landmass", "biomes", "states", "relief", "texture"]), styleState, grid.points.length].join("#"),
+    lines: [mapState, allLayers, styleState, pack.relief?.length ?? 0].join("#"),
+    fills: [mapState, layersOf(["rivers", "lakes", "ice"]), styleState].join("#"),
+    labels: [mapState, labelState].join("#")
+  };
+}
 function addGlobeVectorMesh() {
   ensureGlobeTextures();
   if (!active || !scene || !material) return;
@@ -1027,32 +1078,63 @@ function addGlobeVectorMesh() {
     addGlobeBaseSphere(pack.biomes?.[0]?.color ?? WATER_FALLBACK_COLOR);
   }
 
-  const data = buildGlobeVectorMeshData(readGlobeLayerStyle(), globeTextureAt);
-  if (!data) return;
+  const signatures = buildGlobeSignatures();
+  const surfaceDirty = signatures.surface !== globeSignatures.surface || !mesh || mesh.parent !== scene;
+  const linesDirty = signatures.lines !== globeSignatures.lines;
+  const fillsDirty = signatures.fills !== globeSignatures.fills;
+  const labelsDirty = signatures.labels !== globeSignatures.labels;
 
-  const nextGeometry = new Three.BufferGeometry();
-  nextGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
-  nextGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
-  nextGeometry.computeVertexNormals();
-  nextGeometry.computeBoundingSphere();
+  if (!surfaceDirty && !linesDirty && !fillsDirty && !labelsDirty) {
+    TIME && console.info("[globe] 输入没有变化，复用现有球面/线画/填充/标签");
+    return;
+  }
 
-  if (mesh) scene.remove(mesh);
-  if (geometry) geometry.dispose();
-  geometry = nextGeometry;
+  if (surfaceDirty) {
+    TIME && console.time("globeSurface");
+    const data = buildGlobeVectorMeshData(readGlobeLayerStyle(), globeTextureAt);
+    if (!data) return;
+    TIME && console.timeEnd("globeSurface");
+  
+    const nextGeometry = new Three.BufferGeometry();
+    nextGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
+    nextGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
+    nextGeometry.computeVertexNormals();
+    nextGeometry.computeBoundingSphere();
+  
+    if (mesh) scene.remove(mesh);
+    if (geometry) geometry.dispose();
+    geometry = nextGeometry;
+  
+    material.map = null; // 不贴图：颜色来自逐单元顶点色
+    material.color = new Three.Color(0xffffff); // 顶点色之上不再乘色调
+    material.vertexColors = true;
+    material.needsUpdate = true;
+  
+    mesh = new Three.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+  }
 
-  material.map = null; // 不贴图：颜色来自逐单元顶点色
-  material.color = new Three.Color(0xffffff); // 顶点色之上不再乘色调
-  material.vertexColors = true;
-  material.needsUpdate = true;
+  globeSignatures.surface = signatures.surface;
+  if (linesDirty) {
+    addGlobeLines();
+    globeSignatures.lines = signatures.lines;
+  }
+  if (fillsDirty) {
+    addGlobeFills();
+    globeSignatures.fills = signatures.fills;
+  }
+  if (labelsDirty) {
+    addGlobeLabels();
+    globeSignatures.labels = signatures.labels;
+  }
 
-  mesh = new Three.Mesh(geometry, material);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-
-  addGlobeLines();
-  addGlobeFills();
-  addGlobeLabels();
+  TIME &&
+    console.info(
+      "[globe] 重建：" +
+        [surfaceDirty && "球面", linesDirty && "线画", fillsDirty && "填充", labelsDirty && "标签"].filter(Boolean).join("/")
+    );
   render();
 }
 
@@ -1062,8 +1144,31 @@ const LABEL_RADIUS = 1.012; // 标签略高于线画，避免被线压住
 const LABEL_WORLD_MIN = 0.011;
 const LABEL_WORLD_MAX = 0.042;
 
+/** 标签的贴图与材质按「文字 + 字体 + 颜色 + 透明度」缓存：重建时不必重画画布，也少建材质 */
+type CachedLabelTexture = {
+  material: THREE.MeshBasicMaterial;
+  texture: THREE.CanvasTexture;
+  width: number;
+  height: number;
+};
+
+const labelTextureCache = new Map<string, CachedLabelTexture>();
+const LABEL_TEXTURE_CACHE_MAX = 400;
+
+function disposeLabelTextureCache() {
+  for (const entry of labelTextureCache.values()) {
+    entry.texture.dispose();
+    entry.material.dispose();
+  }
+  labelTextureCache.clear();
+}
+
 /** 把一条标签画成画布贴图：白描边 + 字色，作用与平面图的 text-shadow 相当 */
-function createLabelTexture(label: GlobeLabelData): { texture: THREE.CanvasTexture; width: number; height: number } | null {
+function cachedLabelTexture(label: GlobeLabelData): CachedLabelTexture | null {
+  const key = [label.text, label.fontFamily, label.color, label.opacity.toFixed(2)].join("|");
+  const cached = labelTextureCache.get(key);
+  if (cached) return cached;
+
   const fontPx = 48; // 画布内的字号固定，缩放在几何尺寸上做
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
@@ -1088,7 +1193,26 @@ function createLabelTexture(label: GlobeLabelData): { texture: THREE.CanvasTextu
   context.fillStyle = label.color;
   context.fillText(label.text, width / 2, height / 2);
 
-  return { texture: new Three.CanvasTexture(canvas), width, height };
+  const texture = new Three.CanvasTexture(canvas);
+  const material = new Three.MeshBasicMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+    side: Three.DoubleSide
+  });
+  const entry = { material, texture, width, height };
+
+  if (labelTextureCache.size >= LABEL_TEXTURE_CACHE_MAX) {
+    const oldest = labelTextureCache.entries().next().value as [string, CachedLabelTexture] | undefined;
+    if (oldest) {
+      oldest[1].texture.dispose();
+      oldest[1].material.dispose();
+      labelTextureCache.delete(oldest[0]);
+    }
+  }
+
+  labelTextureCache.set(key, entry);
+  return entry;
 }
 
 /** 地名标签：每个一条贴片，沿球面法线朝外，背面的由 doWorkOnRender 剔除 */
@@ -1104,7 +1228,7 @@ function addGlobeLabels() {
   const items: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 
   for (const label of data) {
-    const drawn = createLabelTexture(label);
+    const drawn = cachedLabelTexture(label);
     if (!drawn) continue;
 
     const anchor = new Three.Vector3(...project(label.mapX, label.mapY));
@@ -1117,13 +1241,7 @@ function addGlobeLabels() {
 
     const scale = Math.max(LABEL_WORLD_MIN, Math.min(LABEL_WORLD_MAX, label.fontPx * worldPerMapPixel));
     const geometry = new Three.PlaneGeometry(drawn.width * (scale / 48), drawn.height * (scale / 48));
-    const material = new Three.MeshBasicMaterial({
-      map: drawn.texture,
-      transparent: true,
-      depthWrite: false,
-      side: Three.DoubleSide
-    });
-    const mesh = new Three.Mesh(geometry, material);
+    const mesh = new Three.Mesh(geometry, drawn.material); // 材质与贴图是缓存里共享的
     mesh.position.copy(normal).multiplyScalar(LABEL_RADIUS);
     mesh.quaternion.setFromRotationMatrix(new Three.Matrix4().makeBasis(side, up, normal));
     mesh.renderOrder = 2;
@@ -1138,12 +1256,7 @@ function addGlobeLabels() {
 }
 
 function disposeGlobeLabels() {
-  for (const { mesh } of globeLabelItems) {
-    mesh.geometry.dispose();
-    const material = mesh.material as THREE.MeshBasicMaterial;
-    material.map?.dispose();
-    material.dispose();
-  }
+  for (const { mesh } of globeLabelItems) mesh.geometry.dispose(); // 材质与贴图在缓存里，统一释放
   globeLabelItems = [];
   if (globeLabelGroup && scene) scene.remove(globeLabelGroup);
   globeLabelGroup = null;

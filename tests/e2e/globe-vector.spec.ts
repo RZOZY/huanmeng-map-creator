@@ -328,4 +328,34 @@ test.describe("矢量球面（地球仪）", () => {
     expect(after).not.toBe(before);
     expect(errors).toEqual([]);
   });
+  test("性能：输入没变就复用，只切线画图层不动球面", async ({ page }) => {
+    const logs: string[] = [];
+    page.on("console", (message: any) => {
+      const line: string = message.text();
+      if (line.includes("[globe]")) logs.push(line);
+    });
+
+    await page.goto("/");
+    await waitForMap(page);
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+
+    // 1) 无变化的重复 update 必须走复用分支（以前每次都要重算球面/线画/填充）
+    logs.length = 0;
+    await page.evaluate(() => (window as any).Controllers.View3d.update());
+    await page.waitForTimeout(1500);
+    expect(logs.some(line => line.includes("输入没有变化"))).toBe(true);
+
+    // 2) 只切河流：重建里不该出现「球面」（球面与河流图层无关）
+    logs.length = 0;
+    await page.evaluate(() => (window as any).Layers.toggle("rivers"));
+    await page.waitForTimeout(900);
+    await page.evaluate(() => (window as any).Controllers.View3d.update());
+    await page.waitForTimeout(2000);
+    const rebuilt = logs.find(line => line.includes("重建："));
+    console.log("切河流后的重建范围: " + rebuilt);
+    expect(rebuilt).toBeDefined();
+    expect(rebuilt).not.toContain("球面");
+    expect(rebuilt).toContain("线画");
+  });
 });

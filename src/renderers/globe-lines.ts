@@ -78,6 +78,47 @@ function parseDashArray(value: string): number[] {
   return parts.length % 2 === 1 ? [...parts, ...parts] : parts;
 }
 
+/** 一个地形符号解析后的样子：轮廓点 + 每条的绘制属性。同一符号在地图上会被摆几千次 */
+type CachedSymbolPath = {
+  contours: Point[][];
+  stroke: string | null;
+  strokeWidth: number;
+  fill: string | null;
+};
+
+const symbolCache = new Map<string, { x: number; y: number; width: number; height: number; paths: CachedSymbolPath[] }>();
+
+/** 按 symbolId 缓存解析结果；符号还没加载好时返回 null，且不缓存失败 */
+function cachedSymbol(symbolId: string) {
+  const cached = symbolCache.get(symbolId);
+  if (cached !== undefined) return cached;
+
+  const symbol = document.getElementById(symbolId);
+  if (!symbol) return null;
+
+  const frame = parseViewBox(symbol.getAttribute("viewBox"));
+  const paths: CachedSymbolPath[] = [];
+  for (const path of symbol.querySelectorAll<SVGPathElement>("path")) {
+    const d = path.getAttribute("d");
+    if (!d) continue;
+    const contours = d
+      .split(/(?=[Mm])/)
+      .map(subpath => parsePathPoints(subpath))
+      .filter(points => points.length >= 2);
+    if (!contours.length) continue;
+    paths.push({
+      contours,
+      stroke: path.getAttribute("stroke"),
+      strokeWidth: Number.parseFloat(path.getAttribute("stroke-width") ?? ""),
+      fill: path.getAttribute("fill")
+    });
+  }
+
+  const entry = { ...frame, paths };
+  symbolCache.set(symbolId, entry);
+  return entry;
+}
+
 /** viewBox="x y w h" → 数字；缺失时按图标集的 100x100 处理 */
 function parseViewBox(value: string | null): { x: number; y: number; width: number; height: number } {
   const parts = (value ?? "")
@@ -151,6 +192,7 @@ const FILL_SUBDIVIDE_DEPTH = 4;
 
 /** 把填充多边形（含孔洞）三角化后投到球面 */
 export function buildGlobeFillData(): { positions: number[]; colors: number[]; paths: number } | null {
+  TIME && console.time("globeFills");
   const root = document.querySelector("#map");
   if (!root) return null;
 
@@ -229,10 +271,12 @@ export function buildGlobeFillData(): { positions: number[]; colors: number[]; p
     }
   }
 
+  TIME && console.timeEnd("globeFills");
   return positions.length ? { positions, colors, paths } : null;
 }
 
 export function buildGlobeLineData(): GlobeLineData | null {
+  TIME && console.time("globeLines");
   const root = document.querySelector("#map");
   if (!root) return null;
 
@@ -463,25 +507,18 @@ export function buildGlobeLineData(): GlobeLineData | null {
     if (color) {
       for (const icon of pack.relief ?? []) {
         const symbolId = Relief.symbolId(icon, set);
-        const symbol = document.getElementById(symbolId);
+        const symbol = cachedSymbol(symbolId);
         if (!symbol) continue;
 
-        const frame = parseViewBox(symbol.getAttribute("viewBox"));
+        const frame = symbol;
         const drawn = icon.s * iconScale;
         const shift = (drawn - icon.s) / 2; // 与平面图一致：以图标中心缩放
         const left = icon.x - shift;
         const top = icon.y - shift;
         let drawnPaths = 0;
 
-        for (const path of symbol.querySelectorAll<SVGPathElement>("path")) {
-          const d = path.getAttribute("d");
-          if (!d) continue;
-
-          const contours = d
-            .split(/(?=[Mm])/)
-            .map(subpath => parsePathPoints(subpath))
-            .filter(points => points.length >= 2);
-          if (!contours.length) continue;
+        for (const path of symbol.paths) {
+          const contours = path.contours;
 
           const toMap = (points: Point[]): Point[] =>
             points.map(([px, py]) => [
@@ -490,10 +527,10 @@ export function buildGlobeLineData(): GlobeLineData | null {
             ]);
 
           // 描边：路径自带的 stroke-width 是图标单位，要按缩放换算；没有则用 <use> 的继承值（地图像素）
-          const strokeAttr = path.getAttribute("stroke") ?? inheritedStroke;
+          const strokeAttr = path.stroke ?? inheritedStroke;
           if (strokeAttr && strokeAttr !== "none") {
             const strokeColor = colorChannels(strokeAttr);
-            const ownWidth = Number.parseFloat(path.getAttribute("stroke-width") ?? "");
+            const ownWidth = path.strokeWidth;
             const widthPx = Number.isFinite(ownWidth) && ownWidth > 0 ? ownWidth * (drawn / frame.width) : inheritedStrokeWidth;
             if (strokeColor) {
               const tint: [number, number, number] = [strokeColor[0] * opacity, strokeColor[1] * opacity, strokeColor[2] * opacity];
@@ -505,7 +542,7 @@ export function buildGlobeLineData(): GlobeLineData | null {
           }
 
           // 填充：图标多为填充路径，用 earcut 三角化（图标很小，不必细分）
-          const fillAttr = path.getAttribute("fill") ?? inheritedFill;
+          const fillAttr = path.fill ?? inheritedFill;
           if (fillAttr && fillAttr !== "none" && runtimeThree) {
             const fillColor = colorChannels(fillAttr);
             if (fillColor) {
@@ -531,5 +568,6 @@ export function buildGlobeLineData(): GlobeLineData | null {
     }
   }
 
+  TIME && console.timeEnd("globeLines");
   return segments ? { positions, colors, paths, segments, relief: reliefIcons } : null;
 }
