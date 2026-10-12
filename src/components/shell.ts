@@ -2,8 +2,6 @@
 import { alertDialog, closeDialogs, confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { Pins } from "@/components/pins";
-import { showDataTip } from "@/components/tooltips";
-import { Controllers } from "@/controllers";
 import { Services } from "@/services";
 import { isElectron, isLocalhost } from "@/services/platform";
 import { ensureEl, findEl } from "@/utils";
@@ -18,7 +16,6 @@ export function initShell(): void {
   document.addEventListener("touchstart", onTitlebarButtonTouch, { capture: true, passive: true });
   addDragToUpload();
   initTourPromptButton();
-  initAssistantBubble();
 
   if (!isLocalhost() && !isElectron()) window.onbeforeunload = () => "Are you sure you want to navigate away?";
   if (isElectron()) removeWebOnlyControls();
@@ -31,15 +28,6 @@ function onResize(): void {
     if (Pins.rolls("mapHeight") && window.innerHeight > 0) config.generation.graph.height = window.innerHeight;
   });
   fitMapToScreen();
-}
-
-/** The assistant's call button: always in the markup, shown only when the preference says so */
-function initAssistantBubble(): void {
-  const bubble = findEl("assistantBubble");
-  if (!bubble) return;
-
-  bubble.addEventListener("click", () => Controllers.Assistant.toggle());
-  bubble.addEventListener("mouseover", showDataTip);
 }
 
 /**

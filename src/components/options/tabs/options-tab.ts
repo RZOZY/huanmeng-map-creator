@@ -1,5 +1,4 @@
 import { hsl } from "d3";
-import { toggleAssistant } from "@/components/assistant-bubble";
 import { applyZoomExtent, fitMapToScreen, setViewport } from "@/components/canvas";
 import { DEFAULT_THEME_COLOR } from "@/components/options-model";
 import type { OptionsData } from "@/components/options-schema";
@@ -137,12 +136,6 @@ const OPTION_BINDINGS: Record<string, OptionBinding> = {
     write: (o, value) => (o.app.ui.tooltipSize = value),
     parse: Number,
     effect: changeTooltipSize
-  }),
-  azgaarAssistant: option({
-    read: o => o.app.ui.assistant,
-    write: (o, value) => (o.app.ui.assistant = value),
-    parse: value => (value === "hide" ? "hide" : "show"),
-    effect: value => toggleAssistant(value === "show")
   }),
   speakerVoice: option({
     read: o => o.app.ui.speakerVoice || null, // unset keeps the default voice loadVoices picked
@@ -451,16 +444,6 @@ const TEMPLATE = /* html */ `
       </td>
       <td>
         <i data-tip="Open the performance settings" id="openPerformanceSettings" class="icon-cog"></i>
-      </td>
-    </tr>
-    <tr data-tip="Toggle Azgaar Assistant (help bubble on the bottom right corner)">
-      <td></td>
-      <td>Azgaar Assistant</td>
-      <td>
-        <select id="azgaarAssistant" data-option="azgaarAssistant">
-          <option value="show" selected>Show</option>
-          <option value="hide">Hide</option>
-        </select>
       </td>
     </tr>
     <tr data-tip="Select speech synthesis voice to pronounce generated names">

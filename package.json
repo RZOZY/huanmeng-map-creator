@@ -1,7 +1,7 @@
 {
   "name": "huanmeng-map-creator",
   "productName": "HuanMeng Map Creator",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "HuanMeng Map Creator —— 基于 Azgaar's Fantasy Map Generator (MIT) 二次开发的中文奇幻地图生成器",
   "homepage": "https://github.com/RZOZY/humeng-map-generator#readme",
   "bugs": {
@@ -30,7 +30,6 @@
     "lint": "biome check --write",
     "sync-version": "node scripts/sync-version.js",
     "stamp-assets": "node scripts/stamp-assets.js",
-    "generate:assistant-context": "node scripts/generate-assistant-context.mjs",
     "prepare": "simple-git-hooks"
   },
   "simple-git-hooks": {

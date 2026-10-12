@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { readFileSync } from "node:fs";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { toggleAssistant } from "@/components/assistant-bubble";
 import { Pins } from "@/components/pins";
 import { setMapZoom, setZoomExtent } from "@/components/zoom";
 import { Emblems } from "@/generators/emblems-generator";
@@ -26,7 +25,6 @@ vi.mock("@/components/options/io-panes", () => ({
 }));
 vi.mock("@/components/options/view-mode", () => ({ changeViewMode: vi.fn() }));
 vi.mock("@/services/url-params", () => ({ copyMapURL: vi.fn() }));
-vi.mock("@/components/assistant-bubble", () => ({ toggleAssistant: vi.fn() }));
 
 let tab: typeof import("./options-tab");
 const control = (key: string): HTMLInputElement => document.querySelector(`[data-option="${key}"]`)!;
@@ -126,16 +124,6 @@ describe("options tab bindings", () => {
     expect(Pins.valueOr("statesNumber", 0)).toBe(30);
     expect(slider.querySelector<HTMLInputElement>('input[type="number"]')!.value).toBe("30");
     expect(JSON.parse(localStorage.getItem("fmg-options")!).generation.states.limit).toBe(30);
-  });
-
-  it("applies select effects once, after updating the preference", () => {
-    vi.mocked(toggleAssistant).mockImplementation(() => {
-      expect(options.app.ui.assistant).toBe("hide");
-    });
-    edit(control("azgaarAssistant"), "hide");
-    control("azgaarAssistant").dispatchEvent(new Event("change", { bubbles: true }));
-    expect(toggleAssistant).toHaveBeenCalledExactlyOnceWith(false);
-    expect(Pins.all()).toEqual({});
   });
 
   it("leaves the default voice selected while no voice preference is set", () => {

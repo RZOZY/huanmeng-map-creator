@@ -588,54 +588,6 @@ No. Risk mode tries to keep the data, but rivers, lakes and biomes directly depe
 
 Not really. The size mostly depends on the points number and cannot be changed for an existing map; turning off some layers can help a bit. You can gzip the file with an external tool: the Generator loads gzip-compressed files (.gz) directly, so there is no need to unpack it before loading
 
-### How do I start or delete an Assistant chat?
-
-Open Chats in the Azgaar Assistant title bar. New chat starts an empty chat for the open map. Each chat stays in this browser until you delete it with the trash button. A chat from another map or answerer can be read, but you must start a new chat to continue.
-
-### How can I hide Azgaar Assistant?
-
-Go to Options -> Interface settings and set Azgaar Assistant to Hide. This hides the call bubble.
-
-### The Assistant says 'No questions left today'. What now?
-
-The free daily allowance is set by the Azgaar server. A Guest can sign in with Discord for a larger allowance, or connect an AI key or local model for unlimited questions.
-
-### What does Azgaar Assistant send, and where?
-
-Guest and Member questions send only your question and the server chat id to the Azgaar server. Nothing from the open map is sent. A connected key or local model sends your questions, chat history, a map summary, and results of map reads directly to that Provider. The Policy page has details.
-
-### Can Azgaar Assistant answer questions about my map?
-
-Yes, with a connected AI key or local model. Ask in the same panel you use for Generator questions. The Assistant can read the open map to answer exact questions, and can download CSV or JSON built from it. Guests and Members can ask documentation questions but the Azgaar server cannot see their map.
-
-### Do I need an API key for Azgaar Assistant?
-
-Guests and Members on the official site can ask documentation questions without a key. Connect a key to ask about your map, edit it and remove the daily limit. A local model needs no key. On a self-hosted copy or in the desktop app, connect a key or local model to use the Assistant.
-
-### Which AI providers and models can Azgaar Assistant use?
-
-Anthropic, OpenAI, Mistral, Qwen, DeepSeek, and an OpenAI-compatible local server such as Ollama. Choose a Provider in the key sheet. The Assistant discovers models available to the key and also accepts any typed model id. One default is offered while discovery is pending.
-
-### Can Azgaar Assistant see my map or images?
-
-Yes, with a connected key or local model that supports images (vision). The Assistant can look at the map, a place on it or your current view, as currently styled, for example to judge a style or describe terrain. You can also paste up to four images into the question box, such as a sketch or a style reference; remove one with its ✕ before sending. Guests and Members cannot attach images. A model without vision answers without seeing them.
-
-### What is sent to my AI Provider?
-
-Your question and any images you paste, earlier messages in the chat, the Assistant's instructions, a summary of the open map, the open note and selection if any, and results of the map reads the Assistant performs. Those results can include names, statistics, note text or pictures of the map. Your key and data go directly to the Provider, never through the Azgaar server.
-
-### Can Azgaar Assistant change my map?
-
-With a connected key or local model, it can propose most edits the entity editors make: renaming, recoloring and retyping entities; writing notes; setting full names, forms, cultures, deities, expansionism, locks and burg details (population, group, buildings, port, capital, treasury); setting diplomatic relations, chronicle entries, state taxes and treasuries; creating states, provinces, burgs, cultures, religions, rivers, routes, markers, zones, labels, regiments, journeys and custom biomes, and declaring a province independent; removing them; moving burgs, markers, regiments and emblems; giving cells to states, provinces, cultures and religions; giving a province to another state, merging states or provinces and recalculating state, culture or religion borders; splitting and joining routes; setting culture and religion origins, label groups and layout, marker looks, emblems, lake types and coastlines, goods' names, prices and production rules, and market names; painting and restoring biomes; setting the rural and urban population of states, provinces, cultures, religions and zones, and a state's war alert; and setting the map's name, year, era and description. When a request is missing a detail it needs, such as where to put a new state, it asks a short follow-up question first, often with clickable options. It never changes the map by itself: each proposal is a card listing every change before → after, and nothing happens until you press Apply. Discard drops it. Many changes, such as renaming all coastal burgs, arrive as one card. It cannot edit the heightmap, relief icons, ice, name bases, transport types, the placement of goods and markets, styles or settings, and it should tell you when it has no operation for a request.
-
-### How do I undo an Assistant change?
-
-Use Undo on the applied proposal's card in the chat; it restores the whole batch. Undo is available only while the map still has exactly what Apply wrote. If you edited those entities later, applied an overlapping proposal or opened another map, the button reads Changed since. Apply has the same check against the values before the proposal. Both work in read-only chats and in any tier.
-
-### How much does a Key-tier Assistant chat cost?
-
-The project charges nothing; your chosen Provider may bill you. The footer shows the tokens used by this chat. Each question resends the chat's earlier messages, so long chats cost more and take longer. When a chat gets long, start a new one from the notice.
-
 ### How to make a river?
 
 There are two ways to create a new river. Open the Rivers Overview (Tools -> Rivers), click on the Add River button and then click on a map cell to spawn a river from it, the river will be created automatically. Another way is to draw a river manually with the 'Create a new river selecting river cells' button. The same automatic placement is available as Tools -> Add -> River (Shift + 4)

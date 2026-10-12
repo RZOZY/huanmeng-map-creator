@@ -91,7 +91,6 @@ describe("linkable commands", () => {
     expect(linkable).toContain("editHeightmapButton");
     expect(linkable).toContain("exportButton");
     expect(linkable).not.toContain("exportSvg");
-    expect(linkable).not.toContain("assistant");
     for (const id of ["newMap", "quickLoad", "regenerateStates", "optionsReset", "layer:toggleRivers"])
       expect(linkable).not.toContain(id);
   });

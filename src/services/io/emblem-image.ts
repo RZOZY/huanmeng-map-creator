@@ -4,7 +4,7 @@ import { EmblemRenderer } from "@/renderers/emblems/renderer";
 import { inlineLinkedImages } from "@/services/io/export";
 import type { Emblem } from "@/types/emblems";
 
-// An emblem as a standalone picture: for downloads, and for the Assistant to look at
+// An emblem as a standalone picture: for downloads and previews
 
 /** Ids of the definitions an element's `<use>` elements point to */
 const references = (element: Element): string[] =>

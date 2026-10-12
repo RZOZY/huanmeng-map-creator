@@ -8,7 +8,6 @@ const ADOPTED_KEYS = [
   "transparency",
   "themeColor",
   "speakerVoice",
-  "azgaarAssistant",
   "viewportRedraw",
   "shapeRendering",
   "onloadBehavior",
@@ -114,7 +113,6 @@ export function adoptLegacyOptions(): Record<string, unknown> | null {
   num("transparency", "app.ui.transparency");
   str("themeColor", "app.ui.themeColor");
   str("speakerVoice", "app.ui.speakerVoice");
-  str("azgaarAssistant", "app.ui.assistant");
   str("shapeRendering", "app.performance.shapeRendering");
   str("viewportRedraw", "app.performance.viewportRedraw");
   str("onloadBehavior", "app.onLoad");

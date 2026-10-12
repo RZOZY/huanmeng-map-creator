@@ -16,7 +16,7 @@ vi.mock("@/components/dialog/dialog-helpers", async importActual => ({
 
 import { MarkersEditor } from "./markers-editor";
 
-it("renames through Markers.rename, the same method the Assistant proposes", () => {
+it("renames through Markers.rename, the same method the editor uses", () => {
   document.body.innerHTML = '<div id="dialogs"></div><svg><svg id="marker4"></svg></svg>';
   vi.stubGlobal("customization", 0);
   vi.stubGlobal("pack", { markers: [{ i: 4, name: "Old Well" }] });

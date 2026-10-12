@@ -3,7 +3,6 @@ import { confirmationDialog, destroyDialog } from "@/components/dialog/dialog-he
 import { ENTITY_TYPES, type EntityRef, MapEntities } from "@/components/map-entities";
 import { tip } from "@/components/tooltips";
 import { viewport } from "@/components/viewport";
-import { Controllers } from "@/controllers";
 import { type NoteEntry, Notes } from "@/generators/notes";
 import { highlightElement } from "@/renderers/overlays/highlight";
 import { downloadFile, getFileName, speak, uploadFile } from "@/utils";
@@ -172,7 +171,6 @@ function renderDialog(): void {
       <textarea id="notesSource" hidden spellcheck="false"></textarea>
       <div id="notesFooter">
         <button id="notesFocus" data-tip="Focus on selected object" class="icon-target"></button>
-        <button id="notesGenerateWithAi" data-tip="Open Azgaar Assistant" class="icon-robot"></button>
         <button id="notesPin" data-tip="Toggle notes box display: hide or do not hide the box on mouse move" class="icon-pin"></button>
         <button id="notesSourceToggle" data-tip="Edit the note as HTML" class="icon-edit"></button>
         <button id="notesFullscreen" data-tip="Toggle fullscreen" class="icon-resize-full"></button>
@@ -193,7 +191,6 @@ function renderDialog(): void {
   ensureEl("notesFullscreen").addEventListener("click", toggleFullscreen);
   ensureEl("notesPin").addEventListener("click", toggleNotesPin);
   ensureEl("notesFocus").addEventListener("click", validateHighlightElement);
-  ensureEl("notesGenerateWithAi").addEventListener("click", openAiGenerator);
   ensureEl("notesDownload").addEventListener("click", downloadLegends);
   ensureEl("notesUpload").addEventListener("click", pickLegendsFile);
   ensureEl("notesRemove").addEventListener("click", triggerNotesRemove);
@@ -347,10 +344,6 @@ function removeSelectedNote(): void {
   open(first.ref);
 }
 
-function openAiGenerator(): void {
-  Controllers.Assistant.open();
-}
-
 const CSV_HEADER = "type,id,note";
 
 function csvCell(value: string): string {
@@ -458,7 +451,7 @@ function toggleNotesPin(this: HTMLElement): void {
   this.classList.toggle("pressed");
 }
 
-// The assistant uses stable entity keys; note titles remain the entity's own name.
+  // Entity keys stay stable; note titles remain the entity's own name.
 export interface Note {
   id: string;
   name: string;

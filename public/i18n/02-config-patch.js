@@ -93,7 +93,7 @@
       points: '5', statesNumber: '25', cultures: '18',
       stateLabelsMode: 'full', temperatureEquator: '28',
       temperatureNorthPole: '-30', temperatureSouthPole: '-20',
-      religionsNumber: '8', manors: '1500', azgaarAssistant: 'hide'
+      religionsNumber: '8', manors: '1500'
     };
 
     var idMapping = {
@@ -104,8 +104,7 @@
       temperatureEquator: 'temperatureEquatorInput',
       temperatureNorthPole: 'temperatureNorthPoleInput',
       temperatureSouthPole: 'temperatureSouthPoleInput',
-      religionsNumber: 'religionsNumber', manors: 'manorsInput',
-      azgaarAssistant: 'azgaarAssistant'
+      religionsNumber: 'religionsNumber', manors: 'manorsInput'
     };
 
     for (var key in defaults) {
@@ -255,8 +254,7 @@
       localStorage.removeItem('fmg_cn_config_applied');
       ['distanceUnit', 'heightUnit', 'temperatureScale', 'culturesSet', 'points',
        'statesNumber', 'cultures', 'stateLabelsMode', 'temperatureEquator',
-       'temperatureNorthPole', 'temperatureSouthPole', 'religionsNumber', 'manors',
-       'azgaarAssistant'].forEach(function(k) { localStorage.removeItem(k); });
+       'temperatureNorthPole', 'temperatureSouthPole', 'religionsNumber', 'manors'].forEach(function(k) { localStorage.removeItem(k); });
       location.reload();
     },
     isApplied: function() { return localStorage.getItem('fmg_cn_config_applied') === 'true'; },
@@ -265,7 +263,7 @@
         culturesSet: 'oriental', points: 5, statesNumber: 25, cultures: 18,
         stateLabelsMode: 'full', temperatureEquator: 28,
         temperatureNorthPole: -30, temperatureSouthPole: -20,
-        religionsNumber: 8, manors: 1500, azgaarAssistant: 'hide' };
+        religionsNumber: 8, manors: 1500 };
     }
   };
 

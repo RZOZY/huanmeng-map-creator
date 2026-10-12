@@ -17,7 +17,6 @@ import { Controllers } from "@/controllers";
 import { getPointsNumber } from "@/data/graph-density";
 import { GenerationPipeline } from "@/generators/generation-pipeline";
 import { adoptLegacyIconSlots } from "@/generators/styles-legacy";
-import { stashCallbackToken } from "@/services/assistant/azgaar-server/auth";
 import { initiateAutosave } from "@/services/autosave";
 import { logStats } from "@/services/logging";
 import { registerServiceWorker } from "@/services/platform";
@@ -28,7 +27,6 @@ import { debounce, ensureEl, findEl, parseError } from "@/utils";
 
 /** Bring the app up */
 export async function boot(): Promise<void> {
-  stashCallbackToken(); // before anything reads the URL: the OAuth fragment is not a load parameter
   registerServiceWorker();
   initShell();
   initDialogPositionPersistence();

@@ -36,18 +36,11 @@ export interface MapCommand {
   matches?: (query: string) => boolean; // queries the command answers beyond its name and aliases
 }
 
-/** Commands an Assistant answer may link: they only open a dialog, tab or chart */
-export const isLinkable = ({ id, name }: MapCommand): boolean => id !== "assistant" && /^(Open|Show|Edit) /.test(name);
+/** Commands a link may point at: they only open a dialog, tab or chart */
+export const isLinkable = ({ name }: MapCommand): boolean => /^(Open|Show|Edit) /.test(name);
 
 /** Ordered by priority: the omnibar breaks score ties by definition order */
 export const MAP_COMMANDS: MapCommand[] = [
-  {
-    id: "assistant",
-    name: "Open Azgaar Assistant",
-    aliases: "help chat question ask faq support how why what ?",
-    matches: isQuestion,
-    run: () => Controllers.Assistant.open()
-  },
   {
     id: "startTour",
     name: "Start Interactive Tour",
@@ -658,13 +651,6 @@ export const MAP_COMMANDS: MapCommand[] = [
     run: () => Layers.toggle(id)
   }))
 ];
-
-/** A typed question: ends with a question mark or opens with a question word */
-function isQuestion(text: string): boolean {
-  const query = text.trim();
-  const QUESTION_START = /^(how|what|why|where|when|which|who|can|could|should|is|are|do|does|did|will|would)\s+\S/i;
-  return query.includes("?") || QUESTION_START.test(query);
-}
 
 function confirmRegeneration(action: () => void): void {
   const apply = () => {

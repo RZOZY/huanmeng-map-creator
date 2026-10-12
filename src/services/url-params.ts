@@ -1,7 +1,6 @@
 // Everything the app reads from, or writes to, its own URL: what to load on start-up, where to focus,
 // and the shareable link. Deep links come from the wiki, from shared maps and from MFCG
 import { leastIndex, select } from "d3";
-import { toggleAssistant } from "@/components/assistant-bubble";
 import { fitMapToScreen } from "@/components/canvas";
 import { Layers } from "@/components/layers";
 import { applyLayersPreset, applyURLLayers } from "@/components/layers-presets";
@@ -66,7 +65,6 @@ export async function generateMapOnLoad(config?: GenerationConfig): Promise<void
   Layers.drawAll();
   fitMapToScreen();
   focusOn();
-  toggleAssistant();
 }
 
 /** Apply the layer and viewport parameters once the map exists */

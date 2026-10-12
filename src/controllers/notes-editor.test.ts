@@ -79,7 +79,7 @@ describe("NotesEditor bridge", () => {
   });
 });
 
-it("keeps the selected note excerpt after focus moves to the Assistant and clears it on refresh", () => {
+it("keeps the selected note excerpt when the editor loses focus and clears it on refresh", () => {
   NotesEditor.open(burg);
   const editor = Quill.find(document.getElementById("notesLegend")!) as Quill;
   editor.setSelection(0, 3);
