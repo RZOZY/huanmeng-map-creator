@@ -22,10 +22,56 @@ export type GlobeLabelData = {
   fontFamily: string;
 };
 
+/** 粗略估一条标签在地图上占的宽度：CJK 按一个字宽，拉丁按 0.55 字宽 */
+export function estimateLabelWidth(text: string, fontPx: number): number {
+  let units = 0;
+  for (const char of text) units += /[\u2e80-\u9fff\uff00-\uffef]/.test(char) ? 1 : 0.55;
+  return units * fontPx;
+}
+
 const DEFAULT_FONT = "Almendra SC";
 const DEFAULT_COLOR = "#3e3e4b";
 
 type GroupStyle = { color: string; opacity: number; fontFamily: string; percent: number };
+
+/**
+ * 球面一次看全世界，标签必然互相压：先按重要性（国>省>城>河>路>村）、再按字号排序，
+ * 然后做一遍贪心的矩形避让 —— 与已选中的标签相交的就丢掉。
+ * 判定在地图空间做：球面与地图是同一套坐标，重叠关系一致。纯函数，便于单测。
+ */
+export function selectNonOverlappingLabels(
+  labels: GlobeLabelData[],
+  limit = MAX_LABELS
+): GlobeLabelData[] {
+  const priorityOf = (group: string) => PRIORITY[group] ?? 6;
+  const sorted = [...labels].sort(
+    (a, b) => priorityOf(a.group) - priorityOf(b.group) || b.fontPx - a.fontPx
+  );
+
+  const accepted: { left: number; right: number; top: number; bottom: number }[] = [];
+  const kept: GlobeLabelData[] = [];
+  for (const label of sorted) {
+    const halfWidth = estimateLabelWidth(label.text, label.fontPx) / 2;
+    const halfHeight = (label.fontPx * 1.25) / 2;
+    const pad = label.fontPx * 0.2; // 留一点气口，别让字贴着字
+    const box = {
+      left: label.mapX - halfWidth - pad,
+      right: label.mapX + halfWidth + pad,
+      top: label.mapY - halfHeight - pad,
+      bottom: label.mapY + halfHeight + pad
+    };
+    if (
+      accepted.some(
+        other => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top
+      )
+    )
+      continue;
+    accepted.push(box);
+    kept.push(label);
+    if (kept.length >= limit) break;
+  }
+  return kept;
+}
 
 export function buildGlobeLabelData(): GlobeLabelData[] {
   const mapHeight = options.map.graph.height;
@@ -65,8 +111,5 @@ export function buildGlobeLabelData(): GlobeLabelData[] {
       fontFamily: style.fontFamily
     });
   }
-  // 球面一次看全世界，全画会糊成一片：先按重要性、再按字号取前若干条
-  const priorityOf = (group: string) => PRIORITY[group] ?? 6;
-  result.sort((a, b) => priorityOf(a.group) - priorityOf(b.group) || b.fontPx - a.fontPx);
-  return result.slice(0, MAX_LABELS);
+  return selectNonOverlappingLabels(result);
 }
