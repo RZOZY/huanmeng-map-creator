@@ -21,7 +21,7 @@ import { Pins } from "@/components/pins";
 import { tip } from "@/components/tooltips";
 import { isElectron } from "./platform";
 
-export const VERSION = "0.7.3";
+export const VERSION = "0.7.4";
 
 /** .map 存档格式版本：与产品版本无关，改动存档结构时才抬（现在是兼容上游 1.154.0 的那一代） */
 export const MAP_FORMAT_VERSION = "1.154.0";
