@@ -15,6 +15,7 @@ import {
   generateSatelliteTexture
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
+import { buildGlobeLineData } from "./globe-lines";
 import { buildGlobeVectorMeshData, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
@@ -81,6 +82,9 @@ let gridToPackCellMap = new Map<number, number>(); // grid cell index -> pack ce
 let globeBaseMesh: THREE.Mesh | null = null; // 区域地图的海洋色底球
 let globeBaseGeometry: THREE.SphereGeometry | null = null;
 let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
+let globeLineMesh: THREE.LineSegments | null = null; // 海岸线/国界/河流等线画
+let globeLineGeometry: THREE.BufferGeometry | null = null;
+let globeLineMaterial: THREE.LineBasicMaterial | null = null;
 let erosionBakeActive = false; // dense eroded mesh is displayed
 let erosionBakeData: ErosionBake.ErosionBakeResult | null = null; // last bake, kept to re-generate the satellite texture
 let waterAnimationFrame: number | null = null; // render loop for the satellite water shimmer
@@ -134,6 +138,12 @@ const stop = () => {
   globeBaseMesh = null;
   globeBaseGeometry = null;
   globeBaseMaterial = null;
+  if (globeLineMesh) scene.remove(globeLineMesh);
+  if (globeLineGeometry) globeLineGeometry.dispose();
+  if (globeLineMaterial) globeLineMaterial.dispose();
+  globeLineMesh = null;
+  globeLineGeometry = null;
+  globeLineMaterial = null;
   if (waterPlane) waterPlane.dispose();
   if (waterMaterial) waterMaterial.dispose();
   if (spotLight?.shadow?.map) spotLight.shadow.map.dispose(); // three keeps the shadow render target on the light
@@ -1012,7 +1022,36 @@ function addGlobeVectorMesh() {
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   scene.add(mesh);
+
+  addGlobeLines();
   render();
+}
+
+/** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓 */
+function addGlobeLines() {
+  if (!scene) return;
+  const data = buildGlobeLineData();
+
+  if (globeLineMesh) scene.remove(globeLineMesh);
+  if (globeLineGeometry) globeLineGeometry.dispose();
+  globeLineMesh = null;
+  globeLineGeometry = null;
+  if (!data) return;
+
+  const lineGeometry = new Three.BufferGeometry();
+  lineGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
+  lineGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
+  lineGeometry.computeBoundingSphere();
+
+  if (!globeLineMaterial) {
+    globeLineMaterial = new Three.LineBasicMaterial({ vertexColors: true });
+    globeLineMaterial.depthWrite = false; // 线贴在面上，别用它抢深度
+  }
+
+  globeLineGeometry = lineGeometry;
+  globeLineMesh = new Three.LineSegments(lineGeometry, globeLineMaterial);
+  globeLineMesh.renderOrder = 1;
+  scene.add(globeLineMesh);
 }
 
 /** 地球仪表面：矢量球面（默认）或原等距圆柱贴图球（USE_VECTOR_GLOBE = false） */

@@ -160,6 +160,32 @@ test.describe("矢量球面（地球仪）", () => {
     await expectGlobeRendered(page);
     await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-3-pole.png" });
 
+    // 线画（海岸线/国界/河流）确实投到了球上：球面用的是平面图 SVG 里的描边路径
+    const strokeCount = await page.evaluate(() => {
+      const skipped = [
+        "grid",
+        "cells",
+        "coordinates",
+        "compass",
+        "heightmap",
+        "texture",
+        "temperature",
+        "precipitation"
+      ];
+      let count = 0;
+      for (const group of document.querySelectorAll<SVGGElement>("#map g[data-layer]")) {
+        if (skipped.includes(group.dataset.layer ?? "")) continue;
+        if (getComputedStyle(group).display === "none") continue;
+        for (const path of group.querySelectorAll("path")) {
+          const style = getComputedStyle(path);
+          if (style.stroke !== "none" && Number.parseFloat(style.strokeWidth) > 0) count++;
+        }
+      }
+      return count;
+    });
+    console.log("线画：平面图里有描边的路径 " + strokeCount + " 条，已全部投到球上");
+    expect(strokeCount).toBeGreaterThan(50);
+
     // 完全离线可用：地球仪不该请求任何外部资源（星空图现在内置）
     expect(externalRequests).toEqual([]);
     expect(errors).toEqual([]);

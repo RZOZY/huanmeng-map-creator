@@ -124,11 +124,27 @@ function expandedBoundaryRing(width: number, height: number, spacing: number): P
   ]);
 }
 
-export function buildGlobeVectorMeshData(): GlobeVectorMeshData | null {
+/** 地图像素 → 单位球面直角坐标的投影器（球面与线画共用，保证严丝合缝对齐） */
+export function createGlobeProjector() {
   const width = options.map.graph.width;
   const height = options.map.graph.height;
   const { latN, latT, lonW, lonT } = options.map.geography.coordinates;
   const world = latT > 179; // 整世界：经度要拉伸铺满整圈（与 updateGlobeTexure 同一判定）
+
+  return (x: number, y: number): [number, number, number] => {
+    const lon = world ? -180 + (x / width) * 360 : lonW + (x / width) * lonT;
+    const lat = Math.max(-90, Math.min(90, latN - (y / height) * latT)); // 夹住浮点误差，防止越过极点
+    const phi = (90 - lat) * (Math.PI / 180);
+    const theta = (lon + 180) * (Math.PI / 180);
+    const sinPhi = Math.sin(phi);
+    return [-sinPhi * Math.cos(theta), Math.cos(phi), sinPhi * Math.sin(theta)];
+  };
+}
+
+export function buildGlobeVectorMeshData(): GlobeVectorMeshData | null {
+  const width = options.map.graph.width;
+  const height = options.map.graph.height;
+  const world = options.map.geography.coordinates.latT > 179; // 只用于回报构建结果，投影本身在工厂里
 
   const { cells, vertices } = calculateVoronoi(grid.points, expandedBoundaryRing(width, height, grid.spacing));
 
@@ -158,14 +174,7 @@ export function buildGlobeVectorMeshData(): GlobeVectorMeshData | null {
     return parsed;
   };
 
-  const project = (x: number, y: number) => {
-    const lon = world ? -180 + (x / width) * 360 : lonW + (x / width) * lonT;
-    const lat = Math.max(-90, Math.min(90, latN - (y / height) * latT)); // 夹住浮点误差，防止越过极点
-    const phi = (90 - lat) * (Math.PI / 180);
-    const theta = (lon + 180) * (Math.PI / 180);
-    const sinPhi = Math.sin(phi);
-    return [-sinPhi * Math.cos(theta), Math.cos(phi), sinPhi * Math.sin(theta)];
-  };
+  const project = createGlobeProjector();
 
   const positions: number[] = [];
   const colors: number[] = [];
