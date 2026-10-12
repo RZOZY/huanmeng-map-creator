@@ -409,6 +409,185 @@ export const parsePathPoints = (path: string): Point[] => {
   return points;
 };
 
+/**
+ * 与 parsePathPoints 同一套解析，但**把曲线真的展开成折线**（每段曲线按 curves 段采样），
+ * 并且按子路径切开（M/m 开始一条新的）。平面图的海岸线/国界都是三次贝塞尔，
+ * 只取端点会把它们画成折角，所以填充与线画都用这个。
+ */
+export const flattenPathData = (path: string, curves = 8): Point[][] => {
+  const subpaths: Point[][] = [];
+  let current: Point[] = [];
+
+  let x = 0;
+  let y = 0;
+  let startX = 0; // 当前子路径的起点，用于 Z 闭合
+  let startY = 0;
+
+  const moveTo = (nextX: number, nextY: number) => {
+    if (current.length > 1) subpaths.push(current);
+    current = [[nextX, nextY]];
+    startX = nextX;
+    startY = nextY;
+  };
+
+  const lineTo = (nextX: number, nextY: number) => {
+    if (!current.length) current.push([x, y]);
+    current.push([nextX, nextY]);
+  };
+
+  /** 三次贝塞尔采样（也用来逼近二次、弧线） */
+  const curveTo = (
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number,
+    x3: number,
+    y3: number,
+    steps: number
+  ) => {
+    const [x0, y0] = current.length ? current[current.length - 1] : [x, y];
+    for (let step = 1; step <= steps; step++) {
+      const t = step / steps;
+      const u = 1 - t;
+      const px = u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3;
+      const py = u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3;
+      current.push([px, py]);
+      x = px;
+      y = py;
+    }
+  };
+
+  // 平滑曲线的上一控制点（S/T 用）
+  let lastControlX = 0;
+  let lastControlY = 0;
+
+  for (const match of path.matchAll(/([AaCcHhLlMmQqSsTtVvZz])([^AaCcHhLlMmQqSsTtVvZz]*)/g)) {
+    const command = match[1];
+    const type = command.toUpperCase();
+    const relative = command !== type;
+    const values = match[2].match(/[-+]?(?:\d*\.?\d+)(?:e[-+]?\d+)?/gi)?.map(Number) || [];
+
+    if (type === "Z") {
+      if (current.length > 1) {
+        current.push([startX, startY]);
+        subpaths.push(current);
+      }
+      current = [];
+      x = startX;
+      y = startY;
+      continue;
+    }
+
+    if (type === "M") {
+      for (let index = 0; index + 1 < values.length; index += 2) {
+        const nextX = relative ? x + values[index] : values[index];
+        const nextY = relative ? y + values[index + 1] : values[index + 1];
+        if (index === 0) moveTo(nextX, nextY);
+        else lineTo(nextX, nextY);
+        x = nextX;
+        y = nextY;
+      }
+      continue;
+    }
+
+    if (type === "H") {
+      for (const value of values) {
+        const nextX = relative ? x + value : value;
+        lineTo(nextX, y);
+        x = nextX;
+      }
+      continue;
+    }
+
+    if (type === "V") {
+      for (const value of values) {
+        const nextY = relative ? y + value : value;
+        lineTo(x, nextY);
+        y = nextY;
+      }
+      continue;
+    }
+
+    if (type === "L") {
+      for (let index = 0; index + 1 < values.length; index += 2) {
+        const nextX = relative ? x + values[index] : values[index];
+        const nextY = relative ? y + values[index + 1] : values[index + 1];
+        lineTo(nextX, nextY);
+        x = nextX;
+        y = nextY;
+      }
+      continue;
+    }
+
+    if (type === "C" || type === "S") {
+      const stride = type === "C" ? 6 : 4;
+      for (let index = 0; index + stride <= values.length; index += stride) {
+        const at = (offset: number) => (relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset]);
+        let x1: number;
+        let y1: number;
+        if (type === "C") {
+          x1 = at(0);
+          y1 = at(1);
+        } else {
+          // S：第一控制点是上一个控制点关于当前点的对称
+          x1 = 2 * x - lastControlX;
+          y1 = 2 * y - lastControlY;
+        }
+        const x2 = at(stride - 4);
+        const y2 = at(stride - 3);
+        const x3 = at(stride - 2);
+        const y3 = at(stride - 1);
+        curveTo(x1, y1, x2, y2, x3, y3, curves);
+        lastControlX = x2;
+        lastControlY = y2;
+      }
+      continue;
+    }
+
+    if (type === "Q" || type === "T") {
+      const stride = type === "Q" ? 4 : 2;
+      for (let index = 0; index + stride <= values.length; index += stride) {
+        const at = (offset: number) => (relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset]);
+        let qx: number;
+        let qy: number;
+        if (type === "Q") {
+          qx = at(0);
+          qy = at(1);
+        } else {
+          qx = 2 * x - lastControlX;
+          qy = 2 * y - lastControlY;
+        }
+        const px = at(stride - 2);
+        const py = at(stride - 1);
+
+        // 二次贝塞尔升阶成三次，复用同一条采样
+        const c1x = x + (2 / 3) * (qx - x);
+        const c1y = y + (2 / 3) * (qy - y);
+        const c2x = px + (2 / 3) * (qx - px);
+        const c2y = py + (2 / 3) * (qy - py);
+        curveTo(c1x, c1y, c2x, c2y, px, py, curves);
+        lastControlX = qx;
+        lastControlY = qy;
+      }
+      continue;
+    }
+
+    if (type === "A") {
+      // 弧线：按终点直线逼近（地图路径里几乎不出现，取端点比整条丢掉好）
+      for (let index = 0; index + 7 <= values.length; index += 7) {
+        const nextX = relative ? x + values[index + 5] : values[index + 5];
+        const nextY = relative ? y + values[index + 6] : values[index + 6];
+        lineTo(nextX, nextY);
+        x = nextX;
+        y = nextY;
+      }
+    }
+  }
+
+  if (current.length > 1) subpaths.push(current);
+  return subpaths;
+};
+
 type MeanderOptions = {
   anchors?: Point[];
   meandering?: number;

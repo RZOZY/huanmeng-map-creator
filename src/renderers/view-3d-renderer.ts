@@ -16,11 +16,13 @@ import {
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
+import { buildGlobeFeatureFills, type GlobeFeatureFill, buildGlobeOceanGrid } from "./globe-features";
 import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
 import { type GlobeOverlaySpec, landOverlaySpec, textureLayerVisible, waterOverlaySpec } from "./globe-texture";
 import {
   buildGlobeVectorMeshData,
   createGlobeProjector,
+  type GlobeLayerStyle,
   type GlobeOverlayGeometry,
   type GlobeVectorMeshData,
   WATER_FALLBACK_COLOR
@@ -159,6 +161,21 @@ const stop = () => {
   globeLineGroup = null;
   if (globeLineMaterial) globeLineMaterial.dispose();
   globeLineMaterial = null;
+
+  for (const featureMesh of globeFeatureMeshes) {
+    scene?.remove(featureMesh);
+    featureMesh.geometry.dispose();
+    (featureMesh.material as THREE.Material).dispose();
+  }
+  globeFeatureMeshes = [];
+  if (globeOceanMesh) {
+    scene?.remove(globeOceanMesh);
+    globeOceanMesh.geometry.dispose();
+    (globeOceanMesh.material as THREE.Material).dispose();
+  }
+  globeOceanMesh = null;
+  globeOceanGrid = null;
+  globePatternGrid = null;
 
   for (const overlayMesh of [globeOverlayLandMesh, globeOverlayWaterMesh]) {
     if (overlayMesh) {
@@ -1035,6 +1052,11 @@ let globeOverlayLandMesh: THREE.Mesh | null = null;
 let globeOverlayWaterMesh: THREE.Mesh | null = null;
 let globeOverlayLandMaterial: THREE.MeshBasicMaterial | null = null;
 let globeOverlayWaterMaterial: THREE.MeshBasicMaterial | null = null;
+let globeFeatureMeshes: THREE.Mesh[] = []; // 要素填充层（陆地/生物群系/国家/省/湖/河/冰）
+let globeOceanMesh: THREE.Mesh | null = null; // 平色海洋球（带 UV，兼作海洋图案叠加的载体）
+let globeOceanGrid: { positions: number[]; uvs: number[] } | null = null;
+let globePatternGrid: { positions: number[]; uvs: number[] } | null = null; // 海洋图案只铺中低纬，避开极区被拉成同心环
+
 let globeOverlayGeometry: GlobeVectorMeshData["overlays"] | null = null; // 最近一轮构建出来的叠加几何
 
 const OVERLAY_RADIUS = 1.0004; // 在球面之上、填充与线画之下
@@ -1172,6 +1194,85 @@ function buildGlobeSignatures(): GlobeSignatures {
     labels: [mapState, labelState].join("#")
   };
 }
+/** 平色海洋球：带 UV，既是底色，也是海洋图案叠加的载体 */
+function addGlobeOceanSphere(oceanColor: string) {
+  if (!scene) return;
+  if (globeOceanMesh) {
+    scene.remove(globeOceanMesh);
+    globeOceanMesh.geometry.dispose();
+    (globeOceanMesh.material as THREE.Material).dispose();
+  }
+
+  globeOceanGrid = buildGlobeOceanGrid();
+  globePatternGrid = buildGlobeOceanGrid(64, 24, 72);
+  const oceanGeometry = new Three.BufferGeometry();
+  oceanGeometry.setAttribute("position", new Three.Float32BufferAttribute(globeOceanGrid.positions, 3));
+  oceanGeometry.setAttribute("uv", new Three.Float32BufferAttribute(globeOceanGrid.uvs, 2));
+  oceanGeometry.computeVertexNormals();
+
+  globeOceanMesh = new Three.Mesh(oceanGeometry, new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor) }));
+  globeOceanMesh.renderOrder = 0;
+  scene.add(globeOceanMesh);
+}
+
+/** 要素填充层：一层一个网格，按各自半径叠上去（顶点色已含图层不透明度） */
+function addGlobeFeatureMeshes(fills: GlobeFeatureFill[]) {
+  if (!scene) return;
+  for (const featureMesh of globeFeatureMeshes) {
+    scene.remove(featureMesh);
+    featureMesh.geometry.dispose();
+    (featureMesh.material as THREE.Material).dispose();
+  }
+  globeFeatureMeshes = [];
+
+  fills.forEach((fill, index) => {
+    const geometry = new Three.BufferGeometry();
+    geometry.setAttribute("position", new Three.Float32BufferAttribute(fill.positions, 3));
+    geometry.setAttribute("color", new Three.Float32BufferAttribute(fill.colors, 3));
+    geometry.setAttribute("uv", new Three.Float32BufferAttribute(fill.uvs, 2));
+    geometry.computeBoundingSphere();
+
+    const material = new Three.MeshBasicMaterial({
+      vertexColors: true,
+      side: Three.DoubleSide,
+      transparent: fill.transparent,
+      depthWrite: false
+    });
+    const featureMesh = new Three.Mesh(geometry, material);
+    featureMesh.renderOrder = 2 + index;
+    scene.add(featureMesh);
+    globeFeatureMeshes.push(featureMesh);
+  });
+}
+
+/** 兜底：要素路径取不到时仍用逐单元着色（球面由 Voronoi 单元拼成） */
+function addGlobeCellSurface(style: GlobeLayerStyle): { land: GlobeOverlayGeometry } | null {
+  const data = buildGlobeVectorMeshData(style);
+  if (!data) return null;
+
+  const nextGeometry = new Three.BufferGeometry();
+  nextGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
+  nextGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
+  nextGeometry.computeVertexNormals();
+  nextGeometry.computeBoundingSphere();
+
+  if (mesh) scene.remove(mesh);
+  if (geometry) geometry.dispose();
+  geometry = nextGeometry;
+
+  material.map = null; // 不贴图：颜色来自逐单元顶点色
+  material.color = new Three.Color(0xffffff);
+  material.vertexColors = true;
+  material.needsUpdate = true;
+
+  mesh = new Three.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  return { land: data.overlays.land };
+}
+
 function addGlobeVectorMesh() {
   if (!active || !scene || !material) return;
 
@@ -1196,31 +1297,31 @@ function addGlobeVectorMesh() {
 
   if (surfaceDirty) {
     TIME && console.time("globeSurface");
-    const data = buildGlobeVectorMeshData(readGlobeLayerStyle());
-    if (!data) return;
-    TIME && console.timeEnd("globeSurface");
-  
-    const nextGeometry = new Three.BufferGeometry();
-    nextGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
-    nextGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
-    nextGeometry.computeVertexNormals();
-    nextGeometry.computeBoundingSphere();
-  
-    if (mesh) scene.remove(mesh);
-    if (geometry) geometry.dispose();
-    geometry = nextGeometry;
-  
-    material.map = null; // 不贴图：颜色来自逐单元顶点色
-    material.color = new Three.Color(0xffffff); // 顶点色之上不再乘色调
-    material.vertexColors = true;
-    material.needsUpdate = true;
-  
-    mesh = new Three.Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    scene.add(mesh);
-    globeOverlayGeometry = data.overlays; // 叠加几何来自这一轮构建
+    const layerStyle = readGlobeLayerStyle();
+
+    // 海洋：一整块平色球（带 UV），平面图的海洋也只是平色 + 图案
+    addGlobeOceanSphere(layerStyle.oceanColor);
+
+    // 陆地与各面图层：直接用平面图自己那批填充路径，海岸线因此是平滑的
+    const fills = buildGlobeFeatureFills();
+    addGlobeFeatureMeshes(fills);
+    TIME &&
+      console.info(
+        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0))
+      );
+
+    // 兜底：要素路径取不到时（异常数据）仍用逐单元着色
+    const fallback = fills.length ? null : addGlobeCellSurface(layerStyle);
+
+    globeOverlayGeometry = {
+      land: fills.length
+        ? { positions: fills[0].positions, uvs: fills[0].uvs }
+        : (fallback?.land ?? { positions: [], uvs: [] }),
+      water: globePatternGrid ?? { positions: [], uvs: [] }
+    };
     addGlobeOverlays();
+    TIME && console.timeEnd("globeSurface");
+    globeSignatures.surface = signatures.surface;
   }
 
   globeSignatures.surface = signatures.surface;
