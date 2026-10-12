@@ -25,3 +25,7 @@
 /globe-*.png
 /map-2d.png
 /map-relief-on.png
+
+# 临时冒烟/诊断脚本：不要提交
+/packaged-*.mjs
+/tmp-*.mjs
