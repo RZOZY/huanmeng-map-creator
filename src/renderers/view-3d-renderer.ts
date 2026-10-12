@@ -16,7 +16,7 @@ import {
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
-import { buildGlobeFeatureFills, type GlobeFeatureFill, buildGlobeOceanGrid } from "./globe-features";
+import { buildGlobeFeatureFills, buildGlobeOceanGrid, describeGlobeFeatureFills, type GlobeFeatureFill } from "./globe-features";
 import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
 import { type GlobeOverlaySpec, landOverlaySpec, textureLayerVisible, waterOverlaySpec } from "./globe-texture";
 import {
@@ -1285,7 +1285,9 @@ function addGlobeVectorMesh() {
   }
 
   const signatures = buildGlobeSignatures();
-  const surfaceDirty = signatures.surface !== globeSignatures.surface || !mesh || mesh.parent !== scene;
+  // 球面是否已经在场景里：海洋球一定建，兜底网格可能没有
+  const hasSurface = Boolean(globeOceanMesh && globeOceanMesh.parent === scene);
+  const surfaceDirty = signatures.surface !== globeSignatures.surface || !hasSurface;
   const linesDirty = signatures.lines !== globeSignatures.lines;
   const fillsDirty = signatures.fills !== globeSignatures.fills;
   const labelsDirty = signatures.labels !== globeSignatures.labels;
@@ -1307,7 +1309,7 @@ function addGlobeVectorMesh() {
     addGlobeFeatureMeshes(fills);
     TIME &&
       console.info(
-        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0))
+        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0)) + "（" + describeGlobeFeatureFills(fills) + "）"
       );
 
     // 兜底：要素路径取不到时（异常数据）仍用逐单元着色

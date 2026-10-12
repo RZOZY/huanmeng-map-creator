@@ -27,8 +27,8 @@ export type GlobeFeatureFill = {
 };
 
 /** 大三角形的弦会切进球面，超过这个长度（世界单位）就细分 */
-const FILL_MAX_EDGE = 0.12;
-const FILL_SUBDIVIDE_DEPTH = 4;
+const FILL_MAX_EDGE = 0.2;
+const FILL_SUBDIVIDE_DEPTH = 3;
 
 /** 面图层：从外到里的绘制顺序就是数组顺序（后面的半径更大、盖在前面上） */
 const AREA_LAYERS = ["biomes", "states", "provinces", "lakes", "rivers", "ice"] as const;
@@ -42,8 +42,8 @@ function threeRuntime(): ThreeRuntime | null {
   return (window as unknown as { THREE?: ThreeRuntime }).THREE ?? null;
 }
 
-function parseRgb(value: string): [number, number, number] | null {
-  const rgb = value.match(/rgba?\\(([^)]+)\\)/);
+export function parseRgb(value: string): [number, number, number] | null {
+  const rgb = value.match(/rgba?\(([^)]+)\)/);
   if (rgb) {
     const [r, g, b] = rgb[1].split(",").map(part => Number.parseFloat(part));
     if ([r, g, b].some(part => !Number.isFinite(part))) return null;
@@ -188,7 +188,7 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
 
   const landColor = parseRgb(String(styles?.landmass?.attrs?.fill ?? "#eef6fb")) ?? [0.93, 0.96, 0.98];
   const land = new FillBuilder(project, width, height, 1.0002, maxEdge);
-  const featurePaths = document.querySelectorAll<SVGPathElement>('#defs path[id^="feature_"]');
+  const featurePaths = document.querySelectorAll<SVGPathElement>('path[id^="feature_"]') // 平面图把要素路径放进 #featurePaths，不限定容器才稳妥;
   for (const path of featurePaths) {
     const index = Number.parseInt((path.id.match(/feature_(\d+)/) ?? [])[1] ?? "-1", 10);
     const feature = index >= 0 ? pack.features?.[index] : undefined;
@@ -229,6 +229,8 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
       added++;
     }
 
+    TIME && console.info("[globe] 图层 " + layer + "：路径 " + group.querySelectorAll("path").length + "，采用 " + added + "，三角形 " + builder.positions.length / 9);
+
     if (added && !builder.empty) {
       fills.push({
         radius,
@@ -243,4 +245,9 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
   }
 
   return fills;
+}
+
+/** 仅供日志：每层贡献了多少三角形 */
+export function describeGlobeFeatureFills(fills: GlobeFeatureFill[]): string {
+  return fills.map(fill => fill.positions.length / 9 + "三角@" + fill.radius.toFixed(4)).join("，");
 }

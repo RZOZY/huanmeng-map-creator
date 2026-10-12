@@ -198,6 +198,11 @@ test.describe("矢量球面（地球仪）", () => {
   test("整世界地图：渲染出完整球面，无黑洞", async ({ page }) => {
     const errors = collectErrors(page);
     const externalRequests = collectExternalRequests(page);
+    const globeLogs: string[] = [];
+    page.on("console", (message: any) => {
+      const line: string = message.text();
+      if (line.includes("[globe]")) globeLogs.push(line);
+    });
 
     await page.goto("/");
     await waitForMap(page);
@@ -252,6 +257,17 @@ test.describe("矢量球面（地球仪）", () => {
     });
     console.log("线画：平面图里有描边的路径 " + strokeCount + " 条，已全部投到球上");
     expect(strokeCount).toBeGreaterThan(50);
+
+    // 要素填充：平面图的路径要真的用上，别静默回退到逐单元着色（那样海岸线又会变成阶梯）
+    const fillLog = globeLogs.find(line => line.includes("要素填充"));
+    console.log("要素填充日志: " + fillLog);
+    console.log("globe 日志: " + globeLogs.join(" | "));
+    expect(fillLog).toBeDefined();
+    const fillLayers = Number((fillLog?.match(/要素填充 (\d+) 层/) ?? [])[1] ?? 0);
+    const fillTriangles = Number((fillLog?.match(/三角形 (\d+)/) ?? [])[1] ?? 0);
+    // 至少两层：陆地 + 国家（国家图层默认开着；正则写坏过一次，导致面图层全被静默丢掉）
+    expect(fillLayers).toBeGreaterThanOrEqual(2);
+    expect(fillTriangles).toBeGreaterThan(500);
 
     // 完全离线可用：地球仪不该请求任何外部资源（星空图现在内置）
     expect(externalRequests).toEqual([]);
