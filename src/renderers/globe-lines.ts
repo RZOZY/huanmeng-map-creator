@@ -11,13 +11,26 @@ import { parsePathPoints } from "@/utils/pathUtils";
 import type { Point } from "@/types/global";
 import { DEFAULT_GLOBE_LAYER_STYLE, type GlobeLayerStyle, createGlobeProjector } from "./globe-vector";
 
+/** 线画按经度切块：每块一个网格，背面那些每帧直接隐藏 */
+export type GlobeLineChunk = {
+  positions: number[];
+  colors: number[];
+  /** 该块的平均方向（单位向量），用来判断它在不在朝向镜头的那一面 */
+  center: [number, number, number];
+};
+
 export type GlobeLineData = {
-  positions: number[]; // 带状三角形的顶点
-  colors: number[]; // 与 positions 一一对应
+  chunks: GlobeLineChunk[];
   paths: number; // 取到的子路径数
   segments: number; // 生成的带条数
   relief: number; // 投上球的地形符号数（图标集是异步加载的，0 表示可能还没加载好）
 };
+
+/** 分级：0 = 远看（整球），1 = 拉近。远看时跳过亚像素描边与一半地形符号 */
+export const GLOBE_DETAIL_FAR = 0;
+export const GLOBE_DETAIL_NEAR = 1;
+const FAR_MIN_STROKE = 0.5; // 地图像素。低于它的描边（省界 0.12px 之类）在整球视距下是亚像素
+const CHUNKS = 8;
 
 /** 不画到球上的图层：网格与单元这类辅助线，以及贴图、高度图 */
 const EXCLUDED_LAYERS = new Set([
@@ -129,6 +142,18 @@ function parseViewBox(value: string | null): { x: number; y: number; width: numb
     return { x: parts[0], y: parts[1], width: parts[2], height: parts[3] };
   }
   return { x: 0, y: 0, width: 100, height: 100 };
+}
+
+/** 世界坐标 → 经度所在的块号（与 createGlobeProjector 的映射对应） */
+function bandOfLongitude(x: number, _y: number, z: number): number {
+  const theta = Math.atan2(z, -x);
+  let lon = (theta * 180) / Math.PI - 180;
+  if (lon < -180) lon += 360;
+
+  const width = options.map.graph.width;
+  const { latT, lonW, lonT } = options.map.geography.coordinates;
+  const mapX = latT > 179 ? ((lon + 180) / 360) * width : ((lon - lonW) / lonT) * width;
+  return Math.max(0, Math.min(CHUNKS - 1, Math.floor((mapX / width) * CHUNKS)));
 }
 
 const cross = (a: number[], b: number[]) => [
@@ -275,7 +300,7 @@ export function buildGlobeFillData(): { positions: number[]; colors: number[]; p
   return positions.length ? { positions, colors, paths } : null;
 }
 
-export function buildGlobeLineData(): GlobeLineData | null {
+export function buildGlobeLineData(detail: number = GLOBE_DETAIL_NEAR): GlobeLineData | null {
   TIME && console.time("globeLines");
   const root = document.querySelector("#map");
   if (!root) return null;
@@ -467,6 +492,8 @@ export function buildGlobeLineData(): GlobeLineData | null {
       if (!channels) continue;
       const color: [number, number, number] = [channels[0] * opacity, channels[1] * opacity, channels[2] * opacity];
 
+      if (detail === GLOBE_DETAIL_FAR && strokeWidth < FAR_MIN_STROKE) continue; // 整球视距下这类线是亚像素
+
       const halfWidth = Math.max(MIN_STROKE_WIDTH, Math.min(MAX_STROKE_WIDTH, strokeWidth)) / 2;
       const pattern = parseDashArray(style.strokeDasharray);
 
@@ -505,7 +532,10 @@ export function buildGlobeLineData(): GlobeLineData | null {
     const set = styles?.relief?.options?.set;
 
     if (color) {
+      let reliefIndex = -1;
       for (const icon of pack.relief ?? []) {
+        reliefIndex++;
+        if (detail === GLOBE_DETAIL_FAR && reliefIndex % 2 === 1) continue; // 整球视距下一半图标也看不出差别
         const symbolId = Relief.symbolId(icon, set);
         const symbol = cachedSymbol(symbolId);
         if (!symbol) continue;
@@ -568,6 +598,35 @@ export function buildGlobeLineData(): GlobeLineData | null {
     }
   }
 
+  if (!segments) {
+    TIME && console.timeEnd("globeLines");
+    return null;
+  }
+
+  // 按经度切块：每块一个网格，渲染时按相机方向剔除背面
+  const chunks: GlobeLineChunk[] = [];
+  const bucketPositions: number[][] = Array.from({ length: CHUNKS }, () => []);
+  const bucketColors: number[][] = Array.from({ length: CHUNKS }, () => []);
+  for (let index = 0; index < positions.length; index += 9) {
+    const band = bandOfLongitude(positions[index], positions[index + 1], positions[index + 2]);
+    bucketPositions[band].push(...positions.slice(index, index + 9));
+    bucketColors[band].push(...colors.slice(index, index + 9));
+  }
+  for (let band = 0; band < CHUNKS; band++) {
+    const chunkPositions = bucketPositions[band];
+    if (!chunkPositions.length) continue;
+    let x = 0;
+    let y = 0;
+    let z = 0;
+    for (let index = 0; index < chunkPositions.length; index += 3) {
+      x += chunkPositions[index];
+      y += chunkPositions[index + 1];
+      z += chunkPositions[index + 2];
+    }
+    const length = Math.hypot(x, y, z) || 1;
+    chunks.push({ positions: chunkPositions, colors: bucketColors[band], center: [x / length, y / length, z / length] });
+  }
+
   TIME && console.timeEnd("globeLines");
-  return segments ? { positions, colors, paths, segments, relief: reliefIcons } : null;
+  return { chunks, paths, segments, relief: reliefIcons };
 }

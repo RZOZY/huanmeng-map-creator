@@ -15,8 +15,8 @@ import {
   generateSatelliteTexture
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
-import { buildGlobeLabelData, type GlobeLabelData } from "./globe-labels";
-import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
+import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
+import { buildGlobeFillData, buildGlobeLineData, GLOBE_DETAIL_FAR, GLOBE_DETAIL_NEAR, readGlobeLayerStyle } from "./globe-lines";
 import { globeTextureAt, loadGlobeTextures } from "./globe-texture";
 import { buildGlobeVectorMeshData, createGlobeProjector, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
@@ -84,9 +84,10 @@ let gridToPackCellMap = new Map<number, number>(); // grid cell index -> pack ce
 let globeBaseMesh: THREE.Mesh | null = null; // 区域地图的海洋色底球
 let globeBaseGeometry: THREE.SphereGeometry | null = null;
 let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
-let globeLineMesh: THREE.Mesh | null = null; // 海岸线/国界/河流等线画（带状三角形，可调宽、可虚线）
-let globeLineGeometry: THREE.BufferGeometry | null = null;
+let globeLineGroup: THREE.Group | null = null; // 线画按经度分块，每块一个网格
+let globeLineChunks: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 let globeLineMaterial: THREE.MeshBasicMaterial | null = null;
+let globeLineDetail = GLOBE_DETAIL_NEAR; // 当前细节级别（按相机距离切换）
 let reliefRetry = false; // 地形符号图标集是异步加载的，只重试一次
 let globeFillMesh: THREE.Mesh | null = null; // 河流/湖泊等填充面
 let globeFillGeometry: THREE.BufferGeometry | null = null;
@@ -146,11 +147,11 @@ const stop = () => {
   globeBaseMesh = null;
   globeBaseGeometry = null;
   globeBaseMaterial = null;
-  if (globeLineMesh) scene.remove(globeLineMesh);
-  if (globeLineGeometry) globeLineGeometry.dispose();
+  if (globeLineGroup) scene.remove(globeLineGroup);
+  for (const { mesh } of globeLineChunks) mesh.geometry.dispose();
+  globeLineChunks = [];
+  globeLineGroup = null;
   if (globeLineMaterial) globeLineMaterial.dispose();
-  globeLineMesh = null;
-  globeLineGeometry = null;
   globeLineMaterial = null;
   if (globeFillMesh) scene.remove(globeFillMesh);
   if (globeFillGeometry) globeFillGeometry.dispose();
@@ -1063,7 +1064,7 @@ function buildGlobeSignatures(): GlobeSignatures {
     surface: [mapState, layersOf(["ocean", "landmass", "biomes", "states", "relief", "texture"]), styleState, grid.points.length].join("#"),
     lines: [mapState, allLayers, styleState, pack.relief?.length ?? 0].join("#"),
     fills: [mapState, layersOf(["rivers", "lakes", "ice"]), styleState].join("#"),
-    labels: [mapState, labelState].join("#")
+    labels: [mapState, labelState, globeDetailForCamera()].join("#")
   };
 }
 function addGlobeVectorMesh() {
@@ -1218,7 +1219,7 @@ function cachedLabelTexture(label: GlobeLabelData): CachedLabelTexture | null {
 /** 地名标签：每个一条贴片，沿球面法线朝外，背面的由 doWorkOnRender 剔除 */
 function addGlobeLabels() {
   if (!scene || globeLabelGroup) return;
-  const data = buildGlobeLabelData();
+  const data = buildGlobeLabelData(globeDetailForCamera() === GLOBE_DETAIL_FAR ? FAR_MIN_LABEL_FONT : 0);
   if (!data.length) return;
 
   const project = createGlobeProjector();
@@ -1227,7 +1228,51 @@ function addGlobeLabels() {
   const group = new Three.Group();
   const items: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 
+  /** 曲线标签的逐字位置：宽度用画布实测，保证字距与画出来的字宽一致 */
+  const glyphPlacements = (label: GlobeLabelData) => {
+    const placementContext = document.createElement("canvas").getContext("2d");
+    const measure = (char: string) => {
+      if (!placementContext) return 48 * 0.55;
+      placementContext.font = `48px "${label.fontFamily}", serif`;
+      return Math.max(1, placementContext.measureText(char).width);
+    };
+    return placeTextAlongPath(label.pathPoints ?? [], label.text, measure, label.startOffset ?? 50);
+  };
+
+  /** 把一个贴片摆到球面上：位置由法线定，朝向由 xAxis(yAxis) 定 */
+  const placeMesh = (mesh: THREE.Mesh, normal: THREE.Vector3, xAxis: THREE.Vector3, yAxis: THREE.Vector3) => {
+    mesh.position.copy(normal).multiplyScalar(LABEL_RADIUS);
+    mesh.quaternion.setFromRotationMatrix(new Three.Matrix4().makeBasis(xAxis, yAxis, normal));
+    mesh.renderOrder = 2;
+    group.add(mesh);
+    items.push({ mesh, normal });
+  };
+
   for (const label of data) {
+    const scale = Math.max(LABEL_WORLD_MIN, Math.min(LABEL_WORLD_MAX, label.fontPx * worldPerMapPixel));
+
+    // 曲线标签（平面图里沿 pathPoints 排的国名/河名）：逐字摆，每个字跟着路径切线转
+    if (label.pathPoints?.length) {
+      for (const glyph of glyphPlacements(label)) {
+        const drawn = cachedLabelTexture({ ...label, text: glyph.char });
+        if (!drawn) continue;
+
+        const normal = new Three.Vector3(...project(glyph.x, glyph.y)).normalize();
+        // 切线用地图空间的角度取相邻两点投影后求差，避免在球面上直接推方向
+        const step = 2;
+        const ahead = project(glyph.x + Math.cos(glyph.angle) * step, glyph.y + Math.sin(glyph.angle) * step);
+        const behind = project(glyph.x - Math.cos(glyph.angle) * step, glyph.y - Math.sin(glyph.angle) * step);
+        const xAxis = new Three.Vector3(ahead[0] - behind[0], ahead[1] - behind[1], ahead[2] - behind[2]).normalize();
+        const yAxis = new Three.Vector3().crossVectors(normal, xAxis).normalize();
+        if (yAxis.lengthSq() < 1e-8) continue;
+        xAxis.crossVectors(yAxis, normal).normalize(); // 重新正交化
+
+        const geometry = new Three.PlaneGeometry(drawn.width * (scale / 48), drawn.height * (scale / 48));
+        placeMesh(new Three.Mesh(geometry, drawn.material), normal, xAxis, yAxis);
+      }
+      continue;
+    }
+
     const drawn = cachedLabelTexture(label);
     if (!drawn) continue;
 
@@ -1239,14 +1284,8 @@ function addGlobeLabels() {
     up.normalize();
     const side = new Three.Vector3().crossVectors(up, normal).normalize();
 
-    const scale = Math.max(LABEL_WORLD_MIN, Math.min(LABEL_WORLD_MAX, label.fontPx * worldPerMapPixel));
     const geometry = new Three.PlaneGeometry(drawn.width * (scale / 48), drawn.height * (scale / 48));
-    const mesh = new Three.Mesh(geometry, drawn.material); // 材质与贴图是缓存里共享的
-    mesh.position.copy(normal).multiplyScalar(LABEL_RADIUS);
-    mesh.quaternion.setFromRotationMatrix(new Three.Matrix4().makeBasis(side, up, normal));
-    mesh.renderOrder = 2;
-    group.add(mesh);
-    items.push({ mesh, normal });
+    placeMesh(new Three.Mesh(geometry, drawn.material), normal, side, up); // 材质与贴图是缓存里共享的
   }
 
   if (!items.length) return;
@@ -1263,25 +1302,29 @@ function disposeGlobeLabels() {
 }
 
 /** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓 */
-function addGlobeLines() {
+/** 把平面图 SVG 里的线画投到球面上：海岸线、国界、省界、河流、湖泊轮廓（按经度分块） */
+/** 按相机距离定细节级别：整球视距用 FAR，拉近用 NEAR */
+function globeDetailForCamera(): number {
+  const distance = camera?.position.length() ?? 0;
+  return distance > 3.4 ? GLOBE_DETAIL_FAR : GLOBE_DETAIL_NEAR;
+}
+
+function addGlobeLines(detail?: number) {
   if (!scene) return;
-  const data = buildGlobeLineData();
+  const level = detail ?? globeDetailForCamera(); // 不给就按当前视距定，免得开局先按近景算一遍
+  globeLineDetail = level;
+  const data = buildGlobeLineData(level);
 
-  if (globeLineMesh) scene.remove(globeLineMesh);
-  if (globeLineGeometry) globeLineGeometry.dispose();
-  globeLineMesh = null;
-  globeLineGeometry = null;
+  if (globeLineGroup) scene.remove(globeLineGroup);
+  for (const { mesh } of globeLineChunks) mesh.geometry.dispose();
+  globeLineChunks = [];
+  globeLineGroup = null;
   if (!data) return;
-
-  const lineGeometry = new Three.BufferGeometry();
-  lineGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
-  lineGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
-  lineGeometry.computeBoundingSphere();
 
   if (!globeLineMaterial) {
     // 带状三角形：双面可见，深度不写（线贴在球面上，别抢深度）
     globeLineMaterial = new Three.MeshBasicMaterial({ vertexColors: true, side: Three.DoubleSide });
-    globeLineMaterial.depthWrite = false; // 线贴在面上，别用它抢深度
+    globeLineMaterial.depthWrite = false;
   }
 
   // 图标集是异步加载的：这一轮没取到地形符号就稍后重建一次（只重试一次）
@@ -1297,10 +1340,22 @@ function addGlobeLines() {
     }, 1500);
   }
 
-  globeLineGeometry = lineGeometry;
-  globeLineMesh = new Three.Mesh(lineGeometry, globeLineMaterial);
-  globeLineMesh.renderOrder = 1;
-  scene.add(globeLineMesh);
+  const group = new Three.Group();
+  for (const chunk of data.chunks) {
+    const chunkGeometry = new Three.BufferGeometry();
+    chunkGeometry.setAttribute("position", new Three.Float32BufferAttribute(chunk.positions, 3));
+    chunkGeometry.setAttribute("color", new Three.Float32BufferAttribute(chunk.colors, 3));
+    chunkGeometry.computeBoundingSphere();
+
+    const chunkMesh = new Three.Mesh(chunkGeometry, globeLineMaterial);
+    chunkMesh.renderOrder = 1;
+    group.add(chunkMesh);
+    globeLineChunks.push({ mesh: chunkMesh, normal: new Three.Vector3(...chunk.center) });
+  }
+
+  globeLineGroup = group;
+  scene.add(group);
+  TIME && console.info("[globe] 线画分 " + data.chunks.length + " 块（细节级别 " + level + "），带条 " + data.segments);
 }
 
 /** 河流与湖泊这类填充多边形：宽度就是几何本身，没有描边可循 */
@@ -1417,6 +1472,27 @@ function doWorkOnRender() {
   // 球面标签：只有朝向镜头那一面的才显示（否则会从背面透出来）
   for (const { mesh, normal } of globeLabelItems) {
     mesh.visible = normal.dot(camera.position.clone().sub(mesh.position)) > 0.05;
+  }
+
+  // 线画分块：整球视距下只有约 1/3 的块朝向镜头，背面那些直接不画
+  if (globeLineChunks.length) {
+    const distance = camera.position.length() || 1;
+    const horizon = 1 / distance - 0.25; // 留点余量，免得在块边界上闪
+    const view = camera.position.clone().normalize();
+    for (const { mesh, normal } of globeLineChunks) {
+      mesh.visible = normal.dot(view) > horizon;
+    }
+
+    // 细节级别：整球看时省掉亚像素描边与一半地形符号，拉近再全部补回来
+    const detail = distance > 3.4 ? GLOBE_DETAIL_FAR : GLOBE_DETAIL_NEAR;
+    if (detail !== globeLineDetail) {
+      globeLineDetail = detail;
+      addGlobeLines(detail);
+      // 级别变了，标签集合也要按视距重选（远看只留读得清的大名字）
+      disposeGlobeLabels();
+      addGlobeLabels();
+      globeSignatures.labels = buildGlobeSignatures().labels;
+    }
   }
 }
 

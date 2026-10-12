@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateLabelWidth, type GlobeLabelData, selectNonOverlappingLabels } from "./globe-labels";
+import { estimateLabelWidth, type GlobeLabelData, placeTextAlongPath, selectNonOverlappingLabels } from "./globe-labels";
 
 const label = (overrides: Partial<GlobeLabelData> = {}): GlobeLabelData => ({
   group: "burg",
@@ -74,5 +74,89 @@ describe("selectNonOverlappingLabels", () => {
   it("宽度估算：中日韩字按整格、拉丁按半格", () => {
     expect(estimateLabelWidth("中国", 10)).toBeCloseTo(20, 6);
     expect(estimateLabelWidth("ab", 10)).toBeCloseTo(11, 6);
+  });
+});
+
+describe("placeTextAlongPath", () => {
+  const fixed = () => 10; // 每个字宽 10
+
+  it("水平路径：整行以 startOffset% 处居中", () => {
+    const glyphs = placeTextAlongPath(
+      [
+        [0, 0],
+        [100, 0]
+      ],
+      "中国",
+      fixed,
+      50
+    );
+
+    expect(glyphs).toHaveLength(2);
+    expect(glyphs[0].x).toBeCloseTo(45, 6); // 20 宽的字串中心在 50 → 首字中心 45
+    expect(glyphs[1].x).toBeCloseTo(55, 6);
+    expect(glyphs[0].angle).toBeCloseTo(0, 6);
+    expect(glyphs[0].y).toBeCloseTo(0, 6);
+  });
+
+  it("拐弯路径：每个字跟着所在段的切线转", () => {
+    const glyphs = placeTextAlongPath(
+      [
+        [0, 0],
+        [50, 0],
+        [50, 50]
+      ],
+      "ab",
+      fixed,
+      50
+    );
+
+    expect(glyphs).toHaveLength(2);
+    expect(glyphs[0].y).toBeCloseTo(0, 6); // 第一字在水平段
+    expect(glyphs[0].angle).toBeCloseTo(0, 6);
+    expect(glyphs[1].x).toBeCloseTo(50, 6); // 第二字在竖直段
+    expect(glyphs[1].angle).toBeCloseTo(Math.PI / 2, 6);
+  });
+
+  it("起点百分比 0：超出路径的部分夹在路径内", () => {
+    const glyphs = placeTextAlongPath(
+      [
+        [0, 0],
+        [100, 0]
+      ],
+      "ab",
+      fixed,
+      0
+    );
+
+    expect(glyphs.map(glyph => glyph.x)).toEqual([0, 5]); // 首字被夹到起点，不跑出路径
+  });
+
+  it("路径不足两个点或长度为零时返回空", () => {
+    expect(placeTextAlongPath([[1, 1]], "x", fixed)).toEqual([]);
+    expect(
+      placeTextAlongPath(
+        [
+          [1, 1],
+          [1, 1]
+        ],
+        "x",
+        fixed
+      )
+    ).toEqual([]);
+  });
+
+  it("每个字的间距等于它的宽度（不叠字）", () => {
+    const glyphs = placeTextAlongPath(
+      [
+        [0, 0],
+        [100, 0]
+      ],
+      "abc",
+      fixed,
+      50
+    );
+
+    expect(glyphs[1].x - glyphs[0].x).toBeCloseTo(10, 6);
+    expect(glyphs[2].x - glyphs[1].x).toBeCloseTo(10, 6);
   });
 });
