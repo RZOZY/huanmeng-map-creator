@@ -984,6 +984,14 @@ async function updateGlobeTexure(addMesh?: boolean) {
     ctx.drawImage(img2, dx, dy, mapWidth, mapHeight);
     if (texture) texture.dispose();
     texture = new Three.CanvasTexture(ctx.canvas);
+    // 各向异性过滤：球面斜视时（越靠近边缘采样越斜）能显著减轻模糊与闪烁。
+    // three.js 官方论坛同一问题的结论：球面畸变无法消除，但这一项对观感改善最大。
+    texture.anisotropy = Math.min(16, Renderer?.capabilities?.getMaxAnisotropy?.() ?? 1);
+    texture.generateMipmaps = true;
+    texture.minFilter = Three.LinearMipmapLinearFilter;
+    texture.magFilter = Three.LinearFilter;
+    texture.wrapS = Three.RepeatWrapping;
+    texture.needsUpdate = true;
     material.map = texture;
     if (addMesh) addGlobe3dMesh();
   };
