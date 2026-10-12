@@ -20,3 +20,8 @@
 # nix build output
 /result
 /result-*
+
+# e2e 截图：GLOBE_SHOT_DIR 没设时会落在当前目录，别提交
+/globe-*.png
+/map-2d.png
+/map-relief-on.png
