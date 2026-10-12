@@ -17,8 +17,14 @@ import {
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
 import { buildGlobeFillData, buildGlobeLineData, GLOBE_DETAIL_FAR, GLOBE_DETAIL_NEAR, readGlobeLayerStyle } from "./globe-lines";
-import { globeTextureAt, loadGlobeTextures } from "./globe-texture";
-import { buildGlobeVectorMeshData, createGlobeProjector, WATER_FALLBACK_COLOR } from "./globe-vector";
+import { type GlobeOverlaySpec, landOverlaySpec, waterOverlaySpec } from "./globe-texture";
+import {
+  buildGlobeVectorMeshData,
+  createGlobeProjector,
+  type GlobeOverlayGeometry,
+  type GlobeVectorMeshData,
+  WATER_FALLBACK_COLOR
+} from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
 export { heightAt, isCached } from "./erosion-bake";
@@ -153,6 +159,22 @@ const stop = () => {
   globeLineGroup = null;
   if (globeLineMaterial) globeLineMaterial.dispose();
   globeLineMaterial = null;
+
+  for (const overlayMesh of [globeOverlayLandMesh, globeOverlayWaterMesh]) {
+    if (overlayMesh) {
+      scene?.remove(overlayMesh);
+      overlayMesh.geometry.dispose();
+    }
+  }
+  globeOverlayLandMesh = null;
+  globeOverlayWaterMesh = null;
+  globeOverlayLandMaterial?.dispose();
+  globeOverlayWaterMaterial?.dispose();
+  globeOverlayLandMaterial = null;
+  globeOverlayWaterMaterial = null;
+  for (const overlayTexture of globeOverlayTextures.values()) overlayTexture.dispose();
+  globeOverlayTextures.clear();
+  globeOverlayGeometry = null;
   if (globeFillMesh) scene.remove(globeFillMesh);
   if (globeFillGeometry) globeFillGeometry.dispose();
   if (globeFillMaterial) globeFillMaterial.dispose();
@@ -1006,18 +1028,88 @@ function addGlobeBaseSphere(oceanColor: string) {
 }
 
 /** 用地图自己的 Voronoi 单元构建矢量球面（逐单元上色） */
-let globeTexturesRequested = false;
+/** 贴图叠加层：陆地纸纹 + 海面图案，逐像素铺在球面上（替代以前的逐单元取样） */
+const globeOverlayTextures = new Map<string, THREE.Texture>();
+let globeOverlayLandMesh: THREE.Mesh | null = null;
+let globeOverlayWaterMesh: THREE.Mesh | null = null;
+let globeOverlayLandMaterial: THREE.MeshBasicMaterial | null = null;
+let globeOverlayWaterMaterial: THREE.MeshBasicMaterial | null = null;
+let globeOverlayGeometry: GlobeVectorMeshData["overlays"] | null = null; // 最近一轮构建出来的叠加几何
 
-/** 贴图是异步读进来的，读好后重画一次球面；只请求一次 */
-function ensureGlobeTextures() {
-  if (globeTexturesRequested) return;
-  globeTexturesRequested = true;
-  void loadGlobeTextures().then(() => {
-    globeSignatures.surface = ""; // 贴图到位，球面颜色要重算
-    if (active && scene && mesh) addGlobeVectorMesh();
-  });
+const OVERLAY_RADIUS = 1.0004; // 在球面之上、填充与线画之下
+
+/** 取纹理（按 href 缓存）并按铺法设 repeat/offset；纹理解码后重画一层 */
+function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture {
+  let texture = globeOverlayTextures.get(href);
+  if (!texture) {
+    texture = new Three.TextureLoader().load(href, () => addGlobeOverlays());
+    texture.wrapS = Three.RepeatWrapping;
+    texture.wrapT = Three.RepeatWrapping;
+    globeOverlayTextures.set(href, texture);
+  }
+  texture.repeat.set(spec.repeatX, spec.repeatY);
+  texture.offset.set(spec.offsetX, spec.offsetY);
+  texture.needsUpdate = true;
+  return texture;
 }
 
+/** 建/更新一层叠加网格；spec 为 null 表示这一层不该画 */
+function applyGlobeOverlay(which: "land" | "water", geometry: GlobeOverlayGeometry | undefined, spec: GlobeOverlaySpec | null) {
+  const previous = which === "land" ? globeOverlayLandMesh : globeOverlayWaterMesh;
+  if (previous) {
+    scene?.remove(previous);
+    previous.geometry.dispose();
+  }
+  if (which === "land") globeOverlayLandMesh = null;
+  else globeOverlayWaterMesh = null;
+
+  if (!scene || !geometry?.positions.length || !spec) return;
+
+  const overlayGeometry = new Three.BufferGeometry();
+  overlayGeometry.setAttribute("position", new Three.Float32BufferAttribute(geometry.positions, 3));
+  overlayGeometry.setAttribute("uv", new Three.Float32BufferAttribute(geometry.uvs, 2));
+  overlayGeometry.computeBoundingSphere();
+
+  let material = which === "land" ? globeOverlayLandMaterial : globeOverlayWaterMaterial;
+  if (!material) {
+    material = new Three.MeshBasicMaterial({ transparent: true, depthWrite: false });
+    if (which === "land") globeOverlayLandMaterial = material;
+    else globeOverlayWaterMaterial = material;
+  }
+  material.map = overlayTexture(spec.href, spec);
+  material.opacity = Math.max(0, Math.min(1, spec.opacity));
+  material.needsUpdate = true;
+
+  const mesh = new Three.Mesh(overlayGeometry, material);
+  mesh.position.set(0, 0, 0);
+  mesh.scale.setScalar(OVERLAY_RADIUS);
+  mesh.renderOrder = 0;
+  scene.add(mesh);
+  if (which === "land") globeOverlayLandMesh = mesh;
+  else globeOverlayWaterMesh = mesh;
+}
+
+/** 按当前的样式与图层状态重建两层叠加（几何来自最近一轮球面构建） */
+function addGlobeOverlays() {
+  if (!scene || !globeOverlayGeometry) return;
+  const width = options.map.graph.width;
+  const height = options.map.graph.height;
+
+  applyGlobeOverlay("water", globeOverlayGeometry.water, waterOverlaySpec(width, height));
+
+  const landHref = typeof styles?.texture?.options?.href === "string" ? styles.texture.options.href : null;
+  if (!landHref) return void applyGlobeOverlay("land", undefined, null);
+
+  // 先把纹理请求上（可能还在解码）；尺寸到位后 onLoad 会再走一遍这里
+  const requested = globeOverlayTextures.get(landHref);
+  const texture = requested ?? overlayTexture(landHref, { href: landHref, repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0, opacity: 1 });
+  const image = texture.image as { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number } | undefined;
+  const imageWidth = image?.naturalWidth ?? image?.width ?? 0;
+  const imageHeight = image?.naturalHeight ?? image?.height ?? 0;
+
+  const spec = imageWidth > 0 && imageHeight > 0 ? landOverlaySpec(width, height, imageWidth, imageHeight) : null;
+  applyGlobeOverlay("land", globeOverlayGeometry.land, spec);
+}
 /** 球面各部分的输入指纹：一样就说明这一轮不用重建那部分 */
 type GlobeSignatures = { surface: string; lines: string; fills: string; labels: string };
 const globeSignatures: GlobeSignatures = { surface: "", lines: "", fills: "", labels: "" };
@@ -1068,7 +1160,6 @@ function buildGlobeSignatures(): GlobeSignatures {
   };
 }
 function addGlobeVectorMesh() {
-  ensureGlobeTextures();
   if (!active || !scene || !material) return;
 
   // 区域地图先补底球（颜色跟随海洋生物群系，与逐单元取色一致）
@@ -1092,7 +1183,7 @@ function addGlobeVectorMesh() {
 
   if (surfaceDirty) {
     TIME && console.time("globeSurface");
-    const data = buildGlobeVectorMeshData(readGlobeLayerStyle(), globeTextureAt);
+    const data = buildGlobeVectorMeshData(readGlobeLayerStyle());
     if (!data) return;
     TIME && console.timeEnd("globeSurface");
   
@@ -1115,6 +1206,8 @@ function addGlobeVectorMesh() {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     scene.add(mesh);
+    globeOverlayGeometry = data.overlays; // 叠加几何来自这一轮构建
+    addGlobeOverlays();
   }
 
   globeSignatures.surface = signatures.surface;
@@ -1703,3 +1796,4 @@ export {
   toggleWireframe,
   update
 };
+

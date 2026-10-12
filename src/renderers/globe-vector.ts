@@ -45,15 +45,15 @@ export const DEFAULT_GLOBE_LAYER_STYLE: GlobeLayerStyle = {
   oceanColor: "#466eab"
 };
 
-/** 一次贴图取样（0..1 通道 + 有效透明度） */
-export type GlobeTextureSample = { r: number; g: number; b: number; a: number };
-/** 贴图取样器：给一个地图像素位置与「这里是不是陆地」，返回要混合上去的贴图颜色 */
-export type GlobeTextureSampler = (x: number, y: number, isLand: boolean) => GlobeTextureSample | null;
+/** 贴图叠加用的几何：按陆/水分开，UV 是地图空间的（u = x/宽、v = y/高），供逐像素贴图用 */
+export type GlobeOverlayGeometry = { positions: number[]; uvs: number[] };
 
 export type GlobeVectorMeshData = {
   positions: number[]; // 每三个一组，非索引三角形列表
   colors: number[]; // 与 positions 一一对应，线性色彩空间（可直接作为顶点色）
   world: boolean; // 是否整世界地图（经度被拉伸铺满整圈）
+  /** 贴图叠加几何：陆地一层、水面一层，逐像素贴图靠它 */
+  overlays: { land: GlobeOverlayGeometry; water: GlobeOverlayGeometry };
 };
 
 export const LAND_FALLBACK_COLOR = "#c8bfa8"; // 无主且无生物群系的陆地
@@ -209,8 +209,7 @@ function voronoiTopology(width: number, height: number): VoronoiTopology {
 }
 
 export function buildGlobeVectorMeshData(
-  style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE,
-  textureAt?: GlobeTextureSampler
+  style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE
 ): GlobeVectorMeshData | null {
   const width = options.map.graph.width;
   const height = options.map.graph.height;
@@ -266,16 +265,6 @@ export function buildGlobeVectorMeshData(
       hex = WATER_FALLBACK_COLOR;
     }
 
-    // 贴图：陆地叠纸纹、水面叠海洋图案（与平面图的图层合成一致）
-    if (textureAt) {
-      const [cellX, cellY] = grid.points[cell];
-      const sample = textureAt(cellX, cellY, onLand);
-      if (sample) {
-        const overlay = `rgb(${Math.round(sample.r * 255)}, ${Math.round(sample.g * 255)}, ${Math.round(sample.b * 255)})`;
-        hex = mixHex(hex, overlay, Math.min(1, sample.a));
-      }
-    }
-
     const shade = shadeOf(cell, onLand);
     const key = hex + "|" + shade.toFixed(3);
     const cached = colorCache.get(key);
@@ -291,6 +280,8 @@ export function buildGlobeVectorMeshData(
 
   const positions: number[] = [];
   const colors: number[] = [];
+  const overlayLand: GlobeOverlayGeometry = { positions: [], uvs: [] };
+  const overlayWater: GlobeOverlayGeometry = { positions: [], uvs: [] };
 
   for (const cell of cells.i) {
     const ring = cells.v[cell];
@@ -316,6 +307,8 @@ export function buildGlobeVectorMeshData(
 
     const [cellR, cellG, cellB] = colorOfGridCell(cell);
     const projected = clipped.map(point => project(point[0], point[1]));
+    const onLand = heights[cell] >= SEA_LEVEL;
+    const overlay = onLand ? overlayLand : overlayWater;
 
     // 扇形三角化（单元是凸的，裁剪后仍凸）；反序出三角形：地图 y 向下、球面 y 向上
     for (let k = 1; k < projected.length - 1; k++) {
@@ -334,8 +327,19 @@ export function buildGlobeVectorMeshData(
 
       positions.push(a[0], a[1], a[2], c[0], c[1], c[2], b[0], b[1], b[2]);
       colors.push(cellR, cellG, cellB, cellR, cellG, cellB, cellR, cellG, cellB);
+
+      // 叠加几何：顶点顺序与上面一致（a、c、b），UV 用地图坐标归一化
+      overlay.positions.push(a[0], a[1], a[2], c[0], c[1], c[2], b[0], b[1], b[2]);
+      overlay.uvs.push(
+        clipped[0][0] / width,
+        clipped[0][1] / height,
+        clipped[k + 1][0] / width,
+        clipped[k + 1][1] / height,
+        clipped[k][0] / width,
+        clipped[k][1] / height
+      );
     }
   }
 
-  return positions.length ? { positions, colors, world } : null;
+  return positions.length ? { positions, colors, world, overlays: { land: overlayLand, water: overlayWater } } : null;
 }
