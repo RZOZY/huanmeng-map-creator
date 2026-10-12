@@ -86,7 +86,17 @@
 发布形态**只做便携 ZIP**。NSIS 安装包会被 Windows Defender 误报为
 `Trojan:Script/Conteban.A!ml`，请勿使用。
 
-    HumengMap-1.154.0-win-x64-portable.zip
+    # 打包：镜像必须设，否则 electron-builder 下载二进制会 ETIMEDOUT
+    $env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'
+    $env:ELECTRON_BUILDER_BINARIES_MIRROR='https://npmmirror.com/mirrors/electron-builder-binaries/'
+    $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
+    node scripts/electron.mjs dist --win --x64 --dir --publish never
+
+    # 产物：release/win-unpacked → 压缩其内容（不要套一层目录），得到
+    HuanMengMap-0.6.0-win-x64-portable.zip
+
+发布用 `gh release create` 手工做：electron-builder.yml 刻意不配 publish provider，
+一旦配上，打包时可能自动上传。
 
 ## 授权与来源
 
