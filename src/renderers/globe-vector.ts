@@ -178,6 +178,36 @@ export function createGlobeProjector() {
   };
 }
 
+type VoronoiTopology = ReturnType<typeof calculateVoronoi>;
+
+let voronoiCache: { key: string; topology: VoronoiTopology } | null = null;
+
+/** 点集 + 网格尺寸的滚动校验和 */
+function voronoiKey(width: number, height: number): string {
+  let hash = 2166136261;
+  for (const [x, y] of grid.points) {
+    hash = Math.imul(hash ^ ((x * 31 + y * 17) | 0), 16777619) >>> 0;
+  }
+  return [width, height, grid.spacing, grid.points.length, hash].join(":");
+}
+
+/**
+ * Voronoi 拓扑只由点集决定：图层开关、样式改动都会重建球面，但拓扑没变，没必要重算。
+ * 这是球面重建里最贵的一步（一万点量级），缓存后只有换图才付这笔钱。
+ */
+function voronoiTopology(width: number, height: number): VoronoiTopology {
+  const key = voronoiKey(width, height);
+  if (voronoiCache?.key !== key) {
+    const started = performance.now();
+    voronoiCache = {
+      key,
+      topology: calculateVoronoi(grid.points, expandedBoundaryRing(width, height, grid.spacing))
+    };
+    TIME && console.info("[globe] Voronoi 重算 " + (performance.now() - started).toFixed(1) + " ms");
+  }
+  return voronoiCache.topology;
+}
+
 export function buildGlobeVectorMeshData(
   style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE,
   textureAt?: GlobeTextureSampler
@@ -186,7 +216,7 @@ export function buildGlobeVectorMeshData(
   const height = options.map.graph.height;
   const world = options.map.geography.coordinates.latT > 179; // 只用于回报构建结果，投影本身在工厂里
 
-  const { cells, vertices } = calculateVoronoi(grid.points, expandedBoundaryRing(width, height, grid.spacing));
+  const { cells, vertices } = voronoiTopology(width, height);
 
   // 取色：不要依赖 gridToPackCellMap（它在地球仪路径下是空的），从 pack.cells.g 建反查表
   const packOfGrid = new Map<number, number>();
