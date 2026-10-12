@@ -1,8 +1,8 @@
 {
-  "name": "fantasy-map-generator",
-  "productName": "幻梦地图生成器",
-  "version": "1.154.0",
-  "description": "幻梦地图生成器 —— 基于 Azgaar's Fantasy Map Generator 的中文奇幻地图生成器",
+  "name": "huanmeng-map-creator",
+  "productName": "HuanMeng Map creator",
+  "version": "0.6.0",
+  "description": "HuanMeng Map creator —— 基于 Azgaar's Fantasy Map Generator (MIT) 二次开发的中文奇幻地图生成器",
   "homepage": "https://github.com/RZOZY/humeng-map-generator#readme",
   "bugs": {
     "url": "https://github.com/RZOZY/humeng-map-generator/issues"
@@ -12,7 +12,12 @@
     "url": "git+https://github.com/RZOZY/humeng-map-generator.git"
   },
   "license": "MIT",
-  "author": "Azgaar",
+  "author": "RZOZY",
+  "credits": {
+    "engine": "Azgaar's Fantasy Map Generator (MIT) — https://github.com/Azgaar/Fantasy-Map-Generator",
+    "chineseTemplates": "幻艺地图 fantcraft.com — 中文语料、界面措辞与中文命名模板取材于此（仅供个人学习与研究）",
+    "art": "第三方图标素材（Watabou 等），原始署名保留在图标文件的 <desc> 中"
+  },
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",

@@ -15,6 +15,7 @@ import {
   generateSatelliteTexture
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
+import { buildGlobeVectorMeshData, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
 export { heightAt, isCached } from "./erosion-bake";
@@ -77,6 +78,9 @@ let labels: LabeledSprite[] = [];
 let icons: Array<THREE.Mesh<THREE.BufferGeometry, THREE.MeshPhongMaterial>> = [];
 let lines: Array<THREE.Line<THREE.BufferGeometry, THREE.LineBasicMaterial>> = [];
 let gridToPackCellMap = new Map<number, number>(); // grid cell index -> pack cell index
+let globeBaseMesh: THREE.Mesh | null = null; // 区域地图的海洋色底球
+let globeBaseGeometry: THREE.SphereGeometry | null = null;
+let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
 let erosionBakeActive = false; // dense eroded mesh is displayed
 let erosionBakeData: ErosionBake.ErosionBakeResult | null = null; // last bake, kept to re-generate the satellite texture
 let waterAnimationFrame: number | null = null; // render loop for the satellite water shimmer
@@ -105,14 +109,14 @@ const redraw = () => {
   deleteLabels();
   scene.remove(mesh);
   Renderer.setSize(Renderer.domElement.width, Renderer.domElement.height);
-  if (isGlobeView()) updateGlobeTexure(true);
+  if (isGlobeView()) updateGlobeSurface(true);
   else createMesh(options.map.graph.width, options.map.graph.height, grid.cellsX, grid.cellsY);
   render();
 };
 
 // update 3d texture
 const update = () => {
-  if (isGlobeView()) updateGlobeTexure();
+  if (isGlobeView()) updateGlobeSurface();
   else update3dTexture();
 };
 
@@ -124,6 +128,12 @@ const stop = () => {
   if (texture) texture.dispose();
   if (geometry) geometry.dispose();
   if (material) material.dispose();
+  if (globeBaseMesh) scene.remove(globeBaseMesh);
+  if (globeBaseGeometry) globeBaseGeometry.dispose();
+  if (globeBaseMaterial) globeBaseMaterial.dispose();
+  globeBaseMesh = null;
+  globeBaseGeometry = null;
+  globeBaseMaterial = null;
   if (waterPlane) waterPlane.dispose();
   if (waterMaterial) waterMaterial.dispose();
   if (spotLight?.shadow?.map) spotLight.shadow.map.dispose(); // three keeps the shadow render target on the light
@@ -893,7 +903,7 @@ async function newGlobe(canvas: HTMLCanvasElement) {
   // material
   if (material) material.dispose();
   material = new Three.MeshBasicMaterial();
-  updateGlobeTexure(true);
+  updateGlobeSurface(true);
 
   // camera
   camera = new Three.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000);
@@ -948,6 +958,70 @@ async function MapControls(camera: THREE.Camera, domElement: HTMLElement): Promi
     script.onerror = () => resolve(false);
   });
 }
+
+/* -------------------------------------------------------------------------------------------------
+ * 矢量球面：几何与取色都在 ./globe-vector 里（纯计算，由 globe-vector.test.ts 覆盖）。
+ * 这里只负责把它的三角形与顶点色塞进 BufferGeometry，外加区域地图的底球。
+ * ------------------------------------------------------------------------------------------------ */
+const USE_VECTOR_GLOBE = true; // true = 矢量球面；false = 回到原来的等距圆柱贴图球
+
+/**
+ * 区域地图的底球：区域只覆盖自己的经纬度带，其余球面补一层海洋色，不然球上是一个缺口
+ * （整世界地图铺满整圈，不需要底球）。半径略小于 1，避免与矢量面 z-fighting。
+ */
+function addGlobeBaseSphere(oceanColor: string) {
+  if (!scene) return;
+  if (globeBaseMesh) scene.remove(globeBaseMesh);
+  if (globeBaseGeometry) globeBaseGeometry.dispose();
+  if (globeBaseMaterial) globeBaseMaterial.dispose();
+  globeBaseGeometry = new Three.SphereGeometry(0.998, 64, 64);
+  globeBaseMaterial = new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor) });
+  globeBaseMesh = new Three.Mesh(globeBaseGeometry, globeBaseMaterial);
+  scene.add(globeBaseMesh);
+}
+
+/** 用地图自己的 Voronoi 单元构建矢量球面（逐单元上色） */
+function addGlobeVectorMesh() {
+  if (!active || !scene || !material) return;
+
+  // 区域地图先补底球（颜色跟随海洋生物群系，与逐单元取色一致）
+  if (options.map.geography.coordinates.latT > 179) {
+    if (globeBaseMesh) scene.remove(globeBaseMesh);
+    globeBaseMesh = null;
+  } else {
+    addGlobeBaseSphere(pack.biomes?.[0]?.color ?? WATER_FALLBACK_COLOR);
+  }
+
+  const data = buildGlobeVectorMeshData();
+  if (!data) return;
+
+  const nextGeometry = new Three.BufferGeometry();
+  nextGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
+  nextGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
+  nextGeometry.computeVertexNormals();
+  nextGeometry.computeBoundingSphere();
+
+  if (mesh) scene.remove(mesh);
+  if (geometry) geometry.dispose();
+  geometry = nextGeometry;
+
+  material.map = null; // 不贴图：颜色来自逐单元顶点色
+  material.color = new Three.Color(0xffffff); // 顶点色之上不再乘色调
+  material.vertexColors = true;
+  material.needsUpdate = true;
+
+  mesh = new Three.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  render();
+}
+
+/** 地球仪表面：矢量球面（默认）或原等距圆柱贴图球（USE_VECTOR_GLOBE = false） */
+const updateGlobeSurface = (addMesh?: boolean) => {
+  if (USE_VECTOR_GLOBE) addGlobeVectorMesh();
+  else void updateGlobeTexure(addMesh);
+};
 
 async function updateGlobeTexure(addMesh?: boolean) {
   const world = options.map.geography.coordinates.latT > 179; // define if map covers whole world

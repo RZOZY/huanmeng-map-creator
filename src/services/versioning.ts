@@ -1,18 +1,19 @@
 /**
- * Version Control Guidelines
- * --------------------------
- * We use Semantic Versioning: major.minor.patch. Refer to https://semver.org
- * Our .map file format is considered the public API.
+ * 版本约定（HuanMeng Map creator）
+ * ------------------------------
+ * 这里有两个版本号，用途完全不同，不要合并：
  *
- * Update the version before merging to master:
- * 1. MAJOR version: Incompatible changes that break existing maps
- * 2. MINOR version: Additions or changes that are backward-compatible but may require old .map files to be updated
- * 3. PATCH version: Backward-compatible bug fixes and small features that don't affect the .map file format
+ * 1. VERSION —— 产品自己的版本号（语义化 major.minor.patch）。只用于界面展示、"已更新"提示
+ *    与桌面端更新检查。改动产品功能就抬高它。
+ *    VERSION 是唯一真源：提交钩子会把它复制到 package.json / package-lock.json。
  *
- * Example: 1.102.2 -> Major version 1, Minor version 102, Patch version 2
- * VERSION below is the only source of truth. Edit it by hand: the pre-commit hook copies it where needed.
+ * 2. MAP_FORMAT_VERSION —— .map 存档格式的版本，记录"这份存档兼容到哪一代格式"。保存
+ *    （save.ts、export-json.ts）、加载（load.ts）以及 services/io/auto-update.ts 的迁移判断
+ *    都以它为准。**只有真正改动 .map 结构时才抬高它，并同时补一条迁移。**
+ *    踩过的坑：产品版本从 1.154.0 降到 0.6.0 时若两者还绑在一起，旧存档会被判成
+ *    "来自更新版本"而直接拒绝加载。
  *
- * For the changes that may be interesting for end users, update the `latestPublicChanges` below.
+ * 面向终端用户的变化写进下面的 latestPublicChanges。
  */
 
 import { dialogState } from "@/components/dialog/state";
@@ -20,21 +21,16 @@ import { Pins } from "@/components/pins";
 import { tip } from "@/components/tooltips";
 import { isElectron } from "./platform";
 
-export const VERSION = "1.154.0";
+export const VERSION = "0.6.0";
+
+/** .map 存档格式版本：与产品版本无关，改动存档结构时才抬（现在是兼容上游 1.154.0 的那一代） */
+export const MAP_FORMAT_VERSION = "1.154.0";
 
 // new changes on top
 const latestPublicChanges = [
-  "Azgaar Assistant can read map data and propose changes when your own AI key is provided",
-  "Icons: unified icon picker and uploader for goods, markers, regiments, burgs and emblems",
-  "Style: the Style tab is reworked",
-  "Atlas preset reworked",
-  "Relief: any icon can be a relief icon",
-  "Relief: new relief icons pack",
-  "Biome editor: editable relief icon pools",
-  "Emblems: live updates on edit in Armoria",
-  "Saving: choose the map file destination",
-  "States Editor: keep merged states as provinces",
-  "Diplomacy Overview: set relations on map click"
+  "地球仪改为矢量球面：极点不再被挤成放射状花瓣，±180° 经线不再有接缝",
+  "地球仪按国家/生物群系逐单元上色，区域地图自动补一张海洋底球",
+  "存档格式保持与上一版兼容，旧地图可直接打开并自动升级"
 ];
 
 export function parseMapVersion(version: string): string {
@@ -112,12 +108,9 @@ export async function cleanupData(): Promise<void> {
 function showUpdateWindow(storedVersion: string | null): void {
   localStorage.setItem("version", VERSION);
 
-  const changelog = "https://github.com/Azgaar/Fantasy-Map-Generator/wiki/Changelog";
-  const reddit = "https://www.reddit.com/r/FantasyMapGenerator";
-  const discord = "https://discordapp.com/invite/X7E84HU";
-  const patreon = "https://www.patreon.com/azgaar";
+  const repository = "https://github.com/RZOZY/humeng-map-generator";
 
-  alertMessage.innerHTML = /* html */ `The Fantasy Map Generator is updated up to version <strong>${VERSION}</strong>. This version is compatible with <a href="${changelog}" target="_blank">previous versions</a>, loaded save files will be auto-updated.
+  alertMessage.innerHTML = /* html */ `HuanMeng Map creator is updated up to version <strong>${VERSION}</strong>. Save files stay compatible and are auto-upgraded on load.
     ${storedVersion ? "<span>In case of errors reload the page to update the code.</span>" : ""}
 
     <ul>
@@ -125,14 +118,13 @@ function showUpdateWindow(storedVersion: string | null): void {
       ${latestPublicChanges.map(change => `<li>${change}</li>`).join("")}
     </ul>
 
-    ${isElectron() ? "" : `<p>The Generator is also available as a <a href="#" onclick="window.Services.AppOffer.open(); return false">desktop app</a> that works offline.</p>`}
+    ${isElectron() ? "" : `<p>Also available as a <a href="#" onclick="window.Services.AppOffer.open(); return false">desktop app</a> that works offline.</p>`}
 
-    <p>Join our <a href="${discord}" target="_blank">Discord server</a> and <a href="${reddit}" target="_blank">Reddit community</a> to ask questions, share maps, discuss the Generator and Worldbuilding, report bugs and propose new features.</p>
-    <span><i>Thanks for all supporters on <a href="${patreon}" target="_blank">Patreon</a>!</i></span>`;
+    <p>Source and bug reports: <a href="${repository}" target="_blank">${repository}</a></p>`;
 
   $("#alert").dialog({
     resizable: false,
-    title: "Fantasy Map Generator update",
+    title: "HuanMeng Map creator update",
     width: "28em",
     position: { my: "center center-4em", at: "center", of: "svg" },
     buttons: {

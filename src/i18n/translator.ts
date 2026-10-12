@@ -71,9 +71,10 @@ const PATTERNS: [RegExp, string][] = [
   [/^Hours spent moving or waiting: (.*), the sum of the segment times\. Rest between travel days is not counted\.$/, "行进与等待的耗时合计：$1<br>不计算行军日之间的休整。"],
   [/^Time from start to finish: (.*)\. A day of travel fills a whole day<br>however many hours the transport sustains\.$/, "从起点到终点的耗时：$1<br>行军日按整天计，不论该运输方式实际能行进多少小时。"],
   [/^List below shows relations to (.*)$/, "下表列出与$1的关系"],
-    // 窗口标题：上游是「产品名 + v版本号」，本版统一为纯产品名
-  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "幻梦地图生成器"],
-  [/^Azgaar's Fantasy Map Generator$/, "幻梦地图生成器"],
+    // 窗口标题：本版不带版本号；上游的老标题也一并收敛到产品名
+  [/^HuanMeng Map creator v(\S+)$/, "HuanMeng Map creator"],
+  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "HuanMeng Map creator"],
+  [/^Azgaar's Fantasy Map Generator$/, "HuanMeng Map creator"],
   // 省份/国家提示：`${名称} ${形式名}, ${所属国家}`
   [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2<br>$3"],
   // 编辑器的实体提示

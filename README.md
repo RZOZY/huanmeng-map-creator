@@ -1,4 +1,4 @@
-# 幻梦地图生成器 · Humeng Map Generator
+# HuanMeng Map creator · 幻梦地图生成器
 
 > 以上游 **Azgaar's Fantasy Map Generator v1.154.0** 的引擎为核心的中文奇幻地图生成器。
 > 内置中文语料库，地图内容（国名 / 城名 / 河名 / 文化 / 宗教 / 标记 / 区域……）**由中文语料直接生成**，不经翻译。
@@ -88,7 +88,15 @@
 
     HumengMap-1.154.0-win-x64-portable.zip
 
-## 授权
+## 授权与来源
 
-本项目基于上游 Azgaar's Fantasy Map Generator（MIT）二次开发。
-中文语料与界面措辞取材自幻艺地图（fantcraft.com），仅供个人学习与研究使用。
+**产品**：HuanMeng Map creator 0.6.0 · 作者 RZOZY
+
+**开源项目来源**：本项目基于 [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator)（MIT）
+二次开发，上游版权归 Azgaar and contributors 所有，详见 `LICENSE`。
+
+**模板借鉴来源**：中文语料、界面措辞与中文命名模板取自**幻艺地图**（fantcraft.com/fmg/）——
+见 `src/i18n/translator.ts` 与 `src/i18n/layer-names.ts` 的说明。该部分仅供个人学习与研究使用。
+
+**第三方美术素材**：部分图标（Watabou 的城镇图标等）为第三方作品，原始署名保留在各图标文件的
+`<desc>` 元素中，重绘时请保留。

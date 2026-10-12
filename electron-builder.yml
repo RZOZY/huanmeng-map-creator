@@ -1,6 +1,6 @@
-appId: com.huameng.map-generator
-productName: 幻梦地图生成器
-copyright: Copyright © 2017-2026 Azgaar and contributors
+appId: com.huanmeng.map-creator
+productName: HuanMeng Map creator
+copyright: HuanMeng Map creator © 2026 RZOZY · 基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）
 directories:
   output: release
   buildResources: build
@@ -10,7 +10,7 @@ files:
   - "!node_modules/**/*" # the renderer is bundled by Vite, the main process only needs Electron itself
 asar: true
 afterPack: ./scripts/adhoc-sign.mjs
-artifactName: HumengMap-${version}-${os}-${arch}.${ext}
+artifactName: HuanMengMap-${version}-${os}-${arch}.${ext}
 mac:
   category: public.app-category.graphics-design
   target:

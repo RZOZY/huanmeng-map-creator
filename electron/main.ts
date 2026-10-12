@@ -17,7 +17,7 @@ const WIKI_URL = "https://github.com/Azgaar/Fantasy-Map-Generator/wiki";
 const DISCORD_URL = "https://discord.gg/X7E84HU";
 
 /**
- * 幻梦地图生成器 —— 独立配置目录
+ * HuanMeng Map creator —— 独立配置目录
  *
  * 上游按 `productName` 推导目录名，导致本中文版与官方原版 FMG 共用同一个
  * `%APPDATA%\\fantasy-map-generator`，两者会互相覆盖存档（地图、选项、窗口状态）。
@@ -46,7 +46,7 @@ app.setAboutPanelOptions({
   applicationName: app.name,
   applicationVersion: app.getVersion(),
   iconPath: ICON_PATH,
-  copyright: "MIT License. Azgaar and Team, 2017-2026"
+  copyright: "HuanMeng Map creator © 2026 RZOZY\n基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）\n中文语料与模板取材自幻艺地图 fantcraft.com"
 });
 
 type WindowState = { width: number; height: number; x?: number; y?: number; maximized: boolean; fullscreen: boolean };

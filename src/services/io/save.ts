@@ -7,7 +7,7 @@ import { Notes } from "@/generators/notes";
 import { Services } from "@/services";
 import { getUsedFonts } from "@/services/fonts";
 import { isElectron, savedMessage } from "@/services/platform";
-import { VERSION } from "@/services/versioning";
+import { MAP_FORMAT_VERSION } from "@/services/versioning";
 import { ensureEl, escapeHtml, getFileName, link, parseError, rn } from "@/utils";
 import { type SaveOutcome, saveToFileSystem } from "./save-to-file";
 
@@ -54,7 +54,7 @@ function prepareMapData(): string {
   const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
   const license = "File can be loaded in azgaar.github.io/Fantasy-Map-Generator";
   const params = [
-    VERSION,
+    MAP_FORMAT_VERSION,
     license,
     dateString,
     options.map.seed,

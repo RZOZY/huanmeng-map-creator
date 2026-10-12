@@ -1,0 +1,167 @@
+import { test, expect } from "@playwright/test";
+import { waitForMap } from "./wait-for-map";
+
+// 软件 WebGL（SwiftShader）需要显式开关；覆盖 launchOptions 会替换配置里的，所以 CHROMIUM_PATH 也要带上
+test.use({
+  launchOptions: {
+    args: ["--enable-unsafe-swiftshader"],
+    ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {})
+  }
+});
+
+const SHOT_DIR = process.env.GLOBE_SHOT_DIR || ".";
+
+// 应用启动时随机给的是区域地图，所以两种场景都显式指定坐标
+const WORLD = { latT: 180, latN: 90, latS: -90, lonT: 320, lonW: -160, lonE: 160 };
+const REGION = { latT: 90, latN: 60, latS: -30, lonT: 180, lonW: -90, lonE: 90 };
+
+async function openGlobe(page: any): Promise<void> {
+  await page.evaluate(() => (window as any).Controllers.View3d.open("viewGlobe"));
+  await page.waitForSelector("#canvas3d", { state: "attached", timeout: 60_000 });
+  await page.waitForFunction(async () => (await (window as any).Controllers.View3d.isOn()) === true, {
+    timeout: 60_000
+  });
+  // 关掉自转，截图才可比；走的是界面上的滑块，不依赖任何调试口
+  await page.evaluate(() => {
+    const rotation = document.getElementById("options3dGlobeRotationRange") as HTMLInputElement;
+    rotation.value = "0";
+    rotation.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.waitForTimeout(800);
+}
+
+/**
+ * 球面有没有洞：把 WebGL 画布画到 2D canvas 上，数中心圆盘里的背景色像素。
+ * 洞会露出星空背景（接近黑），正常渲染时圆盘里全是地图颜色。
+ */
+async function centerCoverage(page: any): Promise<number> {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("canvas3d") as HTMLCanvasElement;
+    if (!canvas.width || !canvas.height) return 0;
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.canvas.width = canvas.width;
+    context.canvas.height = canvas.height;
+    context.drawImage(canvas, 0, 0);
+    const centerX = Math.floor(canvas.width / 2);
+    const centerY = Math.floor(canvas.height / 2);
+    const radius = Math.floor(Math.min(canvas.width, canvas.height) * 0.2);
+    const { data } = context.getImageData(centerX - radius, centerY - radius, radius * 2, radius * 2);
+    let covered = 0;
+    let total = 0;
+    for (let y = -radius; y < radius; y++) {
+      for (let x = -radius; x < radius; x++) {
+        if (x * x + y * y > radius * radius) continue;
+        const i = ((y + radius) * radius * 2 + (x + radius)) * 4;
+        total++;
+        if (Math.max(data[i], data[i + 1], data[i + 2]) >= 40) covered++;
+      }
+    }
+    return total ? covered / total : 0;
+  });
+}
+
+/** 渲染是异步的：轮询等球面画出来，而不是死等一个固定时长；失败时把画布状态一起报出来 */
+async function expectGlobeRendered(page: any): Promise<void> {
+  const deadline = Date.now() + 30_000;
+  let coverage = -1;
+  while (Date.now() < deadline) {
+    coverage = await centerCoverage(page);
+    if (coverage > 0.99) return;
+    await page.waitForTimeout(300);
+  }
+  const state = await page.evaluate(() => {
+    const canvas = document.getElementById("canvas3d") as HTMLCanvasElement;
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.canvas.width = canvas.width || 1;
+    context.canvas.height = canvas.height || 1;
+    context.drawImage(canvas, 0, 0);
+    const data = context.getImageData(0, 0, context.canvas.width, context.canvas.height).data;
+    let nonDark = 0;
+    let sampled = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      sampled++;
+      if (Math.max(data[i], data[i + 1], data[i + 2]) >= 40) nonDark++;
+    }
+    const center = (Math.floor(canvas.height / 2) * canvas.width + Math.floor(canvas.width / 2)) * 4;
+    return {
+      width: canvas.width,
+      height: canvas.height,
+      nonDarkRatio: Number((nonDark / sampled).toFixed(4)),
+      centerPixel: [data[center], data[center + 1], data[center + 2]]
+    };
+  });
+  throw new Error("球面没画出来：coverage=" + coverage + " 画布=" + JSON.stringify(state));
+}
+
+/** 在画布上拖动旋转（OrbitControls：左键拖动 clientHeight 像素约等于转一整圈） */
+async function drag(page: any, dx: number, dy: number): Promise<void> {
+  const box = await page.locator("#canvas3d").boundingBox();
+  const centerX = box.x + box.width / 2;
+  const centerY = box.y + box.height / 2;
+  await page.mouse.move(centerX, centerY);
+  await page.mouse.down();
+  await page.mouse.move(centerX + dx, centerY + dy, { steps: 20 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+}
+
+const collectErrors = (page: any): string[] => {
+  const errors: string[] = [];
+  page.on("pageerror", (error: Error) => errors.push("pageerror: " + error.message));
+  page.on("console", (message: any) => {
+    if (message.type() !== "error") return;
+    // 星空贴图来自外部站点，离线时浏览器会报资源加载失败；那不是页面错误
+    if (message.text().includes("Failed to load resource")) return;
+    errors.push("console: " + message.text());
+  });
+  return errors;
+};
+
+test.describe("矢量球面（地球仪）", () => {
+  test.setTimeout(300_000);
+
+  test("整世界地图：渲染出完整球面，无黑洞", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/");
+    await waitForMap(page);
+
+    // 产品身份：改名后窗口标题必须是新产品名
+    expect(await page.title()).toContain("HuanMeng Map creator");
+
+    await page.evaluate((coords: unknown) => {
+      Object.assign((window as any).options.map.geography.coordinates, coords as object);
+    }, WORLD);
+    await page.screenshot({ path: SHOT_DIR + "/map-2d.png" });
+
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-1.png" });
+
+    await drag(page, 300, 0);
+    await expectGlobeRendered(page);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-2.png" });
+
+    await drag(page, 0, -260); // 抬到北极方向
+    await expectGlobeRendered(page);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-3-pole.png" });
+
+    expect(errors).toEqual([]);
+  });
+
+  test("区域地图：底球补齐，球上没有缺口", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/");
+    await waitForMap(page);
+    await page.evaluate((coords: unknown) => {
+      Object.assign((window as any).options.map.geography.coordinates, coords as object);
+    }, REGION);
+
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-region.png" });
+
+    expect(errors).toEqual([]);
+  });
+});

@@ -11,7 +11,7 @@ import { confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { Styles } from "@/generators/styles";
 import * as versioning from "@/services/versioning";
-import { VERSION } from "@/services/versioning";
+import { MAP_FORMAT_VERSION } from "@/services/versioning";
 import { downloadFile } from "@/utils";
 import { safeParseJSON } from "@/utils/stringUtils";
 import { migrateLegacySettings, resolveVersionConflicts } from "./auto-update";
@@ -58,7 +58,7 @@ it.each([18, 180])("keeps legacy custom labels after saving and reloading a font
 });
 
 describe("v1.144 layer id migration", () => {
-  it.each(["1.143.0", VERSION])(
+  it.each(["1.143.0", MAP_FORMAT_VERSION])(
     "repairs nested duplicate fogging groups in %s saves across reload",
     async mapVersion => {
       document.body.innerHTML = /* html */ `<svg id="map">
@@ -76,14 +76,14 @@ describe("v1.144 layer id migration", () => {
       const savedLayers = JSON.stringify(Layers.state);
       document.getElementById("map")!.remove();
       document.body.insertAdjacentHTML("afterbegin", savedSvg);
-      await resolveVersionConflicts(VERSION, data);
+      await resolveVersionConflicts(MAP_FORMAT_VERSION, data);
       Layers.restore(JSON.parse(savedLayers));
 
       expect(document.querySelectorAll("#fogging")).toHaveLength(1);
       expect(document.querySelectorAll("#viewbox > #fogging")).toHaveLength(1);
       expect(document.getElementById("fogging-cont")).toBeNull();
       expect(document.getElementById("fogging")?.getAttribute("opacity")).toBe("0.7");
-      expect(document.querySelectorAll("#fog path, #fogging rect")).toHaveLength(mapVersion === VERSION ? 2 : 0);
+      expect(document.querySelectorAll("#fog path, #fogging rect")).toHaveLength(mapVersion === MAP_FORMAT_VERSION ? 2 : 0);
     }
   );
 
@@ -410,7 +410,7 @@ describe("v1.151.2 label group display cleanup", () => {
     const data: string[] = [];
     data[48] = JSON.stringify(stylesRecord("display: none"));
 
-    resolveVersionConflicts(VERSION, data);
+    resolveVersionConflicts(MAP_FORMAT_VERSION, data);
 
     expect(JSON.parse(data[48]).labels.groups.hamlet.attrs.style).toBe("display: none");
   });
@@ -441,7 +441,7 @@ describe("v1.153.0 empty burg style groups", () => {
     parsed.burgIcons.groups.cities.groups.icons.options.size = 6;
     data[48] = JSON.stringify(parsed);
 
-    await resolveVersionConflicts(VERSION, data);
+    await resolveVersionConflicts(MAP_FORMAT_VERSION, data);
     expect(Styles.parse(JSON.parse(data[48])).burgIcons.groups.cities.groups.icons.options.size).toBe(6);
   });
 
@@ -620,7 +620,7 @@ describe("v1.153.0 feature subtype and lake group styles", () => {
     const data: string[] = [];
     data[48] = JSON.stringify(stylesRecord());
 
-    resolveVersionConflicts(VERSION, data);
+    resolveVersionConflicts(MAP_FORMAT_VERSION, data);
 
     expect(pack.features[3].subtype).toBe("my_lakes");
     expect(JSON.parse(data[48]).lakes.groups).toBeUndefined();
@@ -715,7 +715,7 @@ describe("missing svg defs", () => {
   it("leaves current maps alone", () => {
     document.body.innerHTML = /* html */ `<svg id="map"><defs></defs><g id="viewbox"></g></svg>`;
 
-    resolveVersionConflicts(VERSION, []);
+    resolveVersionConflicts(MAP_FORMAT_VERSION, []);
 
     expect(document.getElementById("deftemp")).toBeNull();
   });

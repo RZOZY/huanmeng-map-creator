@@ -1,8 +1,8 @@
 // The Desktop App dialog: what the app is and which file this visitor needs
 import { isMobile } from "./platform";
 
-const RELEASES_API = "https://api.github.com/repos/Azgaar/Fantasy-Map-Generator/releases/latest";
-const RELEASES_PAGE = "https://github.com/Azgaar/Fantasy-Map-Generator/releases/latest";
+const RELEASES_API = "https://api.github.com/repos/RZOZY/humeng-map-generator/releases/latest";
+const RELEASES_PAGE = "https://github.com/RZOZY/humeng-map-generator/releases/latest";
 
 type Os = "windows" | "mac" | "linux";
 type Asset = { name: string; browser_download_url: string; size: number };

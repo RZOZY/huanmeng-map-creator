@@ -1,7 +1,7 @@
 import { closeDialogs } from "@/components/dialog/dialog-helpers";
 import { tip } from "@/components/tooltips";
 import { savedMessage } from "@/services/platform";
-import { VERSION } from "@/services/versioning";
+import { MAP_FORMAT_VERSION } from "@/services/versioning";
 import { getFileName } from "@/utils";
 
 type ExportJsonType = "Full" | "Minimal" | "PackCells" | "GridCells";
@@ -93,7 +93,7 @@ function getGridDataJson(): string {
 
 function getMapInfo() {
   return {
-    version: VERSION,
+    version: MAP_FORMAT_VERSION,
     description: "Azgaar's Fantasy Map Generator output: azgaar.github.io/Fantasy-map-generator",
     exportedAt: new Date().toISOString(),
     mapName: options.map.lore.name,

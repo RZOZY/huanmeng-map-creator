@@ -21,7 +21,13 @@ import { HeightmapColorSchemes } from "@/renderers/heightmap-color-schemes";
 import { Services } from "@/services";
 import { declareFont } from "@/services/fonts";
 import { logStats } from "@/services/logging";
-import { clearCache, compareVersions, isValidVersion, parseMapVersion, VERSION } from "@/services/versioning";
+import {
+  clearCache,
+  compareVersions,
+  isValidVersion,
+  MAP_FORMAT_VERSION,
+  parseMapVersion
+} from "@/services/versioning";
 import { ensureEl, escapeHtml, last, link, parseError, rn, safeParseJSON } from "@/utils";
 
 async function quickLoad(): Promise<void> {
@@ -153,16 +159,16 @@ function uploadMap(file: Blob, callback?: () => void): void {
     const isInvalid = !mapData || !isValidVersion(mapVersion!) || mapData.length < 10 || !mapData[5];
     if (isInvalid) return showUploadMessage("invalid", mapData, mapVersion);
 
-    const isUpdated = compareVersions(mapVersion!, VERSION).isEqual;
+    const isUpdated = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isEqual;
     if (isUpdated) return showUploadMessage("updated", mapData, mapVersion);
 
     const isAncient = compareVersions(mapVersion!, "0.70.0").isOlder;
     if (isAncient) return showUploadMessage("ancient", mapData, mapVersion);
 
-    const isNewer = compareVersions(mapVersion!, VERSION).isNewer;
+    const isNewer = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isNewer;
     if (isNewer) return showUploadMessage("newer", mapData, mapVersion);
 
-    const isOutdated = compareVersions(mapVersion!, VERSION).isOlder;
+    const isOutdated = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isOlder;
     if (isOutdated) return showUploadMessage("outdated", mapData, mapVersion);
   };
 
@@ -235,7 +241,7 @@ function showUploadMessage(type: string, mapData: string[] | null, mapVersion: s
     message = `The map version you are trying to load (${mapVersion}) is newer than the current version.<br>Please load the file in the appropriate version`;
     title = "Newer file";
   } else if (type === "outdated") {
-    INFO && console.info(`Loading map. Auto-updating from ${mapVersion} to ${VERSION}`);
+    INFO && console.info(`Loading map. Auto-updating from ${mapVersion} to ${MAP_FORMAT_VERSION}`);
     parseLoadedData(mapData!, mapVersion);
     return;
   }
