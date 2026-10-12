@@ -16,7 +16,7 @@ import {
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, type GlobeLabelData } from "./globe-labels";
-import { buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
+import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
 import { buildGlobeVectorMeshData, createGlobeProjector, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
@@ -83,9 +83,12 @@ let gridToPackCellMap = new Map<number, number>(); // grid cell index -> pack ce
 let globeBaseMesh: THREE.Mesh | null = null; // 区域地图的海洋色底球
 let globeBaseGeometry: THREE.SphereGeometry | null = null;
 let globeBaseMaterial: THREE.MeshBasicMaterial | null = null;
-let globeLineMesh: THREE.LineSegments | null = null; // 海岸线/国界/河流等线画
+let globeLineMesh: THREE.Mesh | null = null; // 海岸线/国界/河流等线画（带状三角形，可调宽、可虚线）
 let globeLineGeometry: THREE.BufferGeometry | null = null;
-let globeLineMaterial: THREE.LineBasicMaterial | null = null;
+let globeLineMaterial: THREE.MeshBasicMaterial | null = null;
+let globeFillMesh: THREE.Mesh | null = null; // 河流/湖泊等填充面
+let globeFillGeometry: THREE.BufferGeometry | null = null;
+let globeFillMaterial: THREE.MeshBasicMaterial | null = null;
 let globeLabelGroup: THREE.Group | null = null; // 地名标签
 let globeLabelItems: { mesh: THREE.Mesh; normal: THREE.Vector3 }[] = [];
 let erosionBakeActive = false; // dense eroded mesh is displayed
@@ -147,6 +150,12 @@ const stop = () => {
   globeLineMesh = null;
   globeLineGeometry = null;
   globeLineMaterial = null;
+  if (globeFillMesh) scene.remove(globeFillMesh);
+  if (globeFillGeometry) globeFillGeometry.dispose();
+  if (globeFillMaterial) globeFillMaterial.dispose();
+  globeFillMesh = null;
+  globeFillGeometry = null;
+  globeFillMaterial = null;
   disposeGlobeLabels();
   if (waterPlane) waterPlane.dispose();
   if (waterMaterial) waterMaterial.dispose();
@@ -1028,6 +1037,7 @@ function addGlobeVectorMesh() {
   scene.add(mesh);
 
   addGlobeLines();
+  addGlobeFills();
   addGlobeLabels();
   render();
 }
@@ -1142,14 +1152,42 @@ function addGlobeLines() {
   lineGeometry.computeBoundingSphere();
 
   if (!globeLineMaterial) {
-    globeLineMaterial = new Three.LineBasicMaterial({ vertexColors: true });
+    // 带状三角形：双面可见，深度不写（线贴在球面上，别抢深度）
+    globeLineMaterial = new Three.MeshBasicMaterial({ vertexColors: true, side: Three.DoubleSide });
     globeLineMaterial.depthWrite = false; // 线贴在面上，别用它抢深度
   }
 
   globeLineGeometry = lineGeometry;
-  globeLineMesh = new Three.LineSegments(lineGeometry, globeLineMaterial);
+  globeLineMesh = new Three.Mesh(lineGeometry, globeLineMaterial);
   globeLineMesh.renderOrder = 1;
   scene.add(globeLineMesh);
+}
+
+/** 河流与湖泊这类填充多边形：宽度就是几何本身，没有描边可循 */
+function addGlobeFills() {
+  if (!scene) return;
+  const data = buildGlobeFillData();
+
+  if (globeFillMesh) scene.remove(globeFillMesh);
+  if (globeFillGeometry) globeFillGeometry.dispose();
+  globeFillMesh = null;
+  globeFillGeometry = null;
+  if (!data) return;
+
+  const fillGeometry = new Three.BufferGeometry();
+  fillGeometry.setAttribute("position", new Three.Float32BufferAttribute(data.positions, 3));
+  fillGeometry.setAttribute("color", new Three.Float32BufferAttribute(data.colors, 3));
+  fillGeometry.computeBoundingSphere();
+
+  if (!globeFillMaterial) {
+    globeFillMaterial = new Three.MeshBasicMaterial({ vertexColors: true, side: Three.DoubleSide });
+    globeFillMaterial.depthWrite = false;
+  }
+
+  globeFillGeometry = fillGeometry;
+  globeFillMesh = new Three.Mesh(fillGeometry, globeFillMaterial);
+  globeFillMesh.renderOrder = 0;
+  scene.add(globeFillMesh);
 }
 
 /** 地球仪表面：矢量球面（默认）或原等距圆柱贴图球（USE_VECTOR_GLOBE = false） */
