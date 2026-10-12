@@ -2,12 +2,11 @@
   "background_color": "#fff",
   "display": "standalone",
   "orientation": "any",
-  "name": "Azgaar's Fantasy Map Generator",
-  "short_name": "Azgaar's Fantasy Map Generator",
-  "description": "Web application generating interactive and highly customizable maps",
-  "scope": "/Fantasy-Map-Generator/",
-  "start_url": "/Fantasy-Map-Generator/?source=pwa",
-  "url": "https://azgaar.github.io/Fantasy-Map-Generator",
+  "name": "HuanMeng Map Creator",
+  "short_name": "HuanMeng Map Creator",
+  "description": "HuanMeng Map Creator —— 基于 Azgaar's Fantasy Map Generator (MIT) 的中文奇幻地图生成器",
+  "scope": "./",
+  "start_url": "./?source=pwa",
   "icons": [
     {
       "src": "images/icons/icon_x512.png",

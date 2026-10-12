@@ -93,7 +93,7 @@
     node scripts/electron.mjs dist --win --x64 --dir --publish never
 
     # 产物：release/win-unpacked → 压缩其内容（不要套一层目录），得到
-    HuanMengMap-0.6.0-win-x64-portable.zip
+    HuanMengMap-<版本>-win-x64-portable.zip
 
 发布用 `gh release create` 手工做：electron-builder.yml 刻意不配 publish provider，
 一旦配上，打包时可能自动上传。

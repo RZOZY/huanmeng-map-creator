@@ -109,12 +109,25 @@ const collectErrors = (page: any): string[] => {
   const errors: string[] = [];
   page.on("pageerror", (error: Error) => errors.push("pageerror: " + error.message));
   page.on("console", (message: any) => {
-    if (message.type() !== "error") return;
-    // 星空贴图来自外部站点，离线时浏览器会报资源加载失败；那不是页面错误
-    if (message.text().includes("Failed to load resource")) return;
-    errors.push("console: " + message.text());
+    if (message.type() === "error") errors.push("console: " + message.text());
   });
   return errors;
+};
+
+/**
+ * 记录所有外部网络请求：产品要能完全离线用，地球仪不该再去外部站点取任何东西。
+ * 本地开发服务器、data:/blob:、以及打包版的 app: 协议都算内部。
+ */
+const collectExternalRequests = (page: any): string[] => {
+  const external: string[] = [];
+  page.on("request", (request: any) => {
+    const url: string = request.url();
+    if (/^(https?|wss?):\/\/(localhost|127\.0\.0\.1)([:/]|$)/.test(url)) return;
+    if (/^(data|blob|app|devtools|chrome-extension):/.test(url)) return;
+    if (url.startsWith("about:")) return;
+    external.push(url);
+  });
+  return external;
 };
 
 test.describe("矢量球面（地球仪）", () => {
@@ -122,6 +135,7 @@ test.describe("矢量球面（地球仪）", () => {
 
   test("整世界地图：渲染出完整球面，无黑洞", async ({ page }) => {
     const errors = collectErrors(page);
+    const externalRequests = collectExternalRequests(page);
 
     await page.goto("/");
     await waitForMap(page);
@@ -146,11 +160,14 @@ test.describe("矢量球面（地球仪）", () => {
     await expectGlobeRendered(page);
     await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-3-pole.png" });
 
+    // 完全离线可用：地球仪不该请求任何外部资源（星空图现在内置）
+    expect(externalRequests).toEqual([]);
     expect(errors).toEqual([]);
   });
 
   test("区域地图：底球补齐，球上没有缺口", async ({ page }) => {
     const errors = collectErrors(page);
+    const externalRequests = collectExternalRequests(page);
 
     await page.goto("/");
     await waitForMap(page);
@@ -162,6 +179,7 @@ test.describe("矢量球面（地球仪）", () => {
     await expectGlobeRendered(page);
     await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-region.png" });
 
+    expect(externalRequests).toEqual([]);
     expect(errors).toEqual([]);
   });
 });

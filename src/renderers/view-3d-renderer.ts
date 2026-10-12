@@ -888,10 +888,8 @@ async function newGlobe(canvas: HTMLCanvasElement) {
 
   // scene
   scene = new Three.Scene();
-  scene.background = new Three.TextureLoader().load(
-    "https://i0.wp.com/azgaar.files.wordpress.com/2019/10/stars-1.png",
-    render
-  );
+  // 星空背景用内置图片：不再请求外部站点，离线也能用（旧版拉的是 azgaar 的 wordpress 图床）
+  scene.background = new Three.TextureLoader().load("images/stars.png", render);
 
   // Renderer
   Renderer = new Three.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
