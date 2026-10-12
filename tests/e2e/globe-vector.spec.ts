@@ -1,6 +1,10 @@
 import { test, expect } from "@playwright/test";
 import { waitForMap } from "./wait-for-map";
 
+// 2026-10 回退：USE_VECTOR_GLOBE 已置 false，球面改回官方那套等距圆柱贴图球。
+// 这套用例只对矢量球面有意义，先整体跳过（开关切回 true 时去掉下面这行即可）。
+test.skip(true, "矢量球面已回退到等距圆柱贴图球（USE_VECTOR_GLOBE = false）");
+
 // 软件 WebGL（SwiftShader）需要显式开关；覆盖 launchOptions 会替换配置里的，所以 CHROMIUM_PATH 也要带上
 test.use({
   launchOptions: {

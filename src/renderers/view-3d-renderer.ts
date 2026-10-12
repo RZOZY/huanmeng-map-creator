@@ -1033,7 +1033,9 @@ async function MapControls(camera: THREE.Camera, domElement: HTMLElement): Promi
  * 矢量球面：几何与取色都在 ./globe-vector 里（纯计算，由 globe-vector.test.ts 覆盖）。
  * 这里只负责把它的三角形与顶点色塞进 BufferGeometry，外加区域地图的底球。
  * ------------------------------------------------------------------------------------------------ */
-const USE_VECTOR_GLOBE = true; // true = 矢量球面；false = 回到原来的等距圆柱贴图球
+// 用户决定回退：矢量球面这套（要素铺面）观感没有超过官方那套等距圆柱贴图球。
+// 代码与单测都保留，开关置 true 即可整条切回来。
+const USE_VECTOR_GLOBE = false; // true = 矢量球面；false = 原来的等距圆柱贴图球（当前）
 
 /**
  * 区域地图的底球：区域只覆盖自己的经纬度带，其余球面补一层海洋色，不然球上是一个缺口
