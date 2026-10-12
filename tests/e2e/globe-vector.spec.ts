@@ -268,6 +268,13 @@ test.describe("矢量球面（地球仪）", () => {
     // 至少两层：陆地 + 国家（国家图层默认开着；正则写坏过一次，导致面图层全被静默丢掉）
     expect(fillLayers).toBeGreaterThanOrEqual(2);
     expect(fillTriangles).toBeGreaterThan(500);
+    // 三角形总数上限：轮廓抽稀 + 最长边二分之后不该再爆炸（曾经 100 万）
+    expect(fillTriangles).toBeLessThan(400000);
+    // 最长边：索引错位会造出横贯全球的巨楔（半径约 1，正常细分后应远小于 0.3）
+    const longestEdge = Number((fillLog?.match(/最长边 ([0-9.]+)/) ?? [])[1] ?? 99);
+    console.log("要素最长边: " + longestEdge);
+    // 细分上限是 0.25 世界单位，正常应在 0.3 上下；横贯全球的巨楔会是 1.5 以上
+    expect(longestEdge).toBeLessThan(0.6);
 
     // 完全离线可用：地球仪不该请求任何外部资源（星空图现在内置）
     expect(externalRequests).toEqual([]);

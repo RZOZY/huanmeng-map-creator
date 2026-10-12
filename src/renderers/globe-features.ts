@@ -13,6 +13,7 @@
  */
 import { flattenPathData } from "@/utils/pathUtils";
 import type { Point } from "@/types/global";
+import { triangulatePolygon } from "./globe-triangulate";
 import { createGlobeProjector } from "./globe-vector";
 
 export type GlobeFeatureFill = {
@@ -27,20 +28,11 @@ export type GlobeFeatureFill = {
 };
 
 /** 大三角形的弦会切进球面，超过这个长度（世界单位）就细分 */
-const FILL_MAX_EDGE = 0.2;
-const FILL_SUBDIVIDE_DEPTH = 3;
+const FILL_MAX_EDGE = 0.25;
+const FILL_SUBDIVIDE_DEPTH = 6; // 沿最长边二分，多切几层也不爆炸
 
 /** 面图层：从外到里的绘制顺序就是数组顺序（后面的半径更大、盖在前面上） */
 const AREA_LAYERS = ["biomes", "states", "provinces", "lakes", "rivers", "ice"] as const;
-
-type ThreeRuntime = {
-  Vector2: new (x: number, y: number) => { x: number; y: number };
-  ShapeUtils: { triangulateShape(contour: unknown[], holes: unknown[][]): number[][] };
-};
-
-function threeRuntime(): ThreeRuntime | null {
-  return (window as unknown as { THREE?: ThreeRuntime }).THREE ?? null;
-}
 
 export function parseRgb(value: string): [number, number, number] | null {
   const rgb = value.match(/rgba?\(([^)]+)\)/);
@@ -84,44 +76,44 @@ class FillBuilder {
     }
   }
 
-  /** 细分到足够小再投：大三角形的弦会切进球面，中段被球体挡掉 */
+  /**
+   * 细分到足够小再投：大三角形的弦会切进球面，中段会被球体挡掉。
+   * 沿**最长边**二分，而不是一律四分 —— 耳切出来的细长三角形只有一条边超限，
+   * 四分会让三角形数爆炸（实测陆地 7 万 → 102 万）。
+   */
   private emitTriangle(a: Point, b: Point, c: Point, depth: number, color: [number, number, number]): void {
-    const longest = Math.max(
-      Math.hypot(b[0] - a[0], b[1] - a[1]),
-      Math.hypot(c[0] - b[0], c[1] - b[1]),
-      Math.hypot(a[0] - c[0], a[1] - c[1])
-    );
+    const ab = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    const bc = Math.hypot(c[0] - b[0], c[1] - b[1]);
+    const ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
+    const longest = Math.max(ab, bc, ca);
+
     if (longest > this.maxEdge && depth < FILL_SUBDIVIDE_DEPTH) {
-      const ab: Point = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-      const bc: Point = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
-      const ca: Point = [(c[0] + a[0]) / 2, (c[1] + a[1]) / 2];
-      this.emitTriangle(a, ab, ca, depth + 1, color);
-      this.emitTriangle(ab, b, bc, depth + 1, color);
-      this.emitTriangle(ca, bc, c, depth + 1, color);
-      this.emitTriangle(ab, bc, ca, depth + 1, color);
+      const mid = (p: Point, q: Point): Point => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      if (longest === ab) {
+        const m = mid(a, b);
+        this.emitTriangle(a, m, c, depth + 1, color);
+        this.emitTriangle(m, b, c, depth + 1, color);
+      } else if (longest === bc) {
+        const m = mid(b, c);
+        this.emitTriangle(b, m, a, depth + 1, color);
+        this.emitTriangle(m, c, a, depth + 1, color);
+      } else {
+        const m = mid(c, a);
+        this.emitTriangle(c, m, b, depth + 1, color);
+        this.emitTriangle(m, a, b, depth + 1, color);
+      }
       return;
     }
+
     this.pushTriangle(a, b, c, color);
   }
 
-  /** 一条 path 的 d：第一条子路径当外轮廓，其余当孔洞 */
+  /** 一条 path 的 d：只取外轮廓（湖等孔洞由平面图自己的图层画在上面） */
   addPath(d: string, color: [number, number, number]): void {
-    const runtime = threeRuntime();
-    if (!runtime) return;
-
     const contours = flattenPathData(d).filter(points => points.length >= 3);
     if (!contours.length) return;
 
-    const outer = contours[0].map(([x, y]) => new runtime.Vector2(x, y));
-    const holes = contours.slice(1).map(contour => contour.map(([x, y]) => new runtime.Vector2(x, y)));
-    const vertices = [...outer, ...holes.flat()];
-    const faces = runtime.ShapeUtils.triangulateShape(outer, holes);
-
-    for (const face of faces) {
-      const triangle = face.map(index => {
-        const vertex = vertices[index];
-        return [vertex.x, vertex.y] as Point;
-      });
+    for (const triangle of triangulatePolygon(contours[0])) {
       this.emitTriangle(triangle[0], triangle[1], triangle[2], 0, color);
     }
   }
@@ -202,7 +194,33 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
     fills.push({ radius: 1.0002, positions: land.positions, uvs: land.uvs, colors: land.colors, transparent: false, opacity: 1 });
   }
 
-  let radius = 1.0004;
+  // 湖泊：和陆地一样放在 #featurePaths 里（type=lake），颜色取湖泊图层自身的填充色，退到海洋生物群系色
+  const lakeLayer = document.querySelector<SVGGElement>('#map g[data-layer="lakes"]');
+  let lakeColor: [number, number, number] | null = null;
+  if (lakeLayer) {
+    for (const path of lakeLayer.querySelectorAll<SVGPathElement>("path")) {
+      const fill = parseRgb(getComputedStyle(path).fill);
+      if (fill) {
+        lakeColor = fill;
+        break;
+      }
+    }
+  }
+  if (!lakeColor) lakeColor = parseRgb(String(pack.biomes?.[0]?.color ?? "")) ?? [0.55, 0.72, 0.86];
+  if (lakeLayer && getComputedStyle(lakeLayer).display !== "none") {
+    const lake = new FillBuilder(project, width, height, 1.0003, maxEdge);
+    for (const path of featurePaths) {
+      const index = Number.parseInt((path.id.match(/feature_[0-9]+/) ?? [])[0]?.slice(8) ?? "-1", 10);
+      const feature = index >= 0 ? pack.features?.[index] : undefined;
+      if (feature?.type !== "lake") continue;
+      const d = path.getAttribute("d");
+      if (d) lake.addPath(d, lakeColor);
+    }
+    if (!lake.empty) {
+      fills.push({ radius: 1.0003, positions: lake.positions, uvs: lake.uvs, colors: lake.colors, transparent: false, opacity: 1 });
+    }
+  }
+  let radius = 1.0005;
   for (const layer of AREA_LAYERS) {
     const group = document.querySelector<SVGGElement>(`#map g[data-layer="${layer}"]`);
     if (!group || getComputedStyle(group).display === "none") continue;
@@ -245,6 +263,29 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
   }
 
   return fills;
+}
+
+/** 填充里最长的三角形边（世界单位）。索引错位会造出横贯全球的巨楔，日志与断言都看它 */
+export function longestFillEdge(fills: GlobeFeatureFill[]): number {
+  let longest = 0;
+  for (const fill of fills) {
+    const { positions } = fill;
+    for (let index = 0; index + 8 < positions.length; index += 9) {
+      for (const [a, b] of [
+        [0, 3],
+        [3, 6],
+        [6, 0]
+      ]) {
+        const length = Math.hypot(
+          positions[index + a] - positions[index + b],
+          positions[index + a + 1] - positions[index + b + 1],
+          positions[index + a + 2] - positions[index + b + 2]
+        );
+        if (length > longest) longest = length;
+      }
+    }
+  }
+  return longest;
 }
 
 /** 仅供日志：每层贡献了多少三角形 */

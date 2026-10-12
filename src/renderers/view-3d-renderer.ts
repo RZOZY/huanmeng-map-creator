@@ -16,7 +16,13 @@ import {
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
-import { buildGlobeFeatureFills, buildGlobeOceanGrid, describeGlobeFeatureFills, type GlobeFeatureFill } from "./globe-features";
+import {
+  buildGlobeFeatureFills,
+  buildGlobeOceanGrid,
+  describeGlobeFeatureFills,
+  type GlobeFeatureFill,
+  longestFillEdge
+} from "./globe-features";
 import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
 import { type GlobeOverlaySpec, landOverlaySpec, textureLayerVisible, waterOverlaySpec } from "./globe-texture";
 import {
@@ -1039,7 +1045,7 @@ function addGlobeBaseSphere(oceanColor: string) {
   if (globeBaseGeometry) globeBaseGeometry.dispose();
   if (globeBaseMaterial) globeBaseMaterial.dispose();
   globeBaseGeometry = new Three.SphereGeometry(0.998, 64, 64);
-  globeBaseMaterial = new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor) });
+  globeBaseMaterial = new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor), side: Three.DoubleSide });
   globeBaseMesh = new Three.Mesh(globeBaseGeometry, globeBaseMaterial);
   scene.add(globeBaseMesh);
 }
@@ -1075,6 +1081,10 @@ function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture | n
     });
     texture.wrapS = Three.RepeatWrapping;
     texture.wrapT = Three.RepeatWrapping;
+    texture.generateMipmaps = true;
+    texture.minFilter = Three.LinearMipmapLinearFilter;
+    texture.magFilter = Three.LinearFilter;
+    texture.anisotropy = Renderer?.capabilities?.getMaxAnisotropy?.() ?? 1;
     globeOverlayTextures.set(href, texture);
   }
   texture.repeat.set(spec.repeatX, spec.repeatY);
@@ -1102,7 +1112,7 @@ function applyGlobeOverlay(which: "land" | "water", geometry: GlobeOverlayGeomet
 
   let material = which === "land" ? globeOverlayLandMaterial : globeOverlayWaterMaterial;
   if (!material) {
-    material = new Three.MeshBasicMaterial({ transparent: true, depthWrite: false });
+    material = new Three.MeshBasicMaterial({ transparent: true, depthWrite: false, side: Three.DoubleSide });
     if (which === "land") globeOverlayLandMaterial = material;
     else globeOverlayWaterMaterial = material;
   }
@@ -1204,13 +1214,13 @@ function addGlobeOceanSphere(oceanColor: string) {
   }
 
   globeOceanGrid = buildGlobeOceanGrid();
-  globePatternGrid = buildGlobeOceanGrid(64, 24, 72);
+  globePatternGrid = buildGlobeOceanGrid(96, 48, 72);
   const oceanGeometry = new Three.BufferGeometry();
   oceanGeometry.setAttribute("position", new Three.Float32BufferAttribute(globeOceanGrid.positions, 3));
   oceanGeometry.setAttribute("uv", new Three.Float32BufferAttribute(globeOceanGrid.uvs, 2));
   oceanGeometry.computeVertexNormals();
 
-  globeOceanMesh = new Three.Mesh(oceanGeometry, new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor) }));
+  globeOceanMesh = new Three.Mesh(oceanGeometry, new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor), side: Three.DoubleSide }));
   globeOceanMesh.renderOrder = 0;
   scene.add(globeOceanMesh);
 }
@@ -1309,7 +1319,7 @@ function addGlobeVectorMesh() {
     addGlobeFeatureMeshes(fills);
     TIME &&
       console.info(
-        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0)) + "（" + describeGlobeFeatureFills(fills) + "）"
+        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0)) + "（" + describeGlobeFeatureFills(fills) + "），最长边 " + longestFillEdge(fills).toFixed(3)
       );
 
     // 兜底：要素路径取不到时（异常数据）仍用逐单元着色
