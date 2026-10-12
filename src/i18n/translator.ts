@@ -72,9 +72,9 @@ const PATTERNS: [RegExp, string][] = [
   [/^Time from start to finish: (.*)\. A day of travel fills a whole day<br>however many hours the transport sustains\.$/, "从起点到终点的耗时：$1<br>行军日按整天计，不论该运输方式实际能行进多少小时。"],
   [/^List below shows relations to (.*)$/, "下表列出与$1的关系"],
     // 窗口标题：本版不带版本号；上游的老标题也一并收敛到产品名
-  [/^HuanMeng Map creator v(\S+)$/, "HuanMeng Map creator"],
-  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "HuanMeng Map creator"],
-  [/^Azgaar's Fantasy Map Generator$/, "HuanMeng Map creator"],
+  [/^HuanMeng Map Creator v(\S+)$/, "HuanMeng Map Creator"],
+  [/^Azgaar's Fantasy Map Generator v(\S+)$/, "HuanMeng Map Creator"],
+  [/^Azgaar's Fantasy Map Generator$/, "HuanMeng Map Creator"],
   // 省份/国家提示：`${名称} ${形式名}, ${所属国家}`
   [/^(.*?) ([A-Z][A-Za-z ]+), (.*)$/, "$1 \u0000FORM\u0000$2<br>$3"],
   // 编辑器的实体提示

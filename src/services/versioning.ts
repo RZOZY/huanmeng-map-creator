@@ -1,5 +1,5 @@
 /**
- * 版本约定（HuanMeng Map creator）
+ * 版本约定（HuanMeng Map Creator）
  * ------------------------------
  * 这里有两个版本号，用途完全不同，不要合并：
  *
@@ -110,7 +110,7 @@ function showUpdateWindow(storedVersion: string | null): void {
 
   const repository = "https://github.com/RZOZY/humeng-map-generator";
 
-  alertMessage.innerHTML = /* html */ `HuanMeng Map creator is updated up to version <strong>${VERSION}</strong>. Save files stay compatible and are auto-upgraded on load.
+  alertMessage.innerHTML = /* html */ `HuanMeng Map Creator is updated up to version <strong>${VERSION}</strong>. Save files stay compatible and are auto-upgraded on load.
     ${storedVersion ? "<span>In case of errors reload the page to update the code.</span>" : ""}
 
     <ul>
@@ -124,7 +124,7 @@ function showUpdateWindow(storedVersion: string | null): void {
 
   $("#alert").dialog({
     resizable: false,
-    title: "HuanMeng Map creator update",
+    title: "HuanMeng Map Creator update",
     width: "28em",
     position: { my: "center center-4em", at: "center", of: "svg" },
     buttons: {

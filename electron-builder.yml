@@ -1,6 +1,6 @@
 appId: com.huanmeng.map-creator
-productName: HuanMeng Map creator
-copyright: HuanMeng Map creator © 2026 RZOZY · 基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）
+productName: HuanMeng Map Creator
+copyright: HuanMeng Map Creator © 2026 RZOZY · 基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）
 directories:
   output: release
   buildResources: build

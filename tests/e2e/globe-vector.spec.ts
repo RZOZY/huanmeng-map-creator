@@ -127,7 +127,7 @@ test.describe("矢量球面（地球仪）", () => {
     await waitForMap(page);
 
     // 产品身份：改名后窗口标题必须是新产品名
-    expect(await page.title()).toContain("HuanMeng Map creator");
+    expect(await page.title()).toContain("HuanMeng Map Creator");
 
     await page.evaluate((coords: unknown) => {
       Object.assign((window as any).options.map.geography.coordinates, coords as object);

@@ -1,4 +1,4 @@
-# HuanMeng Map creator · 幻梦地图生成器
+# HuanMeng Map Creator · 幻梦地图生成器
 
 > 以上游 **Azgaar's Fantasy Map Generator v1.154.0** 的引擎为核心的中文奇幻地图生成器。
 > 内置中文语料库，地图内容（国名 / 城名 / 河名 / 文化 / 宗教 / 标记 / 区域……）**由中文语料直接生成**，不经翻译。
@@ -90,7 +90,7 @@
 
 ## 授权与来源
 
-**产品**：HuanMeng Map creator 0.6.0 · 作者 RZOZY
+**产品**：HuanMeng Map Creator 0.6.0 · 作者 RZOZY
 
 **开源项目来源**：本项目基于 [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator)（MIT）
 二次开发，上游版权归 Azgaar and contributors 所有，详见 `LICENSE`。
