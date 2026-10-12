@@ -45,6 +45,11 @@ export const DEFAULT_GLOBE_LAYER_STYLE: GlobeLayerStyle = {
   oceanColor: "#466eab"
 };
 
+/** 一次贴图取样（0..1 通道 + 有效透明度） */
+export type GlobeTextureSample = { r: number; g: number; b: number; a: number };
+/** 贴图取样器：给一个地图像素位置与「这里是不是陆地」，返回要混合上去的贴图颜色 */
+export type GlobeTextureSampler = (x: number, y: number, isLand: boolean) => GlobeTextureSample | null;
+
 export type GlobeVectorMeshData = {
   positions: number[]; // 每三个一组，非索引三角形列表
   colors: number[]; // 与 positions 一一对应，线性色彩空间（可直接作为顶点色）
@@ -174,7 +179,8 @@ export function createGlobeProjector() {
 }
 
 export function buildGlobeVectorMeshData(
-  style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE
+  style: GlobeLayerStyle = DEFAULT_GLOBE_LAYER_STYLE,
+  textureAt?: GlobeTextureSampler
 ): GlobeVectorMeshData | null {
   const width = options.map.graph.width;
   const height = options.map.graph.height;
@@ -228,6 +234,16 @@ export function buildGlobeVectorMeshData(
       if (onLand && style.statesVisible && stateColor) hex = mixHex(hex, stateColor, style.stateOpacity);
     } else if (!onLand) {
       hex = WATER_FALLBACK_COLOR;
+    }
+
+    // 贴图：陆地叠纸纹、水面叠海洋图案（与平面图的图层合成一致）
+    if (textureAt) {
+      const [cellX, cellY] = grid.points[cell];
+      const sample = textureAt(cellX, cellY, onLand);
+      if (sample) {
+        const overlay = `rgb(${Math.round(sample.r * 255)}, ${Math.round(sample.g * 255)}, ${Math.round(sample.b * 255)})`;
+        hex = mixHex(hex, overlay, Math.min(1, sample.a));
+      }
     }
 
     const shade = shadeOf(cell, onLand);

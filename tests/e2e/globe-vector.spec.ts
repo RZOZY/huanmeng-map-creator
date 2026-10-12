@@ -130,6 +130,45 @@ const collectExternalRequests = (page: any): string[] => {
   return external;
 };
 
+/**
+ * 球面圆盘的平均色与颜色离散度：用来判断「贴图/图层变化是否真的反映到球面上」。
+ * 只统计中心圆盘，避免星空背景把数值带偏。
+ */
+async function globePixelSignature(page: any): Promise<string> {
+  return page.evaluate(() => {
+    const canvas = document.getElementById("canvas3d") as HTMLCanvasElement;
+    const context = document.createElement("canvas").getContext("2d")!;
+    context.canvas.width = canvas.width;
+    context.canvas.height = canvas.height;
+    context.drawImage(canvas, 0, 0);
+    const centerX = Math.floor(canvas.width / 2);
+    const centerY = Math.floor(canvas.height / 2);
+    const radius = Math.floor(Math.min(canvas.width, canvas.height) * 0.2);
+    const { data } = context.getImageData(centerX - radius, centerY - radius, radius * 2, radius * 2);
+    const pixels: number[] = [];
+    for (let y = -radius; y < radius; y++) {
+      for (let x = -radius; x < radius; x++) {
+        if (x * x + y * y > radius * radius) continue;
+        const i = ((y + radius) * radius * 2 + (x + radius)) * 4;
+        pixels.push(data[i], data[i + 1], data[i + 2]);
+      }
+    }
+    const count = pixels.length / 3;
+    let sum = [0, 0, 0];
+    for (let i = 0; i < pixels.length; i += 3) {
+      sum[0] += pixels[i];
+      sum[1] += pixels[i + 1];
+      sum[2] += pixels[i + 2];
+    }
+    const mean = sum.map(value => value / count);
+    let variance = 0;
+    for (let i = 0; i < pixels.length; i += 3) {
+      variance += (pixels[i] - mean[0]) ** 2 + (pixels[i + 1] - mean[1]) ** 2 + (pixels[i + 2] - mean[2]) ** 2;
+    }
+    return mean.map(value => value.toFixed(1)).join("/") + " σ=" + Math.sqrt(variance / count).toFixed(2);
+  });
+}
+
 test.describe("矢量球面（地球仪）", () => {
   test.setTimeout(300_000);
 
@@ -206,6 +245,31 @@ test.describe("矢量球面（地球仪）", () => {
     await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-region.png" });
 
     expect(externalRequests).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+  test("纹理：开启纸纹图层后球面跟着变，海洋图案默认就在", async ({ page }) => {
+    const errors = collectErrors(page);
+
+    await page.goto("/");
+    await waitForMap(page);
+    await page.evaluate((coords: unknown) => {
+      Object.assign((window as any).options.map.geography.coordinates, coords as object);
+    }, WORLD);
+
+    await openGlobe(page);
+    await expectGlobeRendered(page);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-texture-off.png" });
+    const before = await globePixelSignature(page);
+
+    // 贴图是默认关闭的图层：打开它，球面应当跟着变（陆地叠上纸纹）
+    await page.evaluate(() => (window as any).Layers.show("texture"));
+    await page.evaluate(() => (window as any).Controllers.View3d.update());
+    await page.waitForTimeout(2500);
+    await page.locator("#canvas3d").screenshot({ path: SHOT_DIR + "/globe-texture-on.png" });
+    const after = await globePixelSignature(page);
+
+    console.log("纸纹图层：关 " + before + " → 开 " + after);
+    expect(after).not.toBe(before);
     expect(errors).toEqual([]);
   });
 });

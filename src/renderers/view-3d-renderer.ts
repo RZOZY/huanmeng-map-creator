@@ -17,6 +17,7 @@ import {
 import * as ErosionBake from "./erosion-bake";
 import { buildGlobeLabelData, type GlobeLabelData } from "./globe-labels";
 import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
+import { globeTextureAt, loadGlobeTextures } from "./globe-texture";
 import { buildGlobeVectorMeshData, createGlobeProjector, WATER_FALLBACK_COLOR } from "./globe-vector";
 import { getGroupStyle } from "./labels/label-groups";
 
@@ -1002,7 +1003,19 @@ function addGlobeBaseSphere(oceanColor: string) {
 }
 
 /** 用地图自己的 Voronoi 单元构建矢量球面（逐单元上色） */
+let globeTexturesRequested = false;
+
+/** 贴图是异步读进来的，读好后重画一次球面；只请求一次 */
+function ensureGlobeTextures() {
+  if (globeTexturesRequested) return;
+  globeTexturesRequested = true;
+  void loadGlobeTextures().then(() => {
+    if (active && scene && mesh) addGlobeVectorMesh();
+  });
+}
+
 function addGlobeVectorMesh() {
+  ensureGlobeTextures();
   if (!active || !scene || !material) return;
 
   // 区域地图先补底球（颜色跟随海洋生物群系，与逐单元取色一致）
@@ -1013,7 +1026,7 @@ function addGlobeVectorMesh() {
     addGlobeBaseSphere(pack.biomes?.[0]?.color ?? WATER_FALLBACK_COLOR);
   }
 
-  const data = buildGlobeVectorMeshData(readGlobeLayerStyle());
+  const data = buildGlobeVectorMeshData(readGlobeLayerStyle(), globeTextureAt);
   if (!data) return;
 
   const nextGeometry = new Three.BufferGeometry();
