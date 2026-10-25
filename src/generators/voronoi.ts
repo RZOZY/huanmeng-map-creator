@@ -36,12 +36,7 @@ export class Voronoi {
     // delaunay.halfedges[e] returns either the opposite half-edge in the adjacent triangle, or -1 if there's not an adjacent triangle.
     for (let e = 0; e < this.delaunay.triangles.length; e++) {
       const p = this.delaunay.triangles[this.nextHalfedge(e)];
-      if (p < this.pointsN && !this.cells.c[p]) {
-        const edges = this.edgesAroundPoint(e);
-        this.cells.v[p] = edges.map(e => this.triangleOfEdge(e)); // cell: adjacent vertex
-        this.cells.c[p] = edges.map(e => this.delaunay.triangles[e]).filter(c => c < this.pointsN); // cell: adjacent valid cells
-        this.cells.b[p] = edges.length > this.cells.c[p].length ? 1 : 0; // cell: is border
-      }
+      if (p < this.pointsN && !this.cells.c[p]) this.buildCell(p, e);
 
       const t = this.triangleOfEdge(e);
       if (!this.vertices.p[t]) {
@@ -58,7 +53,9 @@ export class Voronoi {
    * @returns {[number, number, number]} The IDs of the points comprising the given triangle.
    */
   private pointsOfTriangle(triangleIndex: number): [number, number, number] {
-    return this.edgesOfTriangle(triangleIndex).map(edge => this.delaunay.triangles[edge]) as [number, number, number];
+    const edge = 3 * triangleIndex;
+    const { triangles } = this.delaunay;
+    return [triangles[edge], triangles[edge + 1], triangles[edge + 2]];
   }
 
   /**
@@ -67,28 +64,31 @@ export class Voronoi {
    * @returns {number[]} The indices of the triangles that share half-edges with this triangle.
    */
   private trianglesAdjacentToTriangle(triangleIndex: number): number[] {
-    const triangles = [];
-    for (const edge of this.edgesOfTriangle(triangleIndex)) {
-      const opposite = this.delaunay.halfedges[edge];
-      triangles.push(this.triangleOfEdge(opposite));
-    }
-    return triangles;
+    const edge = 3 * triangleIndex;
+    const { halfedges } = this.delaunay;
+    return [
+      this.triangleOfEdge(halfedges[edge]),
+      this.triangleOfEdge(halfedges[edge + 1]),
+      this.triangleOfEdge(halfedges[edge + 2])
+    ];
   }
 
-  /**
-   * Gets the indices of all the incoming and outgoing half-edges that touch the given point. Taken from {@link https://mapbox.github.io/delaunator/#point-to-edges| the Delaunator docs.}
-   * @param {number} start The index of an incoming half-edge that leads to the desired point
-   * @returns {[number, number, number]} The indices of all half-edges (incoming or outgoing) that touch the point.
-   */
-  private edgesAroundPoint(start: number): [number, number, number] {
-    const result = [];
+  /** Build both cell adjacency arrays in the original half-edge traversal order. */
+  private buildCell(pointIndex: number, start: number): void {
+    const vertices: number[] = [];
+    const neighbors: number[] = [];
+    const { triangles, halfedges } = this.delaunay;
     let incoming = start;
     do {
-      result.push(incoming);
+      vertices.push(this.triangleOfEdge(incoming));
+      const neighbor = triangles[incoming];
+      if (neighbor < this.pointsN) neighbors.push(neighbor);
       const outgoing = this.nextHalfedge(incoming);
-      incoming = this.delaunay.halfedges[outgoing];
-    } while (incoming !== -1 && incoming !== start && result.length < 20);
-    return result as [number, number, number];
+      incoming = halfedges[outgoing];
+    } while (incoming !== -1 && incoming !== start && vertices.length < 20);
+    this.cells.v[pointIndex] = vertices;
+    this.cells.c[pointIndex] = neighbors;
+    this.cells.b[pointIndex] = vertices.length > neighbors.length ? 1 : 0;
   }
 
   /**
@@ -97,17 +97,13 @@ export class Voronoi {
    * @returns {Point} The coordinates of the triangle's circumcenter.
    */
   private triangleCenter(triangleIndex: number): Point {
-    const vertices = this.pointsOfTriangle(triangleIndex).map(p => this.points[p]);
-    return this.circumcenter(vertices[0], vertices[1], vertices[2]);
-  }
-
-  /**
-   * Retrieves all of the half-edges for a specific triangle `triangleIndex`. Taken from {@link https://mapbox.github.io/delaunator/#edge-and-triangle| the Delaunator docs.}
-   * @param {number} triangleIndex The index of the triangle
-   * @returns {[number, number, number]} The edges of the triangle.
-   */
-  private edgesOfTriangle(triangleIndex: number): [number, number, number] {
-    return [3 * triangleIndex, 3 * triangleIndex + 1, 3 * triangleIndex + 2];
+    const edge = 3 * triangleIndex;
+    const { triangles } = this.delaunay;
+    return this.circumcenter(
+      this.points[triangles[edge]],
+      this.points[triangles[edge + 1]],
+      this.points[triangles[edge + 2]]
+    );
   }
 
   /**
