@@ -308,7 +308,7 @@ function updateWorld(): void {
   Climate.regenerate();
 
   Layers.draw("temperature", "precipitation");
-  Layers.draw("biomes", "coordinates", "rivers", "ice");
+  Layers.draw("biomes", "coordinates", "rivers", "ice", "lakes", "labels");
   if (findEl("canvas3d")) setTimeout(() => window.Controllers.View3d.update(), 500);
 }
 

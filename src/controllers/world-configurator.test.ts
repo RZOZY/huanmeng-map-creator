@@ -37,12 +37,12 @@ test("warns that climate updates replace manual river and ice edits", () => {
   );
 });
 
-test("the apply button refreshes climate data and redraws ice along with the climate layers", () => {
+test("the apply button redraws ice, lake groups and labels after climate regeneration", () => {
   applyWorld();
 
   expect(Climate.regenerate).toHaveBeenCalledOnce();
   expect(Layers.draw).toHaveBeenCalledWith("temperature", "precipitation");
-  expect(Layers.draw).toHaveBeenCalledWith("biomes", "coordinates", "rivers", "ice");
+  expect(Layers.draw).toHaveBeenCalledWith("biomes", "coordinates", "rivers", "ice", "lakes", "labels");
 });
 
 test("automatic position edits use the same complete climate refresh", () => {
@@ -53,5 +53,5 @@ test("automatic position edits use the same complete climate refresh", () => {
 
   expect(options.map.geography.latitude).toBe(25);
   expect(Climate.regenerate).toHaveBeenCalledOnce();
-  expect(Layers.draw).toHaveBeenCalledWith("biomes", "coordinates", "rivers", "ice");
+  expect(Layers.draw).toHaveBeenCalledWith("biomes", "coordinates", "rivers", "ice", "lakes", "labels");
 });
