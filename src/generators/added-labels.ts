@@ -1,3 +1,4 @@
+import { minmax, rn } from "@/utils/numberUtils";
 import { requireName, requireOneOf } from "@/utils/validationUtils";
 import type { Label } from "./labels-generator";
 
@@ -14,6 +15,18 @@ export interface AddedLabel {
   note?: string;
 }
 
+// Legacy maps and scripts wrote an absolute `size`; renderers read `fontSize` as a percentage of the group size
+const LEGACY_SIZE_MIN = 10;
+const LEGACY_SIZE_MAX = 1000;
+
+/** Carry an older `size` over to `fontSize`, so labels saved before per-label sizing keep their relative scale */
+export const normalizeLabelSize = <T extends Label>(label: T): T => {
+  if (label.fontSize !== undefined) return label;
+  const legacySize = (label as Label & { size?: unknown }).size;
+  if (typeof legacySize !== "number" || !Number.isFinite(legacySize)) return label;
+  return { ...label, fontSize: minmax(rn(legacySize), LEGACY_SIZE_MIN, LEGACY_SIZE_MAX) };
+};
+
 export class AddedLabelsModule {
   initiate(): void {
     pack.addedLabels = []; // empty on map creation
@@ -25,7 +38,7 @@ export class AddedLabelsModule {
 
   add(data: Omit<AddedLabel, "i">): AddedLabel {
     const i = pack.addedLabels.reduce((max, addedLabel) => Math.max(max, addedLabel.i), 0) + 1;
-    const addedLabel = { ...data, i };
+    const addedLabel = { ...data, i, label: normalizeLabelSize(data.label) };
     pack.addedLabels.push(addedLabel);
     return addedLabel;
   }
