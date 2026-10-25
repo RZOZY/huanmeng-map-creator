@@ -1,0 +1,16 @@
+# Keep the checkout identical on every platform: the formatter (Biome) and the
+# pre-commit hook read the working tree, and a CRLF checkout fails `biome check`.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.7z binary
