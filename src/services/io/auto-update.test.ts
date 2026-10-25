@@ -57,6 +57,38 @@ it.each([18, 180])("keeps legacy custom labels after saving and reloading a font
   expect(options.map.labels.groups.find(group => group.name === "forests")).toEqual(group);
 });
 
+it("keeps a point added label that has no text path, with its own size as a percentage", async () => {
+  const data = readFileSync("tests/fixtures/1.139.4.map", "utf8").split("\r\n");
+  migrateLegacySettings("1.139.4", data);
+  Options.applyLoaded(JSON.parse(data[1]));
+  document.body.innerHTML = data[5];
+
+  const addedGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  addedGroup.id = "addedLabels";
+  addedGroup.innerHTML = /* html */ `<text id="addedLabel9" x="120" y="240" font-size="12">Point name</text>`;
+  (document.getElementById("labels") ?? document.getElementById("viewbox")!).appendChild(addedGroup);
+
+  globalThis.pack = {
+    states: JSON.parse(data[14]),
+    burgs: JSON.parse(data[15]),
+    addedLabels: []
+  } as unknown as typeof pack;
+
+  const compare = vi.spyOn(versioning, "compareVersions");
+  compare.mockImplementation((_a, b) => ({ isOlder: b === "1.140.0", isNewer: false, isEqual: false }));
+  try {
+    await resolveVersionConflicts("1.139.4", data);
+  } finally {
+    compare.mockRestore();
+  }
+
+  const kept = pack.addedLabels.find(label => label.label.text === "Point name");
+  expect(kept).toBeDefined();
+  expect(kept?.x).toBe(120);
+  expect(kept?.y).toBe(240);
+  expect(kept?.label.fontSize).toBeGreaterThan(0);
+});
+
 describe("v1.144 layer id migration", () => {
   it.each(["1.143.0", MAP_FORMAT_VERSION])(
     "repairs nested duplicate fogging groups in %s saves across reload",
@@ -83,7 +115,9 @@ describe("v1.144 layer id migration", () => {
       expect(document.querySelectorAll("#viewbox > #fogging")).toHaveLength(1);
       expect(document.getElementById("fogging-cont")).toBeNull();
       expect(document.getElementById("fogging")?.getAttribute("opacity")).toBe("0.7");
-      expect(document.querySelectorAll("#fog path, #fogging rect")).toHaveLength(mapVersion === MAP_FORMAT_VERSION ? 2 : 0);
+      expect(document.querySelectorAll("#fog path, #fogging rect")).toHaveLength(
+        mapVersion === MAP_FORMAT_VERSION ? 2 : 0
+      );
     }
   );
 

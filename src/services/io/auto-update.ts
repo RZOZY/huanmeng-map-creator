@@ -1408,14 +1408,27 @@ export async function resolveVersionConflicts(mapVersion: string, data: string[]
 
       for (const textEl of addedGroup.querySelectorAll<SVGTextElement>(":scope > text")) {
         const pathEl = document.getElementById(`textPath_${textEl.id}`) as SVGPathElement | null;
-        if (!pathEl) continue;
-
-        const label = getPathLabel({ textEl, pathEl });
-        if (label?.text && label.pathPoints?.length) {
-          const [x, y] = label.pathPoints[Math.floor(label.pathPoints.length / 2)];
-          const addedLabel = AddedLabels.add({ x, y, label: { ...label, group: name } });
-          noteRenames.set(textEl.id, `addedLabel${addedLabel.i}`);
+        if (pathEl) {
+          const label = getPathLabel({ textEl, pathEl });
+          if (label?.text && label.pathPoints?.length) {
+            const [x, y] = label.pathPoints[Math.floor(label.pathPoints.length / 2)];
+            const addedLabel = AddedLabels.add({ x, y, label: { ...label, group: name } });
+            noteRenames.set(textEl.id, `addedLabel${addedLabel.i}`);
+          }
+          continue;
         }
+
+        // a point label carries everything it needs on the element: text, position and its own font size
+        const text = textEl.textContent?.trim();
+        const x = Number(textEl.getAttribute("x"));
+        const y = Number(textEl.getAttribute("y"));
+        if (!text || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+
+        const ownFontSize = Number.parseFloat(textEl.getAttribute("font-size") ?? "");
+        const relative = ownFontSize > 0 && fontSize > 0 ? rn((ownFontSize / fontSize) * 100, 1) : undefined;
+        const label = relative ? { text, fontSize: relative } : { text };
+        const addedLabel = AddedLabels.add({ x, y, label: { ...label, group: name } });
+        noteRenames.set(textEl.id, `addedLabel${addedLabel.i}`);
       }
     }
 
