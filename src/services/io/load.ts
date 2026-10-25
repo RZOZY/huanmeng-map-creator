@@ -30,6 +30,7 @@ import {
   parseMapVersion
 } from "@/services/versioning";
 import { ensureEl, escapeHtml, last, link, parseError, rn, safeParseJSON } from "@/utils";
+import { repairCultureReferences, repairRouteReferences } from "./load-integrity";
 
 async function quickLoad(): Promise<void> {
   const blob = await ldb.get("lastMap");
@@ -453,14 +454,9 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
         ERROR && console.error("[Data integrity] Invalid province", p, "is assigned to cells", invalidCells);
       });
 
-      const invalidCultures = [...new Set(cells.culture)].filter(c => !pack.cultures[c] || pack.cultures[c].removed);
-      invalidCultures.forEach(c => {
-        const invalidCells = cells.i.filter(i => cells.culture[i] === c);
-        invalidCells.forEach(i => {
-          cells.province[i] = 0;
-        });
-        ERROR && console.error("[Data integrity] Invalid culture", c, "is assigned to cells", invalidCells);
-      });
+      for (const { id, cells: invalidCells } of repairCultureReferences(cells, pack.cultures)) {
+        ERROR && console.error("[Data integrity] Invalid culture", id, "is assigned to cells", invalidCells);
+      }
 
       const invalidReligions = [...new Set(cells.religion)].filter(
         r => !pack.religions[r] || pack.religions[r].removed
@@ -491,7 +487,8 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
         ERROR && console.error("[Data integrity] Invalid burg", burgId, "is assigned to cells", invalidCells);
       });
 
-      const invalidRivers = [...new Set(cells.r)].filter(r => r && !pack.rivers.find(river => river.i === r));
+      const riverIds = new Set(pack.rivers.map(river => river.i));
+      const invalidRivers = [...new Set(cells.r)].filter(r => r && !riverIds.has(r));
       invalidRivers.forEach(r => {
         const invalidCells = cells.i.filter(i => cells.r[i] === r);
         invalidCells.forEach(i => {
@@ -616,25 +613,9 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
         return false;
       });
 
-      for (const from in pack.cells.routes) {
-        const value = pack.cells.routes[+from];
-        if (!value) continue;
-
-        if (Object.keys(value).length === 0) {
-          // remove empty object
-          delete pack.cells.routes[+from];
-          continue;
-        }
-
-        for (const to in value) {
-          const routeId = value[+to];
-          const route = pack.routes.find(r => r.i === routeId);
-          if (!route) {
-            ERROR &&
-              console.error(`[Data integrity] Route ${routeId} from ${from} to ${to} is missing. Removing the route`);
-            delete pack.cells.routes[+from][+to];
-          }
-        }
+      const routeIds = new Set(pack.routes.map(route => route.i));
+      for (const { id, from, to } of repairRouteReferences(pack.cells.routes, routeIds)) {
+        ERROR && console.error(`[Data integrity] Route ${id} from ${from} to ${to} is missing. Removing the route`);
       }
 
       {
