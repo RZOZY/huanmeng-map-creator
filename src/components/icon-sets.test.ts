@@ -14,7 +14,7 @@ const directory = (folder: string): Record<string, string> => {
   return Object.fromEntries(
     readdirSync(root, { recursive: true, encoding: "utf8" })
       .filter(file => file.endsWith(".svg"))
-      .map(file => [file.replace(/\.svg$/, ""), readFileSync(`${root}/${file}`, "utf8")])
+      .map(file => [file.replaceAll("\\", "/").replace(/\.svg$/, ""), readFileSync(`${root}/${file}`, "utf8")])
   );
 };
 
@@ -50,6 +50,15 @@ test("symbol ids derive from the set and the file path; every set is a directory
     for (const file of IconSets.files(set.id as never))
       expect(symbols.includes(`id="${IconSets.symbolId(set.id, file)}"`), `${set.id}/${file}`).toBe(true);
   }
+});
+
+test("filesystem fixtures match Vite's lazy source names and artwork", async () => {
+  const set = IconSets.get("burgs");
+  const files = directory("burgs");
+  const names = IconSets.files("burgs");
+  expect(Object.keys(files).sort()).toEqual([...names].sort());
+  const ordered = Object.fromEntries(names.map(name => [name, files[name]]));
+  expect(await IconSets.read(set)).toBe(IconSets.symbols(set, ordered));
 });
 
 test("relief artwork bakes its stroke width on the root and inherits the stroke color", () => {
