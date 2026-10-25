@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as utils from "@/utils";
 import { MIN_NAVIGABLE_FLUX } from "./river-generator";
 
 describe("RoutesModule river-aware water cost", () => {
@@ -263,6 +264,136 @@ describe("RoutesModule.findWaterPath", () => {
     const points = Routes.getWaterPoints([0, 1, 3, 4]);
     expect(points.at(0)).toEqual([2, 1, 0]);
     expect(points.at(-1)).toEqual([28, 1, 4]);
+  });
+});
+
+describe("RoutesModule.connect", () => {
+  let Routes: typeof import("./routes-generator").Routes;
+
+  beforeEach(async () => {
+    vi.stubGlobal(
+      "FlatQueue",
+      class {
+        items: { id: number; priority: number }[] = [];
+        get length() {
+          return this.items.length;
+        }
+        push(id: number, priority: number) {
+          this.items.push({ id, priority });
+          this.items.sort((a, b) => a.priority - b.priority);
+        }
+        peekValue() {
+          return this.items[0]?.priority;
+        }
+        pop() {
+          return this.items.shift()?.id;
+        }
+      }
+    );
+    globalThis.pack = {
+      cells: {
+        c: [[1], [0, 2], [1, 3], [2]],
+        h: new Uint8Array([25, 25, 25, 25]),
+        biome: new Uint8Array(4),
+        burg: new Uint16Array(4),
+        f: new Uint16Array([1, 1, 1, 1]),
+        p: [
+          [0, 0],
+          [10, 0],
+          [20, 0],
+          [30, 0]
+        ],
+        routes: {}
+      },
+      biomes: [{ habitability: 100 }],
+      burgs: [],
+      rivers: [],
+      routes: []
+    } as unknown as typeof pack;
+    ({ Routes } = await import("./routes-generator"));
+    Routes.sync();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  function setupExistingRoute() {
+    pack.routes = [
+      {
+        i: 0,
+        group: "roads",
+        feature: 1,
+        points: [
+          [20, 0, 2],
+          [30, 0, 3]
+        ]
+      }
+    ];
+    pack.cells.routes = Routes.buildLinks(pack.routes);
+    Routes.sync();
+  }
+
+  it.each<typeof pack.cells.routes>([{}, { 2: {}, 3: {} }])(
+    "skips pathfinding with no routes and cell links %j",
+    links => {
+      setupExistingRoute();
+      pack.routes = [];
+      pack.cells.routes = links;
+      const findPath = vi.spyOn(utils, "findPath");
+      const before = structuredClone(pack);
+
+      for (let index = 0; index < 6; index++) expect(Routes.connect(0)).toBeUndefined();
+
+      expect(findPath).not.toHaveBeenCalled();
+      expect(pack).toEqual(before);
+    }
+  );
+
+  it("still finds a trail to an existing route with id zero and links it both ways", () => {
+    setupExistingRoute();
+    const findPath = vi.spyOn(utils, "findPath");
+    const existingRoute = structuredClone(pack.routes[0]);
+
+    const route = Routes.connect(0);
+
+    expect(findPath).toHaveBeenCalledTimes(1);
+    expect(route).toEqual({
+      i: 1,
+      group: "trails",
+      feature: 1,
+      points: [
+        [0, 0, 0],
+        [10, 0, 1],
+        [20, 0, 2]
+      ]
+    });
+    expect(pack.routes).toEqual([existingRoute, route]);
+    expect(pack.cells.routes).toEqual({ 0: { 1: 1 }, 1: { 0: 1, 2: 1 }, 2: { 1: 1, 3: 0 }, 3: { 2: 0 } });
+  });
+
+  it("keeps an already connected cell unchanged", () => {
+    setupExistingRoute();
+    const findPath = vi.spyOn(utils, "findPath");
+    const before = structuredClone(pack);
+
+    expect(Routes.connect(2)).toBeUndefined();
+
+    expect(findPath).toHaveBeenCalledTimes(1);
+    expect(pack).toEqual(before);
+  });
+
+  it("still returns undefined without mutation when the existing network is unreachable", () => {
+    setupExistingRoute();
+    pack.cells.c = [[1], [0], [3], [2]];
+    const findPath = vi.spyOn(utils, "findPath");
+    const before = structuredClone(pack);
+
+    expect(Routes.connect(0)).toBeUndefined();
+
+    expect(findPath).toHaveBeenCalledTimes(1);
+    expect(pack).toEqual(before);
   });
 });
 

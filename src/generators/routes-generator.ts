@@ -787,6 +787,8 @@ class RoutesModule {
 
   // connect cell with routes system by land
   connect(cellId: number): Route | undefined {
+    if (!pack.routes.length) return;
+
     const getCost = this.createCostEvaluator({ isWater: false });
     const isExit = (c: number) => isLand(c, pack) && this.isConnected(c);
     const pathCells = findPath(cellId, isExit, getCost, pack);

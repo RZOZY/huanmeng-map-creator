@@ -34,6 +34,7 @@ class IceModule {
   // Generate glaciers and icebergs based on temperature and height
   public generate() {
     this.clear();
+    let nextId = 0;
     const { cells, features } = grid;
     const { temp, h } = cells;
     Math.random = Alea(options.map.seed);
@@ -51,7 +52,7 @@ class IceModule {
       if (isolines[type]?.polygons) {
         isolines[type].polygons.forEach((points: Point[]) => {
           const clipped = clipPoly(points, options.map.graph.width, options.map.graph.height);
-          const ice: Glacier = { i: this.getNextId(), points: clipped, type: "glacier" };
+          const ice: Glacier = { i: nextId++, points: clipped, type: "glacier" };
           pack.ice.push(ice);
         });
       }
@@ -75,7 +76,7 @@ class IceModule {
         ([x, y]): Point => [rn(lerp(cx, x, size), 2), rn(lerp(cy, y, size), 2)]
       );
 
-      const ice: Iceberg = { i: this.getNextId(), points, type: "iceberg", cellId, size };
+      const ice: Iceberg = { i: nextId++, points, type: "iceberg", cellId, size };
       pack.ice.push(ice);
     }
   }
