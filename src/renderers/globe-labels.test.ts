@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { estimateLabelWidth, type GlobeLabelData, placeTextAlongPath, selectNonOverlappingLabels } from "./globe-labels";
+import {
+  estimateLabelWidth,
+  type GlobeLabelData,
+  placeTextAlongPath,
+  selectNonOverlappingLabels
+} from "./globe-labels";
 
 const label = (overrides: Partial<GlobeLabelData> = {}): GlobeLabelData => ({
   group: "burg",

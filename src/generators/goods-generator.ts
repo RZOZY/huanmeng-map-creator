@@ -635,7 +635,7 @@ const GOODS_DATA: GoodData[] = [
     color: "#a0c8e8",
     value: 7,
     chance: 0,
-    recipes: [{ "白沙": 1 }],
+    recipes: [{ 白沙: 1 }],
     unit: "wain",
     demandCoverage: { luxury: 1 },
     multipliers: { cultureType: { Nomadic: 0.2 } }

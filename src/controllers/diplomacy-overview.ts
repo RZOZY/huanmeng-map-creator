@@ -169,8 +169,8 @@ function renderDiplomacyPage(view: TableView<State>): void {
     const relation = isRelation(storedRelation) ? storedRelation : "Invalid";
     const { color } = RELATIONS[relation] ?? { color: "#a9a9a9" };
 
-        const tipText = relationText(state.name, selectedName, relation);
-        const tipSelect = `${tipText}<br>点击查看与${state.name}的关系`;
+    const tipText = relationText(state.name, selectedName, relation);
+    const tipSelect = `${tipText}<br>点击查看与${state.name}的关系`;
 
     const name = state.fullName!.length < 23 ? state.fullName : state.name;
     EmblemRenderer.trigger(`stateCOA${state.i}`, state.coa);

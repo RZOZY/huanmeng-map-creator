@@ -17,6 +17,7 @@ import { Controllers } from "@/controllers";
 import {
   type Feature,
   type FeatureType,
+  featureSubtypeZh,
   ISLAND_SUBTYPES,
   LAKE_SUBTYPES,
   OCEAN_SUBTYPES
@@ -34,7 +35,6 @@ import {
   getVertexPath,
   si
 } from "@/utils";
-import { featureSubtypeZh } from "@/generators/features-generator";
 
 const dialogId = "featuresOverview" as const;
 const position = { my: "right top", at: "right-10 top+10", of: "svg", collision: "fit" };

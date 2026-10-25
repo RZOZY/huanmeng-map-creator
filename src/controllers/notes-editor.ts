@@ -451,7 +451,7 @@ function toggleNotesPin(this: HTMLElement): void {
   this.classList.toggle("pressed");
 }
 
-  // Entity keys stay stable; note titles remain the entity's own name.
+// Entity keys stay stable; note titles remain the entity's own name.
 export interface Note {
   id: string;
   name: string;

@@ -1,6 +1,7 @@
 import { mean, median, quadtree, sum } from "d3";
 import { getInverseRelation, RELATIONS } from "@/data/diplomacy";
 import { Emblems } from "@/generators/emblems-generator";
+import { formNameZh } from "@/i18n/form-names";
 import type { Emblem } from "@/types/emblems";
 import { requireColor } from "@/utils/colorUtils";
 import { replaceWholeWord } from "@/utils/languageUtils";
@@ -26,13 +27,10 @@ import type { Label } from "./labels-generator";
 import type { Regiment } from "./military-generator";
 import { Population } from "./population-generator";
 import type { Province } from "./provinces-generator";
-import { formNameZh } from "@/i18n/form-names";
 
 declare global {
   var States: StatesModule;
 }
-
-
 
 /** 中文全名不加空格；名称本身已带形式后缀时不再重复 */
 function composeFullName(name: string, formName: string): string {
@@ -1002,14 +1000,10 @@ class StatesModule {
     const object = pack.states[objectId].name;
     const { title, text } = RELATIONS[newRelation].event ?? {
       title: "关系变更",
-      text: () => `${subject}与${object}的关系变为${RELATIONS[newRelation]?.zh ?? newRelation}`,
+      text: () => `${subject}与${object}的关系变为${RELATIONS[newRelation]?.zh ?? newRelation}`
     };
     if (oldRelation !== "Enemy") return [title, text(subject, object)];
-    return [
-      "停战",
-      `${subject}与${object}停火并缔结和约`,
-      text(subject, object)
-    ];
+    return ["停战", `${subject}与${object}停火并缔结和约`, text(subject, object)];
   }
 
   /** Redraw state borders from their capitals, types and expansionism; provinces are regenerated */

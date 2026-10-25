@@ -20,13 +20,13 @@ import type { FillBoxElement } from "@/components/shared/fill-box";
 import { tip } from "@/components/tooltips";
 import { Controllers } from "@/controllers";
 import type { Zone } from "@/generators/zones-generator";
+import { zoneTypeEn, zoneTypeZh } from "@/generators/zones-generator";
 import { clearLegend, drawLegend, hasLegend } from "@/renderers/draw-legend";
 import { zonesFilter } from "@/renderers/draw-zones";
 import { fog, unfog } from "@/renderers/overlays/fogging";
 import { downloadFile, getArea, getAreaUnit, getFileName } from "@/utils";
 import { errorText } from "@/utils/stringUtils";
 import { ensureEl, rn, si, unique } from "../utils";
-import { zoneTypeEn, zoneTypeZh } from "@/generators/zones-generator";
 
 const dialogId = "zonesEditor" as const;
 const LEGEND_NAME = "Zones"; // the legend box this editor toggles

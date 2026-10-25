@@ -36,7 +36,10 @@ export function simplifyRing(points: Point[], minDistance = 3): Point[] {
   }
 
   // 首尾太近的点会退化成零面积，去掉
-  while (out.length > 3 && Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < minDistance) {
+  while (
+    out.length > 3 &&
+    Math.hypot(out[0][0] - out[out.length - 1][0], out[0][1] - out[out.length - 1][1]) < minDistance
+  ) {
     out.pop();
   }
 

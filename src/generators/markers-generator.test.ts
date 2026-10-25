@@ -131,8 +131,6 @@ describe("MarkersModule migrations", () => {
     expect(markers.listMigrations(pack)).toEqual([0, 2]);
     const marker = { i: 0, cell: 0 } as Marker;
     markers.addMigration(marker, 0);
-    expect(["驯鹿", "麝牛", "狼", "狐", "鹅", "野兔", "猫头鹰"]).toContain(
-      marker.name.replace("迁徙", "")
-    );
+    expect(["驯鹿", "麝牛", "狼", "狐", "鹅", "野兔", "猫头鹰"]).toContain(marker.name.replace("迁徙", ""));
   });
 });

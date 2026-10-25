@@ -970,7 +970,6 @@ function testSpeaker(): void {
   speechSynthesis.speak(speech);
 }
 
-
 /**
  * Restore what the tab itself shows: the lock icons, the saved style presets and the interface
  * settings. The values themselves are restored by `Options.restore` before this runs

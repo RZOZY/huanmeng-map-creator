@@ -54,24 +54,36 @@ const PATTERNS: [RegExp, string][] = [
     /^Total population: (.*)\. Rural population: (.*)\. Urban population: (.*)$/,
     "总人口：$1<br>乡村人口：$2<br>城市人口：$3"
   ],
-  [/^Total population: (.*); Rural population: (.*); Urban population: (.*)$/, "总人口：$1<br>乡村人口：$2<br>城市人口：$3"],
+  [
+    /^Total population: (.*); Rural population: (.*); Urban population: (.*)$/,
+    "总人口：$1<br>乡村人口：$2<br>城市人口：$3"
+  ],
   [/^State: (.*) Culture: (.*) Total population: (.*)$/, "国家：$1<br>文化：$2<br>总人口：$3"],
   [/^Relief: (.*)\. Density (.*)$/, "地形：$1<br>密度 $2"],
   [/^(.*) points · (.*)x complexity · (.*)% rough$/, "$1 点 · 复杂度 $2x · 崎岖度 $3%"],
-  [/^Estimated area: the feature goes beyond the map border, its area on the map is (.*)$/, "估算面积：该地物超出了地图边界，其在地图上的面积约为 $1"],
+  [
+    /^Estimated area: the feature goes beyond the map border, its area on the map is (.*)$/,
+    "估算面积：该地物超出了地图边界，其在地图上的面积约为 $1"
+  ],
   [/^(.*) is a NOT state capital$/i, "$1 不是国都"],
   [/^Zoom to (.*)$/, "缩放到$1"],
   [/^Journey name: (.*)$/, "旅程名称：$1"],
   [/^Marker icon size (.*)$/, "标记图标大小 $1"],
-    [/^No relief(<br>.*)?$/, "无地形$1"],
+  [/^No relief(<br>.*)?$/, "无地形$1"],
   [/\. Click to change$/, "<br>点击更改"],
   [/\. Click to view details$/, "<br>点击查看详情"],
   [/\. Click to select$/, "<br>点击选择"],
   [/^Total time: (.*)\. Travel time: (.*)$/, "总耗时：$1<br>行程时间：$2"],
-  [/^Hours spent moving or waiting: (.*), the sum of the segment times\. Rest between travel days is not counted\.$/, "行进与等待的耗时合计：$1<br>不计算行军日之间的休整。"],
-  [/^Time from start to finish: (.*)\. A day of travel fills a whole day<br>however many hours the transport sustains\.$/, "从起点到终点的耗时：$1<br>行军日按整天计，不论该运输方式实际能行进多少小时。"],
+  [
+    /^Hours spent moving or waiting: (.*), the sum of the segment times\. Rest between travel days is not counted\.$/,
+    "行进与等待的耗时合计：$1<br>不计算行军日之间的休整。"
+  ],
+  [
+    /^Time from start to finish: (.*)\. A day of travel fills a whole day<br>however many hours the transport sustains\.$/,
+    "从起点到终点的耗时：$1<br>行军日按整天计，不论该运输方式实际能行进多少小时。"
+  ],
   [/^List below shows relations to (.*)$/, "下表列出与$1的关系"],
-    // 窗口标题：本版不带版本号；上游的老标题也一并收敛到产品名
+  // 窗口标题：本版不带版本号；上游的老标题也一并收敛到产品名
   [/^HuanMeng Map Creator v(\S+)$/, "HuanMeng Map Creator"],
   [/^Azgaar's Fantasy Map Generator v(\S+)$/, "HuanMeng Map Creator"],
   [/^Azgaar's Fantasy Map Generator$/, "HuanMeng Map Creator"],
@@ -87,6 +99,7 @@ function applyPatterns(key: string): string | null {
     const out = key.replace(re, to);
     // 形式名占位符：拿字典再翻一次
     if (out.includes("\u0000FORM\u0000")) {
+      // biome-ignore lint/suspicious/noControlCharactersInRegex: NUL is the delimiter the form-name entries use, so it cannot appear in a real name
       return out.replace(/\u0000FORM\u0000([^,]*)/, (_m, form: string) => entries[form.trim()] ?? form);
     }
     return out;
@@ -236,7 +249,7 @@ else install();
 };
 
 // 本版已关闭全局快捷键，<u> 原先只用于标示快捷键字母，去掉下划线避免误导
-(function () {
+(() => {
   const style = document.createElement("style");
   style.textContent = "u { text-decoration: none !important; }";
   document.head.append(style);

@@ -4,11 +4,11 @@ import { applySorting, applySortingByHeader } from "@/components/dialog/sorting"
 import { Icons } from "@/components/icons";
 import { Layers } from "@/components/layers";
 import { tip } from "@/components/tooltips";
+import { unitNameZh } from "@/generators/military-generator";
 import { moveRegiment } from "@/renderers/draw-military";
 import type { Marker } from "../generators/markers-generator";
 import type { Regiment } from "../generators/military-generator";
 import { capitalize, ensureEl, escapeHtml, getAdjective, last, list, minmax, P, Pint, rand, rn, wiki } from "../utils";
-import { unitNameZh } from "@/generators/military-generator";
 
 type Side = "attackers" | "defenders";
 

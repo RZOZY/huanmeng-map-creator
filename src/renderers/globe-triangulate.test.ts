@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { signedArea, simplifyRing, triangulatePolygon } from "./globe-triangulate";
 
 const areaOf = (triangles: ReturnType<typeof triangulatePolygon>) =>
-  triangles.reduce((sum, [a, b, c]) => sum + Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2, 0);
+  triangles.reduce(
+    (sum, [a, b, c]) => sum + Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / 2,
+    0
+  );
 
 describe("triangulatePolygon", () => {
   it("正方形切成两个三角形，面积守恒", () => {
@@ -63,12 +66,31 @@ describe("triangulatePolygon", () => {
   });
 
   it("顶点不足三个时返回空", () => {
-    expect(triangulatePolygon([[0, 0], [1, 1]] as [number, number][])).toHaveLength(0);
+    expect(
+      triangulatePolygon([
+        [0, 0],
+        [1, 1]
+      ] as [number, number][])
+    ).toHaveLength(0);
   });
 
   it("有向面积：逆时针为正", () => {
-    expect(signedArea([[0, 0], [10, 0], [10, 10], [0, 10]] as [number, number][])).toBeGreaterThan(0);
-    expect(signedArea([[0, 0], [0, 10], [10, 10], [10, 0]] as [number, number][])).toBeLessThan(0);
+    expect(
+      signedArea([
+        [0, 0],
+        [10, 0],
+        [10, 10],
+        [0, 10]
+      ] as [number, number][])
+    ).toBeGreaterThan(0);
+    expect(
+      signedArea([
+        [0, 0],
+        [0, 10],
+        [10, 10],
+        [10, 0]
+      ] as [number, number][])
+    ).toBeLessThan(0);
   });
 });
 

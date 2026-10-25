@@ -125,11 +125,7 @@ function parseHexColor(hex: string): [number, number, number] {
       ];
     }
     if (digits.length >= 6) {
-      return [
-        parseInt(digits.slice(0, 2), 16),
-        parseInt(digits.slice(2, 4), 16),
-        parseInt(digits.slice(4, 6), 16)
-      ];
+      return [parseInt(digits.slice(0, 2), 16), parseInt(digits.slice(2, 4), 16), parseInt(digits.slice(4, 6), 16)];
     }
   }
   const rgb = value.match(/rgba?\(([^)]+)\)/);
@@ -203,7 +199,7 @@ function voronoiTopology(width: number, height: number): VoronoiTopology {
       key,
       topology: calculateVoronoi(grid.points, expandedBoundaryRing(width, height, grid.spacing))
     };
-    TIME && console.info("[globe] Voronoi 重算 " + (performance.now() - started).toFixed(1) + " ms");
+    TIME && console.info(`[globe] Voronoi 重算 ${(performance.now() - started).toFixed(1)} ms`);
   }
   return voronoiCache.topology;
 }
@@ -266,7 +262,7 @@ export function buildGlobeVectorMeshData(
     }
 
     const shade = shadeOf(cell, onLand);
-    const key = hex + "|" + shade.toFixed(3);
+    const key = `${hex}|${shade.toFixed(3)}`;
     const cached = colorCache.get(key);
     if (cached) return cached;
 

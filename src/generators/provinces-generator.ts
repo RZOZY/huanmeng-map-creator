@@ -1,6 +1,7 @@
 import Alea from "alea";
 import { max } from "d3";
 import { Emblems } from "@/generators/emblems-generator";
+import { formNameZh } from "@/i18n/form-names";
 import type { Emblem } from "@/types/emblems";
 import { requireColor } from "@/utils/colorUtils";
 import { replaceWholeWord } from "@/utils/languageUtils";
@@ -8,13 +9,10 @@ import { requireName } from "@/utils/validationUtils";
 import { gauss, generateSeed, getMixedColor, getPolesOfInaccessibility, P, rand, rw } from "../utils";
 import type { Label } from "./labels-generator";
 import { Population } from "./population-generator";
-import { formNameZh } from "@/i18n/form-names";
 
 declare global {
   var Provinces: ProvinceModule;
 }
-
-
 
 /** 中文全名不加空格；名称本身已带形式后缀时不再重复（避免「玉关郡 郡」） */
 function composeFullName(name: string, formName: string): string {

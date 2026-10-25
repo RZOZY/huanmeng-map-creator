@@ -2,8 +2,8 @@ import { Color } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildGlobeVectorMeshData,
-  DEFAULT_GLOBE_LAYER_STYLE,
   clipPolygonToMapRect,
+  DEFAULT_GLOBE_LAYER_STYLE,
   hexToColorChannels,
   signedPolygonArea
 } from "./globe-vector";
@@ -107,7 +107,17 @@ describe("clipPolygonToMapRect", () => {
   });
 
   it("整个多边形都在外面时裁成空", () => {
-    expect(clipPolygonToMapRect([[-5, -5], [-1, -5], [-1, -1]], 10, 10).length).toBeLessThan(3);
+    expect(
+      clipPolygonToMapRect(
+        [
+          [-5, -5],
+          [-1, -5],
+          [-1, -1]
+        ],
+        10,
+        10
+      ).length
+    ).toBeLessThan(3);
   });
 });
 
@@ -187,12 +197,10 @@ describe("buildGlobeVectorMeshData", () => {
 
     const distinct = new Set<string>();
     for (let i = 0; i < data!.colors.length; i += 3) {
-      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join(
-));
+      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join());
     }
 
-    const channels = (rgb: number[]) => rgb.map(v => v.toFixed(6)).join(
-);
+    const channels = (rgb: number[]) => rgb.map(v => v.toFixed(6)).join();
     // 与 mixHex 同一套算法：0..255 通道空间取整后再归一
     const blend = (baseHex: string, overHex: string, t: number) => {
       const base = hexToColorChannels(baseHex).map(v => v * 255);
@@ -215,13 +223,11 @@ describe("buildGlobeVectorMeshData", () => {
 
     const distinct = new Set<string>();
     for (let i = 0; i < data!.colors.length; i += 3) {
-      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join(
-));
+      distinct.add([data!.colors[i], data!.colors[i + 1], data!.colors[i + 2]].map(v => v.toFixed(6)).join());
     }
 
     const marine = hexToColorChannels(MARINE_COLOR);
-    const shaded = (factor: number) => marine.map(v => (v * factor).toFixed(6)).join(
-);
+    const shaded = (factor: number) => marine.map(v => (v * factor).toFixed(6)).join();
     expect(distinct.has(shaded(0.9))).toBe(true);
     expect(distinct.has(shaded(1.06))).toBe(true);
   });

@@ -22,12 +22,12 @@ import { clearMainTip, tip } from "@/components/tooltips";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { Controllers } from "@/controllers";
 import type { Religion } from "@/generators/religions-generator";
+import { religionFormEn, religionFormZh } from "@/generators/religions-generator";
 import { clearLegend, drawLegend, hasLegend } from "@/renderers/draw-legend";
 import { highlightElement } from "@/renderers/overlays/highlight";
 import { downloadFile, getArea, getAreaUnit, getFileName, groupByValue } from "@/utils";
 import { errorText } from "@/utils/stringUtils";
 import { debounce, ensureEl, getPointer, isLand, parseTransform, rn, si } from "../utils";
-import { religionFormEn, religionFormZh } from "@/generators/religions-generator";
 
 const dialogId = "religionsEditor" as const;
 const LEGEND_NAME = "Religions"; // the legend box this editor toggles

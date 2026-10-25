@@ -871,8 +871,7 @@ class MarkersModule {
     const isAnimalServed = [...courses, ...localCourses].includes(animal.toLowerCase());
     const meal = isAnimalThemed && isAnimalServed && P(0.5) ? animal : pick(localCourses, courses);
     const course = `${ra(INN_COOKING_METHODS)}${meal}`.toLowerCase();
-    const drink =
-      `${P(0.5) ? ra(INN_DRINK_KINDS) : ra(INN_COLORS)}${pick(localFare(INN_DRINKS_BY_GOOD), INN_COMMON_DRINKS)}`;
+    const drink = `${P(0.5) ? ra(INN_DRINK_KINDS) : ra(INN_COLORS)}${pick(localFare(INN_DRINKS_BY_GOOD), INN_COMMON_DRINKS)}`;
     const legend = `路边一家有名的大${typeName}<br>这里供应美味的${course}与${drink}<br>`;
     marker.name = `${name}`;
     marker.note = legend;
@@ -1211,9 +1210,7 @@ class MarkersModule {
       .map(record => Goods.get(record.goodId)?.name.toLowerCase())
       .filter(name => name !== undefined);
     const wares = [...new Set(made)].slice(0, 3);
-    const offer = wares.length
-      ? `供应本地${list(wares)}，兼有外来货品与服务`
-      : "供应各式本地与外来货品与服务";
+    const offer = wares.length ? `供应本地${list(wares)}，兼有外来货品与服务` : "供应各式本地与外来货品与服务";
 
     const name = `${burgName}${type}`;
     const legend = `${burgName}正在举办集市，${offer}<br>`;

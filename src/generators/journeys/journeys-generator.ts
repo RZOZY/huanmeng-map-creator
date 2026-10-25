@@ -163,8 +163,7 @@ class JourneysModule {
     const previous = Transports.getDomain(segment.transport);
     if (transport !== undefined) {
       const type = Transports.get(transport);
-      if (!type)
-        throw new Error(`运输方式 ${transport} 不存在；可用：${Transports.all.map(t => t.name).join(", ")}`);
+      if (!type) throw new Error(`运输方式 ${transport} 不存在；可用：${Transports.all.map(t => t.name).join(", ")}`);
       segment.transport = type.name;
       segment.speed = type.domain === "stay" ? 0 : type.speed;
       if (type.domain === "stay") {
@@ -178,8 +177,7 @@ class JourneysModule {
       ["to", to]
     ] as const) {
       if (cell === undefined) continue;
-      if (!Number.isInteger(cell) || cell < 0 || cell >= pack.cells.i.length)
-        throw new Error(`单元格 ${cell} 不存在`);
+      if (!Number.isInteger(cell) || cell < 0 || cell >= pack.cells.i.length) throw new Error(`单元格 ${cell} 不存在`);
       segment[endpoint] = cell;
     }
     // only a change of transport or endpoint is checked: an edited heightmap may leave older endpoints invalid
@@ -193,8 +191,7 @@ class JourneysModule {
     }
     if (avoidRoads !== undefined) segment.avoidRoads = Boolean(avoidRoads) && domain === "land";
     if (speed !== undefined) {
-      if (typeof speed !== "number" || !(speed >= 0 && Number.isFinite(speed)))
-        throw new Error("速度必须是非负数");
+      if (typeof speed !== "number" || !(speed >= 0 && Number.isFinite(speed))) throw new Error("速度必须是非负数");
       segment.speed = speed;
     }
     if (duration === null) delete segment.duration;
@@ -464,8 +461,7 @@ class JourneysModule {
         points: [],
         distance: 0,
         errorCode: "no-water",
-        warning:
-          "水路运输要求两端都是水域、沿岸或可通航河流。至少有一个端点在内陆。"
+        warning: "水路运输要求两端都是水域、沿岸或可通航河流。至少有一个端点在内陆。"
       };
     }
 

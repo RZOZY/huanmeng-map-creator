@@ -105,14 +105,9 @@ type GroupStyle = { color: string; opacity: number; fontFamily: string; percent:
  * 然后做一遍贪心的矩形避让 —— 与已选中的标签相交的就丢掉。
  * 判定在地图空间做：球面与地图是同一套坐标，重叠关系一致。纯函数，便于单测。
  */
-export function selectNonOverlappingLabels(
-  labels: GlobeLabelData[],
-  limit = MAX_LABELS
-): GlobeLabelData[] {
+export function selectNonOverlappingLabels(labels: GlobeLabelData[], limit = MAX_LABELS): GlobeLabelData[] {
   const priorityOf = (group: string) => PRIORITY[group] ?? 6;
-  const sorted = [...labels].sort(
-    (a, b) => priorityOf(a.group) - priorityOf(b.group) || b.fontPx - a.fontPx
-  );
+  const sorted = [...labels].sort((a, b) => priorityOf(a.group) - priorityOf(b.group) || b.fontPx - a.fontPx);
 
   const accepted: { left: number; right: number; top: number; bottom: number }[] = [];
   const kept: GlobeLabelData[] = [];
@@ -173,7 +168,8 @@ export function buildGlobeLabelData(minFontPx = 0): GlobeLabelData[] {
     const pathPoints = label.pathPoints?.length ? label.pathPoints : undefined;
     const pathLength = pathPoints
       ? pathPoints.reduce(
-          (sum, point, index) => (index ? sum + Math.hypot(point[0] - pathPoints[index - 1][0], point[1] - pathPoints[index - 1][1]) : 0),
+          (sum, point, index) =>
+            index ? sum + Math.hypot(point[0] - pathPoints[index - 1][0], point[1] - pathPoints[index - 1][1]) : 0,
           0
         )
       : 0;

@@ -165,13 +165,7 @@ describe("painting relations", () => {
     choose("Friendly");
     await paint([2]);
     action("Apply");
-    expect(chronicle()).toEqual([
-      [
-        "停战",
-        "Two与One停火并缔结和约",
-        "Two与One的关系变为友好"
-      ]
-    ]);
+    expect(chronicle()).toEqual([["停战", "Two与One停火并缔结和约", "Two与One的关系变为友好"]]);
   });
 
   test("repairs a broken inverse of the same relation without a record", async () => {

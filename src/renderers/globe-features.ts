@@ -11,8 +11,9 @@
  * 曲线用 flattenPathData 真的展开（只取端点会把平滑海岸画成折角），三角化后按需要在地图空间细分，
  * 免得大三角形的弦切进球面里。UV 是地图空间归一化的，供贴图叠加层使用。
  */
-import { flattenPathData } from "@/utils/pathUtils";
+
 import type { Point } from "@/types/global";
+import { flattenPathData } from "@/utils/pathUtils";
 import { triangulatePolygon } from "./globe-triangulate";
 import { createGlobeProjector } from "./globe-vector";
 
@@ -180,7 +181,7 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
 
   const landColor = parseRgb(String(styles?.landmass?.attrs?.fill ?? "#eef6fb")) ?? [0.93, 0.96, 0.98];
   const land = new FillBuilder(project, width, height, 1.0002, maxEdge);
-  const featurePaths = document.querySelectorAll<SVGPathElement>('path[id^="feature_"]') // 平面图把要素路径放进 #featurePaths，不限定容器才稳妥;
+  const featurePaths = document.querySelectorAll<SVGPathElement>('path[id^="feature_"]'); // 平面图把要素路径放进 #featurePaths，不限定容器才稳妥;
   for (const path of featurePaths) {
     const index = Number.parseInt((path.id.match(/feature_(\d+)/) ?? [])[1] ?? "-1", 10);
     const feature = index >= 0 ? pack.features?.[index] : undefined;
@@ -191,7 +192,14 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
 
   const fills: GlobeFeatureFill[] = [];
   if (!land.empty) {
-    fills.push({ radius: 1.0002, positions: land.positions, uvs: land.uvs, colors: land.colors, transparent: false, opacity: 1 });
+    fills.push({
+      radius: 1.0002,
+      positions: land.positions,
+      uvs: land.uvs,
+      colors: land.colors,
+      transparent: false,
+      opacity: 1
+    });
   }
 
   // 湖泊：和陆地一样放在 #featurePaths 里（type=lake），颜色取湖泊图层自身的填充色，退到海洋生物群系色
@@ -217,7 +225,14 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
       if (d) lake.addPath(d, lakeColor);
     }
     if (!lake.empty) {
-      fills.push({ radius: 1.0003, positions: lake.positions, uvs: lake.uvs, colors: lake.colors, transparent: false, opacity: 1 });
+      fills.push({
+        radius: 1.0003,
+        positions: lake.positions,
+        uvs: lake.uvs,
+        colors: lake.colors,
+        transparent: false,
+        opacity: 1
+      });
     }
   }
   let radius = 1.0005;
@@ -247,7 +262,10 @@ export function buildGlobeFeatureFills(): GlobeFeatureFill[] {
       added++;
     }
 
-    TIME && console.info("[globe] 图层 " + layer + "：路径 " + group.querySelectorAll("path").length + "，采用 " + added + "，三角形 " + builder.positions.length / 9);
+    TIME &&
+      console.info(
+        `[globe] 图层 ${layer}：路径 ${group.querySelectorAll("path").length}，采用 ${added}，三角形 ${builder.positions.length / 9}`
+      );
 
     if (added && !builder.empty) {
       fills.push({
@@ -290,5 +308,5 @@ export function longestFillEdge(fills: GlobeFeatureFill[]): number {
 
 /** 仅供日志：每层贡献了多少三角形 */
 export function describeGlobeFeatureFills(fills: GlobeFeatureFill[]): string {
-  return fills.map(fill => fill.positions.length / 9 + "三角@" + fill.radius.toFixed(4)).join("，");
+  return fills.map(fill => `${fill.positions.length / 9}三角@${fill.radius.toFixed(4)}`).join("，");
 }

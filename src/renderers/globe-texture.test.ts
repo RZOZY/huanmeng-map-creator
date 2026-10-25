@@ -4,7 +4,10 @@ import { landOverlaySpec, PATTERN_TILE, waterOverlaySpec } from "./globe-texture
 
 const installEnvironment = (attributes: Record<string, unknown>, href: string) => {
   document.body.innerHTML = `<div id="map"><g data-layer="texture"></g></div>`;
-  (globalThis as any).styles = { texture: { options: { href, ...attributes } }, ocean: { groups: { pattern: { attrs: {} } } } };
+  (globalThis as any).styles = {
+    texture: { options: { href, ...attributes } },
+    ocean: { groups: { pattern: { attrs: {} } } }
+  };
   return document.querySelector('#map g[data-layer="texture"]') as SVGGElement;
 };
 

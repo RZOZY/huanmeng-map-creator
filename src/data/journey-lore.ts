@@ -523,10 +523,46 @@ export const TAVERN_SUBJECTS = [
 ];
 
 export const NAMELESS = [
-  "阿尔德里克", "马雷克", "伊索尔德", "科尔文", "娜迪亚", "哈尔瓦", "伊洛娜", "塔林", "塞布尔", "奥斯特里克",
-  "墨白", "长歌", "青川", "无咎", "拾一", "听澜", "藏锋", "见微", "问渠", "观棋",
-  "陆沉", "顾昭", "沈砚", "苏辞", "裴晏", "萧然", "温言", "秦淮", "程霜", "叶珩",
-  "云舒", "南枝", "临江", "照野", "山亭", "渡川", "明渊", "素问", "知秋", "容与"
+  "阿尔德里克",
+  "马雷克",
+  "伊索尔德",
+  "科尔文",
+  "娜迪亚",
+  "哈尔瓦",
+  "伊洛娜",
+  "塔林",
+  "塞布尔",
+  "奥斯特里克",
+  "墨白",
+  "长歌",
+  "青川",
+  "无咎",
+  "拾一",
+  "听澜",
+  "藏锋",
+  "见微",
+  "问渠",
+  "观棋",
+  "陆沉",
+  "顾昭",
+  "沈砚",
+  "苏辞",
+  "裴晏",
+  "萧然",
+  "温言",
+  "秦淮",
+  "程霜",
+  "叶珩",
+  "云舒",
+  "南枝",
+  "临江",
+  "照野",
+  "山亭",
+  "渡川",
+  "明渊",
+  "素问",
+  "知秋",
+  "容与"
 ];
 
 export const HIGHLAND_TERMS = ["群山", "山口"];
@@ -592,12 +628,18 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 2 },
     transports: {
       land: { "步行（轻装）": 4, "骑马（无备用马）": 4, 马车: 1 },
-      water: { "小帆船": 3, "大帆船": 2, 划艇: 1 }
+      water: { 小帆船: 3, 大帆船: 2, 划艇: 1 }
     },
     offRoad: 0.4,
     rest: 0.7,
     camp: 0.7,
-    title: ["{company}{banner}之团", "{rank}{hero}的远征", "{hero}之团", "{company}{banner}驰往{destination}", "{hero}与穿过{wild}的道路"],
+    title: [
+      "{company}{banner}之团",
+      "{rank}{hero}的远征",
+      "{hero}之团",
+      "{company}{banner}驰往{destination}",
+      "{hero}与穿过{wild}的道路"
+    ],
     leg: ["通往{to}的道路", "穿越{wild}", "策马前往{to}"],
     stopover: ["在{tavern}过夜", "{place}的传闻", "在{place}补给"],
     bivouac: ["在{wild}扎营", "在{wild}轮值守望", "在{wild}生起篝火"]
@@ -609,7 +651,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 8, water: 2 },
     transports: {
       land: { "步行（轻装）": 5, "步行（负重）": 2, "骑马（无备用马）": 1 },
-      water: { 划艇: 3, "小帆船": 2, "大帆船": 1 }
+      water: { 划艇: 3, 小帆船: 2, 大帆船: 1 }
     },
     offRoad: 0.5,
     rest: 0.6,
@@ -626,7 +668,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 6, water: 3 },
     transports: {
       land: { 马车: 3, "步行（负重）": 1 },
-      water: { "大帆船": 4, "小帆船": 1 }
+      water: { 大帆船: 4, 小帆船: 1 }
     },
     offRoad: 0.1,
     rest: 0.8,
@@ -643,7 +685,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { "步行（负重）": 5, "骑马（无备用马）": 3, 马车: 1 },
-      water: { "大帆船": 5, "小帆船": 1 }
+      water: { 大帆船: 5, 小帆船: 1 }
     },
     offRoad: 0.25,
     rest: 0.5,
@@ -660,12 +702,17 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 6, water: 4 },
     transports: {
       land: { 马车: 4, 驿车: 3, "骑马（无备用马）": 3, "步行（轻装）": 1 },
-      water: { "大帆船": 5, "小帆船": 1 }
+      water: { 大帆船: 5, 小帆船: 1 }
     },
     offRoad: 0.05,
     rest: 0.9,
     camp: 0.25,
-    title: ["出使{destination}", "{destinationAdjective}使命", "{rank}{hero}前往{destination}", "赴{destination}宫廷的差事"],
+    title: [
+      "出使{destination}",
+      "{destinationAdjective}使命",
+      "{rank}{hero}前往{destination}",
+      "赴{destination}宫廷的差事"
+    ],
     stopover: ["在{tavern}受款待", "在{place}觐见", "在{place}留宿两夜"],
     bivouac: ["在{wild}护卫扎营", "在{wild}守夜"]
   },
@@ -676,7 +723,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 8, water: 2 },
     transports: {
       land: { "步行（负重）": 4, "步行（轻装）": 3, "骑马（无备用马）": 1 },
-      water: { "小帆船": 3, "大帆船": 2, 划艇: 1 }
+      water: { 小帆船: 3, 大帆船: 2, 划艇: 1 }
     },
     offRoad: 0.35,
     rest: 0.7,
@@ -693,7 +740,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { "骑马（无备用马）": 5, "步行（负重）": 3, "骑马（有备用马）": 1, 马车: 1 },
-      water: { "大帆船": 4, "小帆船": 2 }
+      water: { 大帆船: 4, 小帆船: 2 }
     },
     offRoad: 0.3,
     rest: 0.6,
@@ -710,7 +757,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { "骑马（有备用马）": 3, 驿车: 1, "步行（轻装）": 1 },
-      water: { "小帆船": 3, "大帆船": 3 }
+      water: { 小帆船: 3, 大帆船: 3 }
     },
     offRoad: 0.15,
     rest: 0.5,
@@ -727,7 +774,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { "步行（负重）": 5, "骑马（无备用马）": 2, "步行（轻装）": 1 },
-      water: { "小帆船": 3, "大帆船": 2, 划艇: 1 }
+      water: { 小帆船: 3, 大帆船: 2, 划艇: 1 }
     },
     offRoad: 0.7,
     rest: 0.5,
@@ -744,7 +791,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 6, water: 3 },
     transports: {
       land: { "步行（负重）": 7, 马车: 2, "步行（轻装）": 1 },
-      water: { 划艇: 3, "小帆船": 2, "大帆船": 1 }
+      water: { 划艇: 3, 小帆船: 2, 大帆船: 1 }
     },
     offRoad: 0.4,
     rest: 0.5,
@@ -761,7 +808,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { "步行（轻装）": 4, "骑马（无备用马）": 3, "步行（负重）": 1 },
-      water: { "小帆船": 3, "大帆船": 2 }
+      water: { 小帆船: 3, 大帆船: 2 }
     },
     offRoad: 0.6,
     rest: 0.6,
@@ -778,7 +825,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 8, water: 2 },
     transports: {
       land: { "骑马（无备用马）": 4, "步行（轻装）": 4, "步行（负重）": 1 },
-      water: { "小帆船": 3, 划艇: 2, "大帆船": 1 }
+      water: { 小帆船: 3, 划艇: 2, 大帆船: 1 }
     },
     offRoad: 0.65,
     rest: 0.6,
@@ -795,7 +842,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { water: 6, land: 4 },
     transports: {
       land: { "步行（负重）": 5, 马车: 2, "步行（轻装）": 2, "骑马（无备用马）": 1 },
-      water: { 划艇: 3, "小帆船": 2, "大帆船": 2 }
+      water: { 划艇: 3, 小帆船: 2, 大帆船: 2 }
     },
     offRoad: 0.6,
     rest: 0.4,
@@ -811,7 +858,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { water: 6, land: 4 },
     transports: {
       land: { "步行（轻装）": 3, "骑马（无备用马）": 3, "步行（负重）": 1, 马车: 1 },
-      water: { 划艇: 4, "小帆船": 3, "大帆船": 1 }
+      water: { 划艇: 4, 小帆船: 3, 大帆船: 1 }
     },
     offRoad: 0.8,
     rest: 0.35,
@@ -828,7 +875,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { water: 8, land: 2 },
     transports: {
       land: { "步行（轻装）": 4, "骑马（有备用马）": 3, "骑马（无备用马）": 1 },
-      water: { "大帆船": 4, "小帆船": 3, 划艇: 1 }
+      water: { 大帆船: 4, 小帆船: 3, 划艇: 1 }
     },
     offRoad: 0.6,
     rest: 0.3,
@@ -845,7 +892,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 7, water: 3 },
     transports: {
       land: { 马车: 6, 驿车: 3, "骑马（无备用马）": 3, "步行（负重）": 1 },
-      water: { "大帆船": 6, "小帆船": 1 }
+      water: { 大帆船: 6, 小帆船: 1 }
     },
     offRoad: 0.02,
     rest: 0.95,
@@ -862,7 +909,7 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { air: 12, land: 1, water: 1 },
     transports: {
       land: { "骑马（无备用马）": 3, "步行（轻装）": 2 },
-      water: { "小帆船": 2, "大帆船": 2 },
+      water: { 小帆船: 2, 大帆船: 2 },
       air: { 飞艇: 6, 传送: 1 }
     },
     offRoad: 0.1,
@@ -880,13 +927,19 @@ export const JOURNEY_ARCHETYPES: Record<string, JourneyArchetype> = {
     domains: { land: 4, air: 3, water: 1 },
     transports: {
       land: { "步行（轻装）": 3, "骑马（无备用马）": 2, 马车: 1 },
-      water: { "小帆船": 2, "大帆船": 1 },
+      water: { 小帆船: 2, 大帆船: 1 },
       air: { 传送: 4, 飞艇: 1 }
     },
     offRoad: 0.4,
     rest: 0.5,
     camp: 0.3,
-    title: ["{company}法环", "{rank}{hero}携带{relic}", "{relic}必须送达{destination}", "{hero}自{origin}踏出", "通往{destination}的短途"],
+    title: [
+      "{company}法环",
+      "{rank}{hero}携带{relic}",
+      "{relic}必须送达{destination}",
+      "{hero}自{origin}踏出",
+      "通往{destination}的短途"
+    ],
     leg: ["为通往{to}的道路设符", "隐形穿过{wild}", "绕远路至{to}"],
     stopover: ["在{place}读兆", "在{tavern}的密室", "在{place}研读一夜"],
     bivouac: ["在{wild}画下法环", "在{wild}布下法障", "在{wild}的静默营地"]

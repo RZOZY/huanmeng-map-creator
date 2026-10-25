@@ -21,7 +21,7 @@ function open(): void {
     title: "配置世界",
     resizable: false,
     width: "minmax(40em, 85vw)",
-    buttons: { "应用并更新世界": updateWorld },
+    buttons: { 应用并更新世界: updateWorld },
     open: function (this: HTMLElement) {
       const checkbox = /* html */ `<div class="dontAsk" data-tip="Automatically update world on input changes and button clicks">
         <input id="wcAutoChange" class="checkbox" type="checkbox" checked />

@@ -1,12 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { Journey, JourneySegment } from "@/types/Journey";
 
-const makeSeg = (
-  distance: number,
-  speed: number,
-  avoidRoads = false,
-  transport = "步行（负重）"
-): JourneySegment => ({
+const makeSeg = (distance: number, speed: number, avoidRoads = false, transport = "步行（负重）"): JourneySegment => ({
   i: 0,
   name: "s",
   visible: true,

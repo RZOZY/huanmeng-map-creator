@@ -15,7 +15,6 @@ import {
   generateSatelliteTexture
 } from "./draw-satellite-texture";
 import * as ErosionBake from "./erosion-bake";
-import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
 import {
   buildGlobeFeatureFills,
   buildGlobeOceanGrid,
@@ -23,6 +22,7 @@ import {
   type GlobeFeatureFill,
   longestFillEdge
 } from "./globe-features";
+import { buildGlobeLabelData, FAR_MIN_LABEL_FONT, type GlobeLabelData, placeTextAlongPath } from "./globe-labels";
 import { buildGlobeFillData, buildGlobeLineData, readGlobeLayerStyle } from "./globe-lines";
 import { type GlobeOverlaySpec, landOverlaySpec, textureLayerVisible, waterOverlaySpec } from "./globe-texture";
 import {
@@ -1075,12 +1075,17 @@ function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture | n
 
   let texture = globeOverlayTextures.get(href);
   if (!texture) {
-    texture = new Three.TextureLoader().load(href, () => addGlobeOverlays(), undefined, () => {
-      globeOverlayFailures.add(href);
-      globeOverlayTextures.delete(href);
-      WARN && console.warn("[globe] 贴图读取失败，保持顶点色：" + href);
-      addGlobeOverlays();
-    });
+    texture = new Three.TextureLoader().load(
+      href,
+      () => addGlobeOverlays(),
+      undefined,
+      () => {
+        globeOverlayFailures.add(href);
+        globeOverlayTextures.delete(href);
+        WARN && console.warn(`[globe] 贴图读取失败，保持顶点色：${href}`);
+        addGlobeOverlays();
+      }
+    );
     texture.wrapS = Three.RepeatWrapping;
     texture.wrapT = Three.RepeatWrapping;
     texture.generateMipmaps = true;
@@ -1096,7 +1101,11 @@ function overlayTexture(href: string, spec: GlobeOverlaySpec): THREE.Texture | n
 }
 
 /** 建/更新一层叠加网格；spec 为 null 表示这一层不该画 */
-function applyGlobeOverlay(which: "land" | "water", geometry: GlobeOverlayGeometry | undefined, spec: GlobeOverlaySpec | null) {
+function applyGlobeOverlay(
+  which: "land" | "water",
+  geometry: GlobeOverlayGeometry | undefined,
+  spec: GlobeOverlaySpec | null
+) {
   const previous = which === "land" ? globeOverlayLandMesh : globeOverlayWaterMesh;
   if (previous) {
     scene?.remove(previous);
@@ -1148,9 +1157,13 @@ function addGlobeOverlays() {
 
   // 先把纹理请求上（可能还在解码）；尺寸到位后 onLoad 会再走一遍这里
   const requested = globeOverlayTextures.get(landHref);
-  const texture = requested ?? overlayTexture(landHref, { href: landHref, repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0, opacity: 1 });
+  const texture =
+    requested ??
+    overlayTexture(landHref, { href: landHref, repeatX: 1, repeatY: 1, offsetX: 0, offsetY: 0, opacity: 1 });
   if (!texture) return void applyGlobeOverlay("land", undefined, null);
-  const image = texture.image as { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number } | undefined;
+  const image = texture.image as
+    | { naturalWidth?: number; naturalHeight?: number; width?: number; height?: number }
+    | undefined;
   const imageWidth = image?.naturalWidth ?? image?.width ?? 0;
   const imageHeight = image?.naturalHeight ?? image?.height ?? 0;
 
@@ -1170,8 +1183,8 @@ function buildGlobeSignatures(): GlobeSignatures {
   }
 
   // 各部分的依赖不同：只切河流时球面不该跟着重建
-  const layersOf = (ids: string[]) => ids.map(id => id + ":" + (layerStates.get(id) ?? "?")).join(",");
-  const allLayers = [...layerStates].map(([id, state]) => id + ":" + state).join(",");
+  const layersOf = (ids: string[]) => ids.map(id => `${id}:${layerStates.get(id) ?? "?"}`).join(",");
+  const allLayers = [...layerStates].map(([id, state]) => `${id}:${state}`).join(",");
 
   const styleState = JSON.stringify({
     ocean: styles.ocean,
@@ -1200,7 +1213,12 @@ function buildGlobeSignatures(): GlobeSignatures {
   ].join("/");
 
   return {
-    surface: [mapState, layersOf(["ocean", "landmass", "biomes", "states", "relief", "texture"]), styleState, grid.points.length].join("#"),
+    surface: [
+      mapState,
+      layersOf(["ocean", "landmass", "biomes", "states", "relief", "texture"]),
+      styleState,
+      grid.points.length
+    ].join("#"),
     lines: [mapState, allLayers, styleState, pack.relief?.length ?? 0].join("#"),
     fills: [mapState, layersOf(["rivers", "lakes", "ice"]), styleState].join("#"),
     labels: [mapState, labelState].join("#")
@@ -1222,7 +1240,10 @@ function addGlobeOceanSphere(oceanColor: string) {
   oceanGeometry.setAttribute("uv", new Three.Float32BufferAttribute(globeOceanGrid.uvs, 2));
   oceanGeometry.computeVertexNormals();
 
-  globeOceanMesh = new Three.Mesh(oceanGeometry, new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor), side: Three.DoubleSide }));
+  globeOceanMesh = new Three.Mesh(
+    oceanGeometry,
+    new Three.MeshBasicMaterial({ color: new Three.Color(oceanColor), side: Three.DoubleSide })
+  );
   globeOceanMesh.renderOrder = 0;
   scene.add(globeOceanMesh);
 }
@@ -1321,7 +1342,7 @@ function addGlobeVectorMesh() {
     addGlobeFeatureMeshes(fills);
     TIME &&
       console.info(
-        "[globe] 要素填充 " + fills.length + " 层，三角形 " + Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0)) + "（" + describeGlobeFeatureFills(fills) + "），最长边 " + longestFillEdge(fills).toFixed(3)
+        `[globe] 要素填充 ${fills.length} 层，三角形 ${Math.round(fills.reduce((sum, fill) => sum + fill.positions.length / 9, 0))}（${describeGlobeFeatureFills(fills)}），最长边 ${longestFillEdge(fills).toFixed(3)}`
       );
 
     // 兜底：要素路径取不到时（异常数据）仍用逐单元着色
@@ -1355,7 +1376,9 @@ function addGlobeVectorMesh() {
   TIME &&
     console.info(
       "[globe] 重建：" +
-        [surfaceDirty && "球面", linesDirty && "线画", fillsDirty && "填充", labelsDirty && "标签"].filter(Boolean).join("/")
+        [surfaceDirty && "球面", linesDirty && "线画", fillsDirty && "填充", labelsDirty && "标签"]
+          .filter(Boolean)
+          .join("/")
     );
   render();
 }
@@ -1530,7 +1553,6 @@ function globeDetailForCamera(): number {
   return Math.max(0, Math.min(1, (4.2 - distance) / 2));
 }
 
-
 function addGlobeLines(detail?: number) {
   if (!scene) return;
   const level = detail ?? globeDetailForCamera(); // 不给就按当前视距定
@@ -1577,7 +1599,7 @@ function addGlobeLines(detail?: number) {
 
   globeLineGroup = group;
   scene.add(group);
-  TIME && console.info("[globe] 线画分 " + data.chunks.length + " 块（细节级别 " + level + "），带条 " + data.segments);
+  TIME && console.info(`[globe] 线画分 ${data.chunks.length} 块（细节级别 ${level}），带条 ${data.segments}`);
 }
 
 /** 河流与湖泊这类填充多边形：宽度就是几何本身，没有描边可循 */
@@ -1662,7 +1684,6 @@ async function updateGlobeTexure(addMesh?: boolean) {
   img2.src = await Services.ExportMap.getMapURL("mesh", { noScaleBar: true, fullMap: true, noVignette: true });
 }
 
-
 function addGlobe3dMesh() {
   if (!active || !scene || !material) return;
   if (mesh) scene.remove(mesh);
@@ -1710,7 +1731,6 @@ function doWorkOnRender() {
     // 细节等级带迟滞：只有真的拉动镜头（跨过 0.18）才重建，免得相机微漂就重算
     const level = globeDetailForCamera();
     if (globeLineLevel < 0 || Math.abs(level - globeLineLevel) > 0.18) {
-
       addGlobeLines(level);
       // 级别变了，标签集合也要按视距重选（远看只留读得清的大名字）
       disposeGlobeLabels();
@@ -1927,4 +1947,3 @@ export {
   toggleWireframe,
   update
 };
-

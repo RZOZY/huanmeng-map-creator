@@ -1,6 +1,8 @@
 import { select } from "d3";
 import { Layers } from "@/components/layers";
 import { MapEntities } from "@/components/map-entities";
+import { BURG_GROUP_ZH } from "@/generators/burgs-generator";
+import { featureSubtypeZh } from "@/generators/features-generator";
 import { Notes } from "@/generators/notes";
 import { highlightEmblemElement } from "@/renderers/overlays/highlight";
 import type { Point } from "@/types/global";
@@ -15,8 +17,6 @@ import {
   si
 } from "@/utils";
 import { showMainTip, tip } from "./tooltips";
-import { BURG_GROUP_ZH } from "@/generators/burgs-generator";
-import { featureSubtypeZh } from "@/generators/features-generator";
 
 export function handleMouseMove(event: MouseEvent | TouchEvent): void {
   const node = event.currentTarget as SVGElement | null;

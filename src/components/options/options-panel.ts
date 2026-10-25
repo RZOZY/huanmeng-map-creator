@@ -1,9 +1,10 @@
 // The collapsible panel on the right and the sticked menu below it
+
+import { confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { showExportPane, showLoadPane, showSavePane } from "@/components/options/io-panes";
 import { changeViewMode } from "@/components/options/view-mode";
 import { clearMainTip } from "@/components/tooltips";
 import { resetZoom } from "@/components/zoom";
-import { confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { Controllers } from "@/controllers";
 import { ARROW_TIP_KEY } from "@/services/versioning";
 import { ensureEl, findEl } from "@/utils/nodeUtils";

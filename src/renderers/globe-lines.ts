@@ -7,9 +7,9 @@
  * 并沿折线按 stroke-dasharray 切出实线段，所以球面上的线宽与虚线节奏和平面图一致。
  */
 import { Relief } from "@/generators/relief-generator";
-import { parsePathPoints } from "@/utils/pathUtils";
 import type { Point } from "@/types/global";
-import { DEFAULT_GLOBE_LAYER_STYLE, type GlobeLayerStyle, createGlobeProjector } from "./globe-vector";
+import { parsePathPoints } from "@/utils/pathUtils";
+import { createGlobeProjector, DEFAULT_GLOBE_LAYER_STYLE, type GlobeLayerStyle } from "./globe-vector";
 
 /** 线画按经度切块：每块一个网格，背面那些每帧直接隐藏 */
 export type GlobeLineChunk = {
@@ -102,7 +102,10 @@ type CachedSymbolPath = {
   fill: string | null;
 };
 
-const symbolCache = new Map<string, { x: number; y: number; width: number; height: number; paths: CachedSymbolPath[] }>();
+const symbolCache = new Map<
+  string,
+  { x: number; y: number; width: number; height: number; paths: CachedSymbolPath[] }
+>();
 
 /** 按 symbolId 缓存解析结果；符号还没加载好时返回 null，且不缓存失败 */
 function cachedSymbol(symbolId: string) {
@@ -521,9 +524,7 @@ export function buildGlobeLineData(detail = 1): GlobeLineData | null {
     const sample = reliefGroup.querySelector<SVGUseElement>("use");
     const sampleStyle = sample ? getComputedStyle(sample) : null;
     const fallbackStroke = typeof styles?.relief?.attrs?.stroke === "string" ? styles.relief.attrs.stroke : "#5c5c70";
-    const channels = colorChannels(
-      sampleStyle && sampleStyle.stroke !== "none" ? sampleStyle.stroke : fallbackStroke
-    );
+    const channels = colorChannels(sampleStyle && sampleStyle.stroke !== "none" ? sampleStyle.stroke : fallbackStroke);
     // 图标大多是填充路径（stroke="none"）：fill/stroke 都要照平面图的实际值来，不能一律当描边画
     const inheritedFill = sampleStyle?.fill ?? "none";
     const inheritedStroke = sampleStyle && sampleStyle.stroke !== "none" ? sampleStyle.stroke : fallbackStroke;
@@ -567,9 +568,14 @@ export function buildGlobeLineData(detail = 1): GlobeLineData | null {
           if (strokeAttr && strokeAttr !== "none") {
             const strokeColor = colorChannels(strokeAttr);
             const ownWidth = path.strokeWidth;
-            const widthPx = Number.isFinite(ownWidth) && ownWidth > 0 ? ownWidth * (drawn / frame.width) : inheritedStrokeWidth;
+            const widthPx =
+              Number.isFinite(ownWidth) && ownWidth > 0 ? ownWidth * (drawn / frame.width) : inheritedStrokeWidth;
             if (strokeColor) {
-              const tint: [number, number, number] = [strokeColor[0] * opacity, strokeColor[1] * opacity, strokeColor[2] * opacity];
+              const tint: [number, number, number] = [
+                strokeColor[0] * opacity,
+                strokeColor[1] * opacity,
+                strokeColor[2] * opacity
+              ];
               for (const contour of contours) {
                 if (contour.length < 2) continue;
                 emitPath(toMap(contour), Math.max(0.3, widthPx) / 2, [], tint);
@@ -583,10 +589,16 @@ export function buildGlobeLineData(detail = 1): GlobeLineData | null {
             const fillColor = colorChannels(fillAttr);
             if (fillColor) {
               const outer = toMap(contours[0]).map(([x, y]) => new runtimeThree.Vector2(x, y));
-              const holes = contours.slice(1).map(contour => toMap(contour).map(([x, y]) => new runtimeThree.Vector2(x, y)));
+              const holes = contours
+                .slice(1)
+                .map(contour => toMap(contour).map(([x, y]) => new runtimeThree.Vector2(x, y)));
               const vertices = [...outer, ...holes.flat()];
               const faces = runtimeThree.ShapeUtils.triangulateShape(outer, holes);
-              const tint: [number, number, number] = [fillColor[0] * opacity, fillColor[1] * opacity, fillColor[2] * opacity];
+              const tint: [number, number, number] = [
+                fillColor[0] * opacity,
+                fillColor[1] * opacity,
+                fillColor[2] * opacity
+              ];
               for (const face of faces) {
                 for (const index of face) {
                   const vertex = vertices[index];
@@ -630,7 +642,11 @@ export function buildGlobeLineData(detail = 1): GlobeLineData | null {
       z += chunkPositions[index + 2];
     }
     const length = Math.hypot(x, y, z) || 1;
-    chunks.push({ positions: chunkPositions, colors: bucketColors[band], center: [x / length, y / length, z / length] });
+    chunks.push({
+      positions: chunkPositions,
+      colors: bucketColors[band],
+      center: [x / length, y / length, z / length]
+    });
   }
 
   TIME && console.timeEnd("globeLines");

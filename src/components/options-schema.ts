@@ -226,7 +226,7 @@ export const optionsSchema = z.strictObject({
       tooltipSize: positive,
       themeColor: hexColor,
       transparency: percent,
-        speakerVoice: z.string() // the index into the browser's voice list, "" until one is picked
+      speakerVoice: z.string() // the index into the browser's voice list, "" until one is picked
     }),
     export: z.strictObject({
       pngResolution: positive,

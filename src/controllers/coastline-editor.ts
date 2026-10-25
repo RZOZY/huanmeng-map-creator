@@ -2,10 +2,10 @@ import { closeDialogs, destroyDialog } from "@/components/dialog/dialog-helpers"
 import { Controllers } from "@/controllers";
 import { Coastline, type CoastlineSettings, type FractalizedShape } from "@/generators/coastline-generator";
 import type { Feature } from "@/generators/features-generator";
+import { featureSubtypeZh } from "@/generators/features-generator";
 import { drawFeaturePath } from "@/renderers/draw-landmass";
 import type { Point } from "@/types/global";
 import { ensureEl, escapeHtml, findEl } from "@/utils";
-import { featureSubtypeZh } from "@/generators/features-generator";
 
 interface InputParams {
   id: string;

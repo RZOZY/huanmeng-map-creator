@@ -61,7 +61,7 @@ export function showDataTip(event: Event): void {
   if (!target) return;
 
   const parent = target.parentNode as HTMLElement | null;
-  let dataTip = target.dataset?.tip || parent?.dataset?.tip;
+  const dataTip = target.dataset?.tip || parent?.dataset?.tip;
   if (!dataTip) return;
 
   // 本版已关闭全局快捷键，界面不再宣传快捷键（数据属性保留，便于将来恢复）
@@ -71,11 +71,7 @@ export function showDataTip(event: Event): void {
 
 export function showElementLockTip(event: Event): void {
   const locked = (event.target as HTMLElement | null)?.classList?.contains("icon-lock");
-  tip(
-    locked
-      ? "已锁定<br>点击解锁，重新生成工具即可改动该元素"
-      : "未锁定<br>点击锁定，防止重新生成工具改动该元素"
-  );
+  tip(locked ? "已锁定<br>点击解锁，重新生成工具即可改动该元素" : "未锁定<br>点击锁定，防止重新生成工具改动该元素");
 }
 
 // non-svg containers holding elements with data-tip

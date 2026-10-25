@@ -436,15 +436,7 @@ export const flattenPathData = (path: string, curves = 8): Point[][] => {
   };
 
   /** 三次贝塞尔采样（也用来逼近二次、弧线） */
-  const curveTo = (
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-    x3: number,
-    y3: number,
-    steps: number
-  ) => {
+  const curveTo = (x1: number, y1: number, x2: number, y2: number, x3: number, y3: number, steps: number) => {
     const [x0, y0] = current.length ? current[current.length - 1] : [x, y];
     for (let step = 1; step <= steps; step++) {
       const t = step / steps;
@@ -522,7 +514,8 @@ export const flattenPathData = (path: string, curves = 8): Point[][] => {
     if (type === "C" || type === "S") {
       const stride = type === "C" ? 6 : 4;
       for (let index = 0; index + stride <= values.length; index += stride) {
-        const at = (offset: number) => (relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset]);
+        const at = (offset: number) =>
+          relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset];
         let x1: number;
         let y1: number;
         if (type === "C") {
@@ -547,7 +540,8 @@ export const flattenPathData = (path: string, curves = 8): Point[][] => {
     if (type === "Q" || type === "T") {
       const stride = type === "Q" ? 4 : 2;
       for (let index = 0; index + stride <= values.length; index += stride) {
-        const at = (offset: number) => (relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset]);
+        const at = (offset: number) =>
+          relative ? values[index + offset] + (offset % 2 === 0 ? x : y) : values[index + offset];
         let qx: number;
         let qy: number;
         if (type === "Q") {
