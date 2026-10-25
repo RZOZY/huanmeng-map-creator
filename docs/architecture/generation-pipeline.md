@@ -206,6 +206,34 @@ Partial regenerations triggered from the UI (`regenerate` methods on the generat
 replicate the pipeline, but they belong to the same dependency graph — check whether their scope
 reaches a phase you change.
 
+## Updating the climate of an existing map
+
+`Climate.regenerate()` in [`climate-generator.ts`](../../src/generators/climate-generator.ts) is the
+shared model-side entry point for coordinate, temperature, wind or precipitation edits. It runs
+`Temperature.generate` → `Precipitation.generate` → `Rivers.generate` / `specify` → `Biomes.define`
+→ `Features.defineGroups` / `defineNames` → `Ice.generate`.
+
+The graph and settlement, political and label collections are not rebuilt. Packed terrain is restored
+at its original floating-point precision after river generation, even if the river phase throws.
+This is not a whole-world transaction: earlier climate writes are not rolled back on failure.
+Rivers, their names and ice are regenerated. Custom river edits and manually added, moved or resized
+ice are replaced; the configurator shows this warning beside its controls.
+
+The world configurator calls this method and redraws temperature, precipitation, biomes, coordinates,
+rivers and ice. Scripts can use the same entry point on an already generated map:
+
+```ts
+// After editing mapSize / latitude / longitude:
+Coordinates.calculate();
+Climate.regenerate();
+Layers.draw("temperature", "precipitation", "biomes", "coordinates", "rivers", "ice");
+```
+
+For an explicitly supplied `geography.coordinates` box, omit `Coordinates.calculate()`; the climate
+refresh reads the box without replacing it. Enable any desired inactive layer with `Layers.show(id)`
+first. Direct option writes do not automatically trigger regeneration. Do not rerun the full generation
+pipeline to update climate: it generates coordinates again and replaces the graph and authored entities.
+
 ## Adding a new generation step
 
 1. Add a `{id, run}` entry to `pipelineSteps` in `generation-pipeline.ts`, at the correct phase
@@ -238,6 +266,12 @@ global the same way `Features`, `Rivers` and the other generators are:
 | `getCellsDesired()`                                          | the cell count requested in the options                              |
 | `findCell(x, y)` / `findAll(x, y, radius)` / `getPolygon(id)` | lookups on the regular square grid; all take an optional graph       |
 | `addDeepDepressionLakes()` / `openNearSeaLakes()`            | lake topology over `grid.cells.h/t/f` and `grid.features`            |
+
+Grid generation and the Options tab's **预计格网** readout share
+[`getGridDimensions`](../../src/utils/gridDimensions.ts). It rounds spacing to two decimals before
+counting rows and columns, including the generator's edge exclusion. The readout describes the next
+map's initial grid, not the packed cell count or the resolution of an imported heightmap. Invalid
+requests show no estimate and fail before point placement rather than producing a zero-spacing loop.
 
 ### `Temperature` — [`temperature-generator.ts`](../../src/generators/temperature-generator.ts)
 

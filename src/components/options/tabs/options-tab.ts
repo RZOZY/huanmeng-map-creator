@@ -22,6 +22,7 @@ import { CULTURE_SETS, Cultures } from "@/generators/cultures-generator";
 import { Emblems } from "@/generators/emblems-generator";
 import { EmblemRenderer } from "@/renderers/emblems/renderer";
 import { copyMapURL } from "@/services/url-params";
+import { getGridDimensions } from "@/utils/gridDimensions";
 import { applyOption, ensureEl } from "@/utils/nodeUtils";
 import { minmax, rn } from "@/utils/numberUtils";
 import { PerformanceSettings } from "../performance-settings";
@@ -244,6 +245,13 @@ const TEMPLATE = /* html */ `
       </td>
       <td>
         <output id="pointsOutputFormatted" data-option-output="points" style="color: #053305">10K</output>
+      </td>
+    </tr>
+    <tr data-tip="按实际生成算法估算下一张地图的初始格网；不是重打包后的最终格数，也不是导入地形图的像素分辨率">
+      <td></td>
+      <td>预计格网</td>
+      <td colspan="2">
+        <output data-option-output="gridDimensions" aria-live="polite"></output>
       </td>
     </tr>
     <tr data-tip="Select template or precreated heightmap to be used on generation">
@@ -681,6 +689,7 @@ function syncManors(): void {
 function syncCellsDensity(): void {
   const { density } = options.generation.graph;
   const cellsDesired = getPointsNumber(density);
+  syncGridDimensions();
 
   const input = optionInputs("points")[0];
   if (input) {
@@ -692,6 +701,17 @@ function syncCellsDensity(): void {
   if (!readout) return;
   readout.value = `${cellsDesired / 1000}K`;
   readout.style.color = cellsDensityColor(cellsDesired);
+}
+
+function syncGridDimensions(): void {
+  const readout = ensureEl("options").querySelector<HTMLOutputElement>('[data-option-output="gridDimensions"]');
+  if (!readout) return;
+
+  const { width, height, density } = options.generation.graph;
+  const dimensions = getGridDimensions(width, height, getPointsNumber(density));
+  readout.value = dimensions
+    ? `${dimensions.cellsX}×${dimensions.cellsY}（${dimensions.cellsX * dimensions.cellsY} 格）`
+    : "暂不可用";
 }
 
 /** Cap the cultures slider at what the selected set can give, and show the number that survived it */
@@ -755,6 +775,7 @@ function onMapSizeChange(): void {
   // the map on screen keeps the extent its graph was built on - this asks for the next one
   Pins.set("mapWidth", width);
   Pins.set("mapHeight", height);
+  syncGridDimensions();
 
   if (options.generation.graph.width > window.innerWidth || options.generation.graph.height > window.innerHeight) {
     const size = `${window.innerWidth} x ${window.innerHeight}`;

@@ -4,6 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { Pins } from "@/components/pins";
 import { setMapZoom, setZoomExtent } from "@/components/zoom";
 import { Emblems } from "@/generators/emblems-generator";
+import { getGridDimensions } from "@/utils/gridDimensions";
 
 vi.mock("@/components/layers", () => ({ Layers: { draw: vi.fn() } }));
 vi.mock("@/components/zoom", () => ({
@@ -90,6 +91,54 @@ describe("options tab bindings", () => {
     expect(control("autosaveInterval").value).toBe("27");
   });
 
+  it.each([
+    { width: 1280, height: 800, density: 4, expected: "126×79（9954 格）" },
+    { width: 1600, height: 900, density: 1, expected: "42×24（1008 格）" },
+    { width: 900, height: 1600, density: 2, expected: "34×60（2040 格）" }
+  ])("shows next-map Grid dimensions for $width×$height at density $density", ({ expected, ...graph }) => {
+    const current = { ...options.map.graph };
+    options.generation.graph = graph;
+    tab.syncOptionInputs();
+
+    expect(output("gridDimensions").value).toBe(expected);
+    expect(options.map.graph).toEqual(current);
+  });
+
+  it("updates Grid dimensions on density input and programmatic density changes", () => {
+    options.generation.graph = { width: 240, height: 135, density: 4 };
+    tab.syncOptionInputs();
+    edit(control("points"), "13");
+
+    expect(output("points").value).toBe("100K");
+    expect(output("gridDimensions").value).toBe("421×237（99777 格）");
+    tab.changeCellsDensity(4);
+    const dimensions = getGridDimensions(240, 135, 10000)!;
+    expect(output("gridDimensions").value).toBe(
+      `${dimensions.cellsX}×${dimensions.cellsY}（${dimensions.cellsX * dimensions.cellsY} 格）`
+    );
+  });
+
+  it("refreshes the estimate when map size is reset to the window", () => {
+    options.generation.graph = { width: 240, height: 135, density: 4 };
+    tab.syncOptionInputs();
+    document.getElementById("restoreDefaultMapSize")!.click();
+
+    const dimensions = getGridDimensions(window.innerWidth, window.innerHeight, 10000)!;
+    expect(output("gridDimensions").value).toBe(
+      `${dimensions.cellsX}×${dimensions.cellsY}（${dimensions.cellsX * dimensions.cellsY} 格）`
+    );
+  });
+
+  it("shows unavailable instead of stale or nonfinite dimensions for a degenerate request", () => {
+    options.generation.graph.width = 0;
+    tab.syncOptionInputs();
+    expect(output("gridDimensions").value).toBe("暂不可用");
+
+    options.generation.graph = { width: 1280, height: 800, density: 4 };
+    tab.syncOptionInputs();
+    expect(output("gridDimensions").value).toBe("126×79（9954 格）");
+  });
+
   it("pairs controls by binding without overwriting an unrelated draft", () => {
     const inputs = document.querySelectorAll<HTMLInputElement>('[data-option="autosaveInterval"]');
     control("mapWidth").value = "777";
@@ -173,10 +222,12 @@ describe("options tab bindings", () => {
 
   it("commits map dimensions together on change, leaving the current map intact", () => {
     const graph = { ...options.map.graph };
+    const previousEstimate = output("gridDimensions").value;
     edit(control("mapWidth"), "100");
     control("mapHeight").value = "600";
     expect(options.generation.graph.width).toBe(1280);
     expect(Pins.has("mapWidth")).toBe(false);
+    expect(output("gridDimensions").value).toBe(previousEstimate);
 
     control("mapWidth").dispatchEvent(new Event("change", { bubbles: true }));
     expect(options.generation.graph.width).toBe(240);
@@ -184,6 +235,10 @@ describe("options tab bindings", () => {
     expect(Pins.valueOr("mapWidth", 0)).toBe(240);
     expect(Pins.valueOr("mapHeight", 0)).toBe(600);
     expect(options.map.graph).toEqual(graph);
+    const dimensions = getGridDimensions(240, 600, 10000)!;
+    expect(output("gridDimensions").value).toBe(
+      `${dimensions.cellsX}×${dimensions.cellsY}（${dimensions.cellsX * dimensions.cellsY} 格）`
+    );
   });
 
   it("normalizes zoom endpoints together on change", () => {

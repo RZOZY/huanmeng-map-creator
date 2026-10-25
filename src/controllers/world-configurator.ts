@@ -3,6 +3,7 @@ import { destroyDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { Pins } from "@/components/pins";
 import { tip } from "@/components/tooltips";
+import { Climate } from "@/generators/climate-generator";
 import { convertTemperature, ensureEl, findEl, getKmInDistanceUnit, parseTransform, rn, round } from "../utils";
 
 const projection = geoOrthographic().translate([100, 100]).scale(100);
@@ -196,6 +197,7 @@ function createDialogHtml(): string {
       <button id="wcTropical" data-tip="Click to set map size to cover the Tropical latitudes">Tropical</button>
       <button id="wcSouthern" data-tip="Click to set map size to cover the Southern latitudes">Southern</button>
     </div>
+    <div style="margin-top: 0.6em">更新气候会重新生成河流与冰层，覆盖相关手动编辑；城镇与标签保持不变。</div>
   </div>`;
 }
 
@@ -303,18 +305,10 @@ function updateInputValues(): void {
 function updateWorld(): void {
   updateGlobeTemperature();
   updateGlobePosition();
-  Temperature.generate();
-  Precipitation.generate();
-  const heights = new Uint8Array(pack.cells.h);
-  Rivers.generate();
-  Rivers.specify();
-  pack.cells.h = new Float32Array(heights);
-  Biomes.define();
-  Features.defineGroups();
-  Features.defineNames();
+  Climate.regenerate();
 
   Layers.draw("temperature", "precipitation");
-  Layers.draw("biomes", "coordinates", "rivers");
+  Layers.draw("biomes", "coordinates", "rivers", "ice");
   if (findEl("canvas3d")) setTimeout(() => window.Controllers.View3d.update(), 500);
 }
 

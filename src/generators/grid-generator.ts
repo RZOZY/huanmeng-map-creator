@@ -4,6 +4,7 @@ import { min } from "d3";
 import type { GridCells, GridGraph } from "@/types/GridGraph";
 import type { Point } from "@/types/global";
 import { rn, SEA_LEVEL } from "@/utils";
+import { getGridDimensions } from "@/utils/gridDimensions";
 import { calculateVoronoi } from "./voronoi";
 
 declare global {
@@ -17,9 +18,11 @@ class GridModule {
   }
 
   generate(seed: string, width: number, height: number, cellsDesired = this.getCellsDesired()): GridGraph {
+    const dimensions = getGridDimensions(width, height, cellsDesired);
+    if (!dimensions) throw new RangeError("Grid dimensions require positive finite inputs and nonzero rounded spacing");
+    const { spacing, cellsX, cellsY } = dimensions;
     Math.random = Alea(seed); // reset PRNG
 
-    const spacing = this.getSpacing(cellsDesired, width, height);
     const boundary = this.getBoundaryPoints(width, height, spacing);
 
     TIME && console.time("placePoints");
@@ -30,8 +33,8 @@ class GridModule {
 
     const graph = {
       spacing,
-      cellsX: this.getCellsCount(spacing, width),
-      cellsY: this.getCellsCount(spacing, height),
+      cellsX,
+      cellsY,
       boundary,
       points,
       cells,
@@ -97,16 +100,6 @@ class GridModule {
   /** cell polygon points */
   getPolygon(cellId: number, graph: GridGraph = grid): Point[] {
     return graph.cells.v[cellId].map(vertexId => graph.vertices.p[vertexId]);
-  }
-
-  /** distance between points before jittering */
-  private getSpacing(cellsDesired: number, width: number, height: number): number {
-    return rn(Math.sqrt((width * height) / cellsDesired), 2);
-  }
-
-  /** number of cells fitting the given map dimension */
-  private getCellsCount(spacing: number, size: number): number {
-    return Math.floor((size + 0.5 * spacing - 1e-10) / spacing);
   }
 
   /** pseudo-points along the map edge, they clip the outer Voronoi cells but get no cells of their own */
