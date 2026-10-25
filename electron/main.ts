@@ -46,7 +46,8 @@ app.setAboutPanelOptions({
   applicationName: app.name,
   applicationVersion: app.getVersion(),
   iconPath: ICON_PATH,
-  copyright: "HuanMeng Map Creator © 2026 RZOZY\n基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）\n中文语料与模板取材自幻艺地图 fantcraft.com"
+  copyright:
+    "HuanMeng Map Creator © 2026 RZOZY\n基于 Azgaar's Fantasy Map Generator（MIT, © 2017-2026 Azgaar and contributors）\n中文语料与模板取材自幻艺地图 fantcraft.com"
 });
 
 type WindowState = { width: number; height: number; x?: number; y?: number; maximized: boolean; fullscreen: boolean };
