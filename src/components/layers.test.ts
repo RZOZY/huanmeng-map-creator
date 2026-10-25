@@ -300,6 +300,29 @@ describe("draw", () => {
 
     expect(calls).toEqual(["a", "c"]);
   });
+
+  it("warns when an explicitly requested layer is off or unknown, but drawAll stays quiet", () => {
+    const calls = setup();
+    (globalThis as unknown as { WARN: boolean }).WARN = true;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    try {
+      Layers.show("a");
+      calls.length = 0;
+      Layers.draw("a", "b", "nope");
+
+      expect(calls).toEqual(["a"]);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('"b" is off'));
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('no layer "nope"'));
+
+      warn.mockClear();
+      Layers.drawAll();
+
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
 });
 
 describe("setActive", () => {

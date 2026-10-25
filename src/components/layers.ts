@@ -78,6 +78,9 @@ export class Layer<Id extends string = string> {
 
 export class LayersRegistry<Id extends string = string> {
   private active = new Set<Id>();
+
+  /** ids already reported by draw(), so a repeated call from a hot path does not flood the console */
+  private warned = new Set<Id>();
   private listeners = new Set<() => void>();
 
   constructor(private layers: Layer<Id>[]) {
@@ -165,8 +168,28 @@ export class LayersRegistry<Id extends string = string> {
 
   /** draw the listed layers that are ON, always in layer order */
   draw(...ids: Id[]): void {
+    this.render(ids, true);
+  }
+
+  /** report is off for a full redraw: drawAll passes every id, and only some of them are on */
+  private render(ids: readonly Id[], report: boolean): void {
+    const known = new Set(this.layers.map(layer => layer.id));
+
     for (const layer of this.layers) {
-      if (ids.includes(layer.id) && this.active.has(layer.id)) layer.params.draw?.(layer);
+      if (!ids.includes(layer.id)) continue;
+      if (this.active.has(layer.id)) layer.params.draw?.(layer);
+      else if (report && !this.warned.has(layer.id)) {
+        this.warned.add(layer.id);
+        WARN &&
+          console.warn(`Layers.draw: "${layer.id}" is off, so nothing was drawn — call Layers.show("${layer.id}")`);
+      }
+    }
+
+    if (!report) return;
+    for (const id of ids) {
+      if (known.has(id) || this.warned.has(id)) continue;
+      this.warned.add(id);
+      WARN && console.warn(`Layers.draw: there is no layer "${id}"`);
     }
   }
 
@@ -175,7 +198,10 @@ export class LayersRegistry<Id extends string = string> {
     TIME && console.time("Layers Rendering");
 
     try {
-      this.draw(...this.layers.map(layer => layer.id));
+      this.render(
+        this.layers.map(layer => layer.id),
+        false
+      );
     } finally {
       // a throwing renderer must not leave the group open: every later render would nest inside it
       TIME && console.timeEnd("Layers Rendering");
