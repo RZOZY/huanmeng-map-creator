@@ -23,6 +23,7 @@ import { clearMainTip, tip } from "@/components/tooltips";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { Controllers } from "@/controllers";
 import { STATE_FORMS, type State } from "@/generators/states-generator";
+import { renderStateMergeForm } from "@/i18n/confirmation-copy";
 import { redrawEmblem, removeEmblem } from "@/renderers/draw-emblems";
 import { clearLegend, drawLegend, hasLegend } from "@/renderers/draw-legend";
 import { EmblemRenderer } from "@/renderers/emblems/renderer";
@@ -39,7 +40,7 @@ const columns: EditorColumn<State>[] = [
   { key: "color", width: "1.2em", permanent: true },
   {
     key: "name",
-    label: "State",
+    label: "国家",
     width: "7em",
     permanent: true,
     sortBy: s => s.name || "",
@@ -86,7 +87,7 @@ const columns: EditorColumn<State>[] = [
   },
   {
     key: "area",
-    label: "Area",
+    label: "面积",
     width: "7em",
     mobileHidden: true,
     defaultSort: "desc",
@@ -1186,30 +1187,7 @@ const stateEmblem = (i: number) =>
 function openStateMergeDialog(): void {
   const validStates = pack.states.filter(s => s.i && !s.removed);
 
-  const statesSelector = validStates
-    .map(
-      s => /* html */ `
-      <div data-id="${s.i}" data-tip="${s.fullName}" style="cursor:default">
-        <input type="radio" name="rulingState" value="${s.i}" />
-        <input id="selectState${s.i}" class="checkbox" type="checkbox" name="statesToMerge" value="${s.i}" />
-        <label for="selectState${s.i}" class="checkbox-label"><fill-box fill="${s.color}" disabled></fill-box>${stateEmblem(s.i)}${s.fullName}</label>
-      </div>
-    `
-    )
-    .join("");
-
-  alertMessage.innerHTML = /* html */ `
-    <form id='mergeStatesForm' style="overflow: hidden; display: flex; flex-direction: column; gap: 1em;">
-      <p style="margin:0">
-        Check the <b>checkbox</b> next to each state you want to merge.
-        Use the <b>radio button</b> to pick the <em>ruling state</em> that will absorb all others (its name, color, and capital will be kept).
-        Hover over a row to highlight the state on the map.
-      </p>
-      <main style='display: grid; grid-template-columns: 1fr 1fr; gap: .3em;'>
-        ${statesSelector}
-      </main>
-    </form>
-  `;
+  alertMessage.innerHTML = renderStateMergeForm(validStates, stateEmblem);
 
   ensureEl("mergeStatesForm")
     .querySelectorAll("div[data-id]")

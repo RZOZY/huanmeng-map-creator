@@ -24,6 +24,7 @@ import { clearMainTip, tip } from "@/components/tooltips";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { Controllers } from "@/controllers";
 import type { Province } from "@/generators/provinces-generator";
+import { renderProvinceMergeForm } from "@/i18n/confirmation-copy";
 import { redrawEmblem, redrawEmblems, removeEmblem } from "@/renderers/draw-emblems";
 import { EmblemRenderer } from "@/renderers/emblems/renderer";
 import { fog, unfog } from "@/renderers/overlays/fogging";
@@ -1164,30 +1165,7 @@ function openProvinceMergeDialog(): void {
     return;
   }
 
-  const provincesSelector = provincesToMerge
-    .map(
-      p => /* html */ `
-    <div data-id="${p.i}" data-tip="${p.fullName || p.name}" style="cursor:default">
-      <input type="radio" name="rulingProvince" value="${p.i}" />
-      <input id="selectProvince${p.i}" class="checkbox" type="checkbox" name="provincesToMerge" value="${p.i}" />
-      <label for="selectProvince${p.i}" class="checkbox-label"><fill-box fill="${p.color}" disabled></fill-box>${provinceEmblem(p.i)}${p.name}</label>
-    </div>
-  `
-    )
-    .join("");
-
-  alertMessage.innerHTML = /* html */ `
-    <form id='mergeProvincesForm' style="overflow: hidden; display: flex; flex-direction: column; gap: 1em;">
-      <p style="margin:0">
-        Check the <b>checkbox</b> next to each province you want to merge.
-        Use the <b>radio button</b> to pick the <em>primary province</em> that will absorb all others.
-        Hover over a row to highlight the province on the map.
-      </p>
-      <main style='display: grid; grid-template-columns: 1fr 1fr; gap: .3em;'>
-        ${provincesSelector}
-      </main>
-    </form>
-  `;
+  alertMessage.innerHTML = renderProvinceMergeForm(provincesToMerge, provinceEmblem);
 
   ensureEl("mergeProvincesForm")
     .querySelectorAll("div[data-id]")

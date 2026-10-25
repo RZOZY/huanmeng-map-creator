@@ -16,6 +16,7 @@ import { tip } from "@/components/tooltips";
 import { Controllers } from "@/controllers";
 import type { Burg } from "@/generators/burgs-generator";
 import { burgGroupZh } from "@/generators/burgs-generator";
+import { burgRemovalCopy } from "@/i18n/confirmation-copy";
 import { removeEmblem } from "@/renderers/draw-emblems";
 import { downloadFile, getFileName, getHeight, getLatitude, getLongitude, uploadFile } from "@/utils";
 import { convertTemperature, createFileInput, ensureEl, getTemperatureLikeness, rn, si } from "../utils";
@@ -796,10 +797,7 @@ function triggerAllBurgsRemove(): void {
       b => b.i && !b.removed && !(b.capital || b.lock) && !pack.markets?.some(m => m.centerBurgId === b.i)
     );
   confirmationDialog({
-    title: `Remove ${removable().length} burgs`,
-    message: `
-        Are you sure you want to remove all <i>unlocked</i> burgs except for capitals and market centers?
-        <br><i>To remove a capital you have to remove its state first</i>`,
+    ...burgRemovalCopy(removable().length),
     confirm: "Remove",
     onConfirm: () => {
       for (const burg of removable()) {

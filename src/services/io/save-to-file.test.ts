@@ -45,7 +45,7 @@ describe("saveToFileSystem", () => {
     const result = saveToFileSystem(prepare, "Suggested.map");
     expect(picker).toHaveBeenCalledWith({
       suggestedName: "Suggested.map",
-      types: [{ description: "Fantasy Map Generator map", accept: { "application/octet-stream": [".map"] } }]
+      types: [{ description: "幻梦地图文件", accept: { "application/octet-stream": [".map"] } }]
     });
     expect(prepare).not.toHaveBeenCalled();
     choose(handle);

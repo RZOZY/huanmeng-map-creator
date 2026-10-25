@@ -3,8 +3,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { MenuItemConstructorOptions } from "electron";
 import { app, BrowserWindow, dialog, Menu, nativeImage, net, protocol, screen, shell } from "electron";
+import { createApplicationMenu, createContextMenu, createQuitDialog } from "./native-ui";
 import { initUpdater } from "./updater";
 
 const SCHEME = "app";
@@ -182,11 +182,7 @@ function enableDevTools(window: BrowserWindow): void {
 
   // a desktop window has no browser context menu of its own: supply editing commands and the inspector
   webContents.on("context-menu", (_event, { x, y, isEditable, selectionText }) => {
-    const template: MenuItemConstructorOptions[] = [];
-    if (isEditable) template.push({ role: "cut" }, { role: "copy" }, { role: "paste" }, { type: "separator" });
-    else if (selectionText) template.push({ role: "copy" }, { type: "separator" });
-    template.push({ label: "Inspect element", click: () => webContents.inspectElement(x, y) });
-
+    const template = createContextMenu(isEditable, selectionText, () => webContents.inspectElement(x, y));
     Menu.buildFromTemplate(template).popup({ window });
   });
 }
@@ -196,36 +192,10 @@ function enableDevTools(window: BrowserWindow): void {
  * This one drops it and keeps what the app needs: the Edit roles carry the clipboard shortcuts on macOS
  */
 function buildMenu(): void {
-  const isMac = process.platform === "darwin";
-
-  const template: MenuItemConstructorOptions[] = [
-    ...(isMac
-      ? ([{ role: "appMenu" }] satisfies MenuItemConstructorOptions[])
-      : // the app menu carries Quit on macOS; elsewhere there is otherwise no way to leave the app
-        // from the UI at all, which a window manager that draws no titlebar leaves with none
-        ([{ label: "File", submenu: [{ role: "quit" }] }] satisfies MenuItemConstructorOptions[])),
-    { role: "editMenu" },
-    {
-      label: "View",
-      submenu: [
-        { role: "resetZoom" },
-        { role: "zoomIn" },
-        { role: "zoomOut" },
-        { type: "separator" },
-        { role: "togglefullscreen" },
-        { role: "toggleDevTools" }
-      ]
-    },
-    { role: "windowMenu" },
-    {
-      role: "help",
-      submenu: [
-        { label: "Wiki", click: () => shell.openExternal(WIKI_URL) },
-        { label: "Discord", click: () => shell.openExternal(DISCORD_URL) },
-        ...(isMac ? [] : ([{ type: "separator" }, { role: "about" }] satisfies MenuItemConstructorOptions[]))
-      ]
-    }
-  ];
+  const template = createApplicationMenu(process.platform === "darwin", {
+    openWiki: () => shell.openExternal(WIKI_URL),
+    openDiscord: () => shell.openExternal(DISCORD_URL)
+  });
 
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
@@ -258,26 +228,16 @@ function confirmOnClose(window: BrowserWindow): void {
     if (confirming) return;
     confirming = true;
 
-    dialog
-      .showMessageBox(window, {
-        type: "question",
-        buttons: ["Quit", "Cancel"],
-        defaultId: 1,
-        cancelId: 1,
-        title: "Quit",
-        message: "Quit the Fantasy Map Generator?",
-        detail: "The map is autosaved to the app storage, but save it to a file to be safe"
-      })
-      .then(({ response }) => {
-        confirming = false;
-        if (response !== 0) {
-          quitting = false;
-          return;
-        }
-        skipConfirmation = true;
-        if (quitting) app.quit();
-        else window.close();
-      });
+    dialog.showMessageBox(window, createQuitDialog()).then(({ response }) => {
+      confirming = false;
+      if (response !== 0) {
+        quitting = false;
+        return;
+      }
+      skipConfirmation = true;
+      if (quitting) app.quit();
+      else window.close();
+    });
   });
 
   // on macOS the app outlives its window: the next one has to ask again

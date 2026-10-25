@@ -5,6 +5,7 @@
 import { type D3DragEvent, select } from "d3";
 import { tip } from "@/components/tooltips";
 import { viewport } from "@/components/viewport";
+import { getLegendTitle } from "@/i18n/legend-names";
 import { minmax, parseTransform, rn } from "@/utils";
 import { type LegendPosition, legendPositions } from "./legend-positions";
 
@@ -80,7 +81,7 @@ export function drawLegend(name: string, data: LegendItem[]): void {
     .attr("font-weight", "bold")
     .attr("font-size", "1.2em")
     .attr("class", "legendLabel")
-    .text(name)
+    .text(getLegendTitle(name))
     .attr("x", colOffset + getBBox(node).width / 2)
     .attr("y", fontSize * 1.1 + vOffset / 2);
 

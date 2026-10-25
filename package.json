@@ -25,6 +25,8 @@
     "preview": "vite preview",
     "electron": "node scripts/electron.mjs",
     "test": "vitest",
+    "test:electron": "vitest run --config vitest.electron.config.ts",
+    "test:all": "vitest run && npm run test:electron && npm run test:scripts",
     "test:e2e": "playwright test",
     "test:scripts": "node --test scripts/*.test.mjs",
     "lint": "biome check --write",

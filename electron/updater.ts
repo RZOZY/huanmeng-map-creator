@@ -3,6 +3,7 @@
 import type { MessageBoxOptions } from "electron";
 import { app, BrowserWindow, dialog, shell } from "electron";
 import { autoUpdater } from "electron-updater";
+import { createUpdateAvailableDialog, createUpdateErrorDialog, createUpdateReadyDialog } from "./native-ui";
 
 const RELEASES_URL = "https://github.com/Azgaar/Fantasy-Map-Generator/releases/latest";
 const FIRST_CHECK_DELAY = 30_000;
@@ -20,15 +21,7 @@ function onError(error: Error): void {
   console.error("Update failed:", error);
   if (!reportErrors) return;
 
-  ask({
-    type: "warning",
-    buttons: ["Open downloads", "Close"],
-    defaultId: 0,
-    cancelId: 1,
-    title: "Update failed",
-    message: "The update could not be installed",
-    detail: `${error.message}\n\nThe new version can be downloaded and installed manually`
-  }).then(response => {
+  ask(createUpdateErrorDialog(error)).then(response => {
     if (response === 0) shell.openExternal(RELEASES_URL);
   });
 }
@@ -43,45 +36,19 @@ export function initUpdater(allowClose: () => void): void {
   autoUpdater.on("error", onError);
 
   autoUpdater.on("update-available", ({ version }) => {
-    const question = {
-      type: "info" as const,
-      defaultId: 0,
-      cancelId: 1,
-      title: "Update available",
-      message: `Fantasy Map Generator ${version} is available`
-    };
-
-    if (!CAN_SELF_INSTALL) {
-      return ask({
-        ...question,
-        buttons: ["Open downloads", "Later"],
-        detail: "Download the new version and install it over the current one"
-      }).then(response => {
-        if (response === 0) shell.openExternal(RELEASES_URL);
-      });
-    }
-
-    ask({
-      ...question,
-      buttons: ["Download", "Later"],
-      detail: "The download runs in the background, you can keep working on the map"
-    }).then(response => {
+    ask(createUpdateAvailableDialog(version, CAN_SELF_INSTALL)).then(response => {
       if (response !== 0) return;
+      if (!CAN_SELF_INSTALL) {
+        shell.openExternal(RELEASES_URL);
+        return;
+      }
       reportErrors = true;
       autoUpdater.downloadUpdate();
     });
   });
 
   autoUpdater.on("update-downloaded", ({ version }) => {
-    ask({
-      type: "info",
-      buttons: ["Restart now", "Install on exit"],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Update ready",
-      message: `Version ${version} is ready to install`,
-      detail: "Save the map before restarting: the app closes to install the update"
-    }).then(response => {
+    ask(createUpdateReadyDialog(version)).then(response => {
       if (response !== 0) return; // autoInstallOnAppQuit installs it on the next exit
       allowClose();
       autoUpdater.quitAndInstall();

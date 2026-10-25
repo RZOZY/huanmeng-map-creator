@@ -31,9 +31,34 @@ const items = [
 
 const zones = [["zone1", "#0000ff", "Gamma"]];
 
-const boxOf = (name: string) => document.querySelector(`#legend > g[data-legend="${name}"]`);
+const boxOf = (name: string) => document.querySelector<SVGGElement>(`#legend > g[data-legend="${name}"]`);
 
 describe("drawLegend", () => {
+  it.each([
+    ["States", "国家"],
+    ["Cultures", "文化"],
+    ["Biomes", "生物群系"],
+    ["Religions", "宗教"],
+    ["Zones", "区域"]
+  ])("renders the %s title in Chinese while preserving its stable key and item labels", (name, title) => {
+    drawLegend(name, items);
+    const box = boxOf(name)!;
+    expect(box.dataset.legend).toBe(name);
+    expect(box.querySelector(".legendLabel")?.textContent).toBe(title);
+    expect(box.textContent).toContain("Alpha");
+    expect(box.textContent).toContain("Beta");
+    expect(new XMLSerializer().serializeToString(box)).toContain(title);
+    expect(legendPositions.get(name)).toBeDefined();
+    clearLegend(name);
+    expect(hasLegend(name)).toBe(false);
+  });
+
+  it.each(["My States", "自定义图例", "constructor"])("preserves a custom legend title: %s", name => {
+    drawLegend(name, items);
+    redrawLegend();
+    expect(boxOf(name)!.querySelector(".legendLabel")?.textContent).toBe(name);
+  });
+
   it("lays the box out from the store font size", () => {
     styles.legend.attrs["font-size"] = "20px";
     drawLegend("States", items);
@@ -70,7 +95,7 @@ describe("drawLegend", () => {
     expect(redrawn.getAttribute("data-columns")).toBe("1");
     expect(redrawn.getAttribute("fill")).toBe("#abcdef");
     expect(redrawn.getAttribute("fill-opacity")).toBe("0.6");
-    expect(boxOf("States")!.querySelector(".legendLabel")?.textContent).toBe("States");
+    expect(boxOf("States")!.querySelector(".legendLabel")?.textContent).toBe("国家");
     expect(document.querySelectorAll("#legend text")).toHaveLength(3); // 2 items + the label
     styles.legend.options.columns = 8;
     styles.legend.groups.box.attrs.fill = "#ffffff";
@@ -111,7 +136,7 @@ describe("several legend boxes", () => {
     expect(hasLegend("States")).toBe(true);
     expect(hasLegend("Zones")).toBe(true);
     expect(document.querySelectorAll("#legend > g[data-legend]")).toHaveLength(2);
-    expect(boxOf("Zones")!.querySelector(".legendLabel")?.textContent).toBe("Zones");
+    expect(boxOf("Zones")!.querySelector(".legendLabel")?.textContent).toBe("区域");
   });
 
   it("stacks a new box on top of the shown one instead of covering it", () => {
@@ -206,7 +231,7 @@ describe("several legend boxes", () => {
 
     const swatches = boxOf("Zones")!.querySelectorAll("rect:not(.legendBox)");
     expect(swatches).toHaveLength(0);
-    expect(boxOf("Zones")!.textContent).toBe("Zones"); // the title alone, no "undefined" row
+    expect(boxOf("Zones")!.textContent).toBe("区域"); // the title alone, no "undefined" row
   });
 
   it("adopts the single box of a map saved before the legend could hold several", () => {
@@ -220,6 +245,6 @@ describe("several legend boxes", () => {
     expect(legend.hasAttribute("data")).toBe(false);
     expect(document.querySelectorAll("#legend > g[data-legend]")).toHaveLength(1);
     expect(boxOf("States")!.getAttribute("data")).toBe("state1,#ff0000,Alpha|state2,#00ff00,Beta");
-    expect(boxOf("States")!.querySelector(".legendLabel")?.textContent).toBe("States");
+    expect(boxOf("States")!.querySelector(".legendLabel")?.textContent).toBe("国家");
   });
 });
