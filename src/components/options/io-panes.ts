@@ -37,6 +37,22 @@ function showExportPane(): void {
 }
 
 async function showLoadPane(): Promise<void> {
+  const container = ensureEl("loadMapData");
+  if (!findEl("openAtlasProject")) {
+    const project = document.createElement("button");
+    project.id = "openAtlasProject";
+    project.type = "button";
+    project.textContent = "打开图集项目目录";
+    project.onclick = () => {
+      void import("@/components/atlas-project")
+        .then(({ showAtlasProject }) => showAtlasProject())
+        .catch(error => {
+          console.error("图集面板加载失败", error);
+          tip("无法打开图集项目面板，请稍后重试", true, "error", 8000);
+        });
+    };
+    container.prepend(project);
+  }
   $("#loadMapData").dialog({
     title: "Load map",
     resizable: false,
