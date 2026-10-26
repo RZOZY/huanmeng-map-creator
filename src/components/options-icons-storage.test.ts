@@ -21,11 +21,52 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
 
 const saved = () => JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}");
+
+function deferredWrite() {
+  let resolve!: () => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<void>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+async function flushWrites() {
+  for (let turn = 0; turn < 4; turn++) await Promise.resolve();
+}
+
+async function prepareIconWrites() {
+  vi.useFakeTimers();
+  const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  stored.set(ICONS_STORAGE_KEY, [icon]);
+  Options.restore();
+  await Options.restoreIcons();
+  const first = deferredWrite();
+  const second = deferredWrite();
+  const set = vi.mocked(ldb.set).mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+  options.map.customIcons = [icon, { ...icon, id: "custom-5e6f7a8b" }];
+  Options.persist();
+  expect(set).toHaveBeenCalledExactlyOnceWith(ICONS_STORAGE_KEY, options.map.customIcons);
+  return { first, second, set, log };
+}
+
+function changeIcons(kind: "revision" | "reference") {
+  const next = { ...icon, id: "custom-9a0b1c2d" };
+  if (kind === "revision") {
+    options.map.customIcons.push(next);
+    Options.iconsChanged();
+  } else {
+    options.map.customIcons = [...options.map.customIcons, next];
+  }
+  Options.persist();
+}
 
 it("keeps custom icons in IndexedDB and never in localStorage", async () => {
   stored.set(ICONS_STORAGE_KEY, [icon, { id: "broken" }]);
@@ -64,3 +105,73 @@ it("writes no icons in a session whose IndexedDB never answers, so none there ar
   Options.persist();
   expect(ldb.set).not.toHaveBeenCalled();
 });
+
+it.each(["QuotaExceededError", "AbortError"])("retries unchanged icons after a %s rejection", async name => {
+  const { first, second, set, log } = await prepareIconWrites();
+  const icons = options.map.customIcons;
+  Options.persist();
+  expect(set).toHaveBeenCalledTimes(1);
+  const error = new DOMException("custom icon write failed", name);
+  first.reject(error);
+  await flushWrites();
+  Options.persist();
+  expect(set).toHaveBeenCalledTimes(2);
+  expect(set).toHaveBeenLastCalledWith(ICONS_STORAGE_KEY, icons);
+  second.resolve();
+  await flushWrites();
+  Options.persist();
+  expect(set).toHaveBeenCalledTimes(2);
+  expect(log).toHaveBeenCalledExactlyOnceWith(error);
+});
+
+it.each(["revision", "reference"] as const)(
+  "does not clear a newer successful %s attempt when an older write rejects late",
+  async kind => {
+    const { first, second, set, log } = await prepareIconWrites();
+    changeIcons(kind);
+    expect(set).toHaveBeenCalledTimes(2);
+    second.resolve();
+    await flushWrites();
+    const error = new DOMException("older custom icon write aborted", "AbortError");
+    first.reject(error);
+    await flushWrites();
+    Options.persist();
+    expect(set).toHaveBeenCalledTimes(2);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error);
+  }
+);
+
+it.each(["revision", "reference"] as const)(
+  "does not replace a newer successful %s marker when an older write succeeds late",
+  async kind => {
+    const { first, second, set } = await prepareIconWrites();
+    changeIcons(kind);
+    second.resolve();
+    await flushWrites();
+    first.resolve();
+    await flushWrites();
+    Options.persist();
+    expect(set).toHaveBeenCalledTimes(2);
+  }
+);
+
+it.each(["revision", "reference"] as const)(
+  "still retries a failed newer %s attempt after an older write succeeds late",
+  async kind => {
+    const { first, second, set, log } = await prepareIconWrites();
+    changeIcons(kind);
+    const icons = options.map.customIcons;
+    const error = new DOMException("newer custom icon write failed", "QuotaExceededError");
+    second.reject(error);
+    await flushWrites();
+    first.resolve();
+    await flushWrites();
+    Options.persist();
+    expect(set).toHaveBeenCalledTimes(3);
+    expect(set).toHaveBeenLastCalledWith(ICONS_STORAGE_KEY, icons);
+    await flushWrites();
+    Options.persist();
+    expect(set).toHaveBeenCalledTimes(3);
+    expect(log).toHaveBeenCalledExactlyOnceWith(error);
+  }
+);

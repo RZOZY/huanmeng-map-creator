@@ -34,11 +34,18 @@ import { repairCultureReferences, repairRouteReferences } from "./load-integrity
 import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
 
 async function quickLoad(): Promise<void> {
-  const blob = await ldb.get("lastMap");
-  if (blob) loadMapPrompt(blob);
-  else {
-    tip("No map stored. Save map to browser storage first", true, "error", 2000);
-    ERROR && console.error("No map stored");
+  try {
+    const blob = await ldb.get("lastMap");
+    if (blob) loadMapPrompt(blob);
+    else
+      await runLoadSideEffect("浏览器暂存提示失败", () =>
+        tip("暂无暂存地图，请先将地图存入浏览器暂存", true, "error", 2000)
+      );
+  } catch (error) {
+    await runLoadSideEffect("浏览器暂存读取错误日志失败", () => console.error("无法读取浏览器暂存地图", error));
+    await runLoadSideEffect("浏览器暂存读取失败提示异常", () =>
+      tip("无法读取浏览器暂存地图，当前地图未更换", true, "error", 4000)
+    );
   }
 }
 
@@ -166,7 +173,11 @@ async function runLoadSideEffect(context: string, effect: () => void | Promise<v
   try {
     await effect();
   } catch (error) {
-    console.error(context, error);
+    try {
+      console.error(context, error);
+    } catch {
+      // Feedback must not turn a handled load result into an unhandled rejection.
+    }
   }
 }
 

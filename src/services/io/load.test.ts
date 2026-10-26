@@ -93,6 +93,40 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe("quick load storage failures", () => {
+  it("handles IndexedDB rejection without replacing the document or generating a new map", async () => {
+    const error = new Error("QuotaExceededError");
+    vi.stubGlobal("ldb", { get: vi.fn().mockRejectedValue(error) });
+    const oldModel = pack;
+    await expect(Load.quickLoad()).resolves.toBeUndefined();
+    expect(pack).toBe(oldModel);
+    expect(boundary.adopt).not.toHaveBeenCalled();
+    expect(boundary.generate).not.toHaveBeenCalled();
+    expect(boundary.tip).toHaveBeenCalledWith("无法读取浏览器暂存地图，当前地图未更换", true, "error", 4000);
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("retains the handled rejection even if failure feedback and logging throw", async () => {
+    vi.stubGlobal("ldb", { get: vi.fn().mockRejectedValue(new Error("storage unavailable")) });
+    boundary.tip.mockImplementationOnce(() => {
+      throw new Error("tooltip unavailable");
+    });
+    vi.spyOn(console, "error").mockImplementation(() => {
+      throw new Error("logger unavailable");
+    });
+    await expect(Load.quickLoad()).resolves.toBeUndefined();
+    expect(boundary.adopt).not.toHaveBeenCalled();
+    expect(boundary.generate).not.toHaveBeenCalled();
+  });
+
+  it("reports missing browser storage in Chinese without generating a new map", async () => {
+    vi.stubGlobal("ldb", { get: vi.fn().mockResolvedValue(null) });
+    await expect(Load.quickLoad()).resolves.toBeUndefined();
+    expect(boundary.tip).toHaveBeenCalledWith("暂无暂存地图，请先将地图存入浏览器暂存", true, "error", 2000);
+    expect(boundary.generate).not.toHaveBeenCalled();
+  });
+});
+
 describe("production load provider boundary", () => {
   it("blocks local, URL and cloud reads throughout a slow fetch, Blob read and adoption", async () => {
     const network = deferred<Response>();

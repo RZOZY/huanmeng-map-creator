@@ -161,8 +161,12 @@ class OptionsModel {
   private persistIcons(icons: OptionsData["map"]["customIcons"]): void {
     const unchanged = icons === this.savedIcons.icons && this.iconsRevision === this.savedIcons.revision;
     if (!this.iconsRestored || unchanged || typeof ldb === "undefined") return;
-    this.savedIcons = { icons, revision: this.iconsRevision };
-    void ldb.set(ICONS_STORAGE_KEY, icons);
+    const attempt = { icons, revision: this.iconsRevision };
+    this.savedIcons = attempt;
+    void ldb.set(ICONS_STORAGE_KEY, icons).catch(error => {
+      if (this.savedIcons === attempt) this.savedIcons = { icons: null, revision: -1 };
+      console.error(error);
+    });
   }
 
   /** Boot, after `restore`: adopt the custom icons this browser kept, each checked on its own */
