@@ -16,9 +16,9 @@ const PROJECTS = {
 
 const WIKI = "https://github.com/Azgaar/Fantasy-Map-Generator/wiki";
 const GUIDES = {
-  quickStart: link(`${WIKI}/Quick-Start-Tutorial`, "Quick start tutorial"),
-  qaa: link(`${WIKI}/Q&A`, "Q&A page"),
-  video: link("https://youtube.com/playlist?list=PLtgiuDC8iVR2gIG8zMTRn7T_L0arl9h1C", "Video tutorial")
+  quickStart: link(`${WIKI}/Quick-Start-Tutorial`, "快速入门教程"),
+  qaa: link(`${WIKI}/Q&A`, "常见问题"),
+  video: link("https://youtube.com/playlist?list=PLtgiuDC8iVR2gIG8zMTRn7T_L0arl9h1C", "视频教程")
 };
 
 const LINKS = [
@@ -40,8 +40,8 @@ function render(): string {
     </p>
 
     <p>
-      The best way to get help is to contact the community on ${COMMUNITY.discord} and ${COMMUNITY.reddit}. Before asking questions, please check out the
-      ${GUIDES.quickStart}, the ${GUIDES.qaa}, and ${GUIDES.video}.
+      如需帮助，建议联系 ${COMMUNITY.discord} 和 ${COMMUNITY.reddit} 社区。
+      提问前，请先查阅${GUIDES.quickStart}、${GUIDES.qaa}和${GUIDES.video}。
     </p>
 
     <ul style="columns:2">${LINKS.map(item => `<li>${item}</li>`).join("")}</ul>
