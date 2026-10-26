@@ -19,6 +19,8 @@ import { applyVignetteOptions } from "@/renderers/draw-vignette";
 import { zonesFilter } from "@/renderers/draw-zones";
 import { HeightmapColorSchemes } from "@/renderers/heightmap-color-schemes";
 import { Services } from "@/services";
+import { type AtlasManifest, parseAtlasManifest } from "@/services/atlas/manifest";
+import { assertAtlasSnapshot, observeAtlasFile, observeAtlasModel, sha256MapBytes } from "@/services/atlas/observation";
 import { declareFont } from "@/services/fonts";
 import { logStats } from "@/services/logging";
 import {
@@ -130,6 +132,7 @@ interface PreparedUpload {
   scene: SVGSVGElement;
   migrations: typeof import("./auto-update");
   stylePreset: typeof import("@/controllers/style-preset").StylePreset;
+  atlas?: { readonly manifest: AtlasManifest; readonly mapId: string; readonly sha256: string };
 }
 
 async function runLoadSideEffect(context: string, effect: () => void | Promise<void>): Promise<void> {
@@ -152,13 +155,27 @@ async function uploadMap(file: Blob, callback?: () => void | Promise<void>): Pro
   }
 }
 
+async function uploadAtlasMap(
+  file: Blob,
+  manifestJSON: string,
+  mapId: string,
+  callback?: () => void | Promise<void>
+): Promise<MapLoadOutcome> {
+  try {
+    return await loadMapFromProvider(() => file, undefined, { manifestJSON, mapId });
+  } finally {
+    if (callback) await runLoadSideEffect("图集载入完成清理失败", callback);
+  }
+}
+
 function hasCurrentMap(): boolean {
   return typeof grid !== "undefined" && !!grid.cells?.h?.length;
 }
 
 async function loadMapFromProvider(
   provide: () => Blob | Promise<Blob>,
-  onProviderError?: (error: unknown) => void | Promise<void>
+  onProviderError?: (error: unknown) => void | Promise<void>,
+  atlasRequest?: { readonly manifestJSON: string; readonly mapId: string }
 ): Promise<MapLoadOutcome> {
   let mapVersion: string | null = null;
   let replacementStarted = false;
@@ -184,6 +201,7 @@ async function loadMapFromProvider(
           return null;
         }
       }
+      const atlasManifest = atlasRequest ? parseAtlasManifest(atlasRequest.manifestJSON) : undefined;
       uploadTimeStart = performance.now();
       let file: Blob;
       try {
@@ -192,7 +210,8 @@ async function loadMapFromProvider(
         providerFailure = { error };
         throw error;
       }
-      const decoded = await parseLoadedResult(await readMapBlob(file));
+      const bytes = await readMapBlob(file);
+      const decoded = await parseLoadedResult(bytes);
       const mapData = decoded.mapData;
       mapVersion = decoded.mapVersion;
       if (!mapData || !isValidVersion(mapVersion!) || mapData.length < 10 || !mapData[5]) {
@@ -209,14 +228,42 @@ async function loadMapFromProvider(
       }
       preflightMapData(mapData, mapVersion!);
       const scene = prepareDetachedMapSvg(mapData[5]);
+      const atlas =
+        atlasManifest && atlasRequest
+          ? { manifest: atlasManifest, mapId: atlasRequest.mapId, sha256: await sha256MapBytes(bytes) }
+          : undefined;
+      if (atlas)
+        assertAtlasSnapshot(atlas.manifest, atlas.mapId, observeAtlasFile(mapData, atlas.sha256, scene), "file");
       const [migrations, { StylePreset: stylePreset }] = await Promise.all([
         import("./auto-update"),
         import("@/controllers/style-preset")
       ]);
-      return { mapData, mapVersion: mapVersion!, scene, migrations, stylePreset };
+      return { mapData, mapVersion: mapVersion!, scene, migrations, stylePreset, atlas };
     },
     prepared =>
-      parseLoadedData(prepared.mapData, prepared.mapVersion, prepared.scene, prepared.migrations, prepared.stylePreset),
+      parseLoadedData(
+        prepared.mapData,
+        prepared.mapVersion,
+        prepared.scene,
+        prepared.migrations,
+        prepared.stylePreset,
+        prepared.atlas
+          ? () => {
+              const { manifest, mapId, sha256 } = prepared.atlas!;
+              const live = observeAtlasModel(
+                {
+                  graph: options.map.graph,
+                  coordinates: options.map.geography.coordinates,
+                  burgs: pack.burgs,
+                  markers: pack.markers,
+                  addedLabels: pack.addedLabels
+                },
+                sha256
+              );
+              assertAtlasSnapshot(manifest, mapId, live, "model");
+            }
+          : undefined
+      ),
     () => {
       replacementStarted = true;
       window.dispatchEvent(new Event("map:replacing"));
@@ -346,7 +393,8 @@ async function parseLoadedData(
   mapVersion: string | null,
   scene: SVGSVGElement,
   { migrateLegacySettings, resolveVersionConflicts }: PreparedUpload["migrations"],
-  stylePreset: PreparedUpload["stylePreset"]
+  stylePreset: PreparedUpload["stylePreset"],
+  verifyModel?: () => void
 ): Promise<void> {
   let isLogGroupOpen = false;
 
@@ -755,6 +803,7 @@ async function parseLoadedData(
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - uploadTimeStart) / 1000, 2)}s`);
 
+    verifyModel?.(); // focusOn can mutate burgs too: observe after it, before publishing success.
     Options.persist(); // the migrations run after the adoption, and they change the map too
 
     const mapCreatedAt = +data[0].split("|")[6] || Date.now();
@@ -772,5 +821,6 @@ export const Load = {
   createSharableDropboxLink,
   loadMapFromURL,
   showUploadErrorMessage,
-  uploadMap
+  uploadMap,
+  uploadAtlasMap
 };
