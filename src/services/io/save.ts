@@ -9,6 +9,8 @@ import { getUsedFonts } from "@/services/fonts";
 import { isElectron, savedMessage } from "@/services/platform";
 import { MAP_FORMAT_VERSION } from "@/services/versioning";
 import { ensureEl, escapeHtml, getFileName, link, parseError, rn } from "@/utils";
+import { isMapIOBusy } from "./map-io";
+import { isMapModelStable } from "./model-status";
 import { type SaveOutcome, saveToFileSystem } from "./save-to-file";
 
 type Writer = () => Promise<void>;
@@ -18,6 +20,9 @@ const toMachine = (saveAs = false): Promise<void> => save(() => writeToMachine(s
 const toDropbox = (): Promise<void> => save(() => writeToDropbox(prepareMapData(), `${getFileName()}.map`));
 
 async function save(write: Writer): Promise<void> {
+  if (isMapIOBusy()) return tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+  if (!isMapModelStable())
+    return tip("当前地图载入或生成未完整结束，请重新打开已保存的地图后再保存", true, "warn", 8000);
   if (customization) return tip("Map cannot be saved in EDIT mode, please complete the edit and retry", false, "error");
   closeDialogs("#alert");
 
@@ -193,6 +198,7 @@ function prepareMapData(): string {
 
 // save map file to indexedDB
 async function writeToStorage(mapData: string, showTip = false): Promise<void> {
+  if (!isMapModelStable()) throw new Error("地图尚未完整载入或生成，已停止写入恢复副本");
   const blob = new Blob([mapData], { type: "text/plain" });
   await ldb.set("lastMap", blob);
   showTip && tip("Map is saved to the browser storage", false, "success");

@@ -29,8 +29,9 @@ import {
   MAP_FORMAT_VERSION,
   parseMapVersion
 } from "@/services/versioning";
-import { ensureEl, escapeHtml, last, link, parseError, rn, safeParseJSON } from "@/utils";
+import { ensureEl, escapeHtml, last, link, rn, safeParseJSON } from "@/utils";
 import { repairCultureReferences, repairRouteReferences } from "./load-integrity";
+import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
 
 async function quickLoad(): Promise<void> {
   const blob = await ldb.get("lastMap");
@@ -41,12 +42,12 @@ async function quickLoad(): Promise<void> {
   }
 }
 
-async function loadFromDropbox(): Promise<void> {
-  const mapPath = ensureEl<HTMLInputElement>("loadFromDropboxSelect").value;
-
-  console.info("Loading map from Dropbox:", mapPath);
-  const blob = await Services.Cloud.load(mapPath);
-  uploadMap(blob);
+async function loadFromDropbox(): Promise<MapLoadOutcome> {
+  return loadMapFromProvider(() => {
+    const mapPath = ensureEl<HTMLSelectElement>("loadFromDropboxSelect").value;
+    console.info("Loading map from Dropbox:", mapPath);
+    return Services.Cloud.load(mapPath);
+  });
 }
 
 async function createSharableDropboxLink(): Promise<void> {
@@ -103,28 +104,37 @@ function loadMapPrompt(blob: Blob): void {
   }
 }
 
-async function loadMapFromURL(maplink: string, random?: boolean): Promise<void> {
-  const controller = new AbortController();
-  const TIMEOUT = 120000; // 120 seconds
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
+async function loadMapFromURL(maplink: string, random?: boolean): Promise<MapLoadOutcome> {
+  return loadMapFromProvider(
+    async () => {
+      const controller = new AbortController();
+      const TIMEOUT = 120000; // 120 seconds
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT);
 
-  try {
-    const url = decodeURIComponent(maplink);
-    const response = await fetch(url, { method: "GET", mode: "cors", signal: controller.signal });
-    if (!response.ok) throw new Error("Cannot load map from URL");
-
-    const blob = await response.blob();
-    uploadMap(blob);
-  } catch (error) {
-    const message =
-      (error as Error)?.name === "AbortError"
-        ? "Cannot load map from URL: request timed out"
-        : (error as Error).message;
-    showUploadErrorMessage(message, maplink, random);
-    if (random) generateMapOnLoad();
-  } finally {
-    clearTimeout(timeoutId);
-  }
+      try {
+        const url = decodeURIComponent(maplink);
+        const response = await fetch(url, { method: "GET", mode: "cors", signal: controller.signal });
+        if (!response.ok) throw new Error("Cannot load map from URL");
+        return await response.blob();
+      } catch (error) {
+        const aborted = typeof error === "object" && error !== null && "name" in error && error.name === "AbortError";
+        if (controller.signal.aborted && aborted) {
+          throw new Error("Cannot load map from URL: request timed out", { cause: error });
+        }
+        throw error;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    async error => {
+      const message = error instanceof Error ? error.message : String(error);
+      const generateFallback = random && !mapHistory.length;
+      await runLoadSideEffect("地图链接载入错误提示失败", () =>
+        showUploadErrorMessage(message, maplink, generateFallback)
+      );
+      if (generateFallback) await generateMapOnLoad();
+    }
+  );
 }
 
 function showUploadErrorMessage(error: string, maplink: string, random?: boolean): void {
@@ -147,34 +157,73 @@ function showUploadErrorMessage(error: string, maplink: string, random?: boolean
 
 let uploadTimeStart = 0;
 
-function uploadMap(file: Blob, callback?: () => void): void {
-  uploadTimeStart = performance.now();
+interface PreparedUpload {
+  mapData: string[];
+  mapVersion: string;
+}
 
-  const fileReader = new FileReader();
-  fileReader.onloadend = async fileLoadedEvent => {
-    if (callback) callback();
-    ensureEl("coas").innerHTML = ""; // remove auto-generated emblems
+async function runLoadSideEffect(context: string, effect: () => void | Promise<void>): Promise<void> {
+  try {
+    await effect();
+  } catch (error) {
+    console.error(context, error);
+  }
+}
 
-    const result = fileLoadedEvent.target!.result as ArrayBuffer;
-    const { mapData, mapVersion } = await parseLoadedResult(result);
+async function uploadMap(file: Blob, callback?: () => void | Promise<void>): Promise<MapLoadOutcome> {
+  try {
+    return await loadMapFromProvider(() => file);
+  } finally {
+    if (callback) await runLoadSideEffect("地图载入完成清理失败", callback);
+  }
+}
 
-    const isInvalid = !mapData || !isValidVersion(mapVersion!) || mapData.length < 10 || !mapData[5];
-    if (isInvalid) return showUploadMessage("invalid", mapData, mapVersion);
-
-    const isUpdated = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isEqual;
-    if (isUpdated) return showUploadMessage("updated", mapData, mapVersion);
-
-    const isAncient = compareVersions(mapVersion!, "0.70.0").isOlder;
-    if (isAncient) return showUploadMessage("ancient", mapData, mapVersion);
-
-    const isNewer = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isNewer;
-    if (isNewer) return showUploadMessage("newer", mapData, mapVersion);
-
-    const isOutdated = compareVersions(mapVersion!, MAP_FORMAT_VERSION).isOlder;
-    if (isOutdated) return showUploadMessage("outdated", mapData, mapVersion);
-  };
-
-  fileReader.readAsArrayBuffer(file);
+async function loadMapFromProvider(
+  provide: () => Blob | Promise<Blob>,
+  onProviderError?: (error: unknown) => void | Promise<void>
+): Promise<MapLoadOutcome> {
+  let mapVersion: string | null = null;
+  let replacementStarted = false;
+  let providerFailure: { error: unknown } | undefined;
+  const outcome = await runMapLoad<PreparedUpload>(
+    async () => {
+      uploadTimeStart = performance.now();
+      let file: Blob;
+      try {
+        file = await provide();
+      } catch (error) {
+        providerFailure = { error };
+        throw error;
+      }
+      const decoded = await parseLoadedResult(await readMapBlob(file));
+      const mapData = decoded.mapData;
+      mapVersion = decoded.mapVersion;
+      if (!mapData || !isValidVersion(mapVersion!) || mapData.length < 10 || !mapData[5]) {
+        await runLoadSideEffect("地图文件校验提示失败", () => showUploadMessage("invalid", mapVersion));
+        return null;
+      }
+      if (compareVersions(mapVersion!, "0.70.0").isOlder) {
+        await runLoadSideEffect("地图版本校验提示失败", () => showUploadMessage("ancient", mapVersion));
+        return null;
+      }
+      if (compareVersions(mapVersion!, MAP_FORMAT_VERSION).isNewer) {
+        await runLoadSideEffect("地图版本校验提示失败", () => showUploadMessage("newer", mapVersion));
+        return null;
+      }
+      return { mapData, mapVersion: mapVersion! };
+    },
+    prepared => parseLoadedData(prepared.mapData, prepared.mapVersion),
+    () => {
+      replacementStarted = true;
+      window.dispatchEvent(new Event("map:replacing"));
+    }
+  );
+  await runLoadSideEffect("地图载入结果提示失败", async () => {
+    if (outcome.type === "busy") tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+    if (providerFailure && onProviderError) await onProviderError(providerFailure.error);
+    else if (outcome.type === "failed") reportMapLoadError(outcome.error, mapVersion, replacementStarted);
+  });
+  return outcome;
 }
 
 async function uncompress(compressedData: ArrayBuffer): Promise<Uint8Array | null> {
@@ -225,16 +274,13 @@ async function parseLoadedResult(
   }
 }
 
-function showUploadMessage(type: string, mapData: string[] | null, mapVersion: string | null): void {
+function showUploadMessage(type: "invalid" | "ancient" | "newer", mapVersion: string | null): void {
   let message = "";
   let title = "";
 
   if (type === "invalid") {
     message = "The file does not look like a valid save file.<br>Please check the data format";
     title = "Invalid file";
-  } else if (type === "updated") {
-    parseLoadedData(mapData!, mapVersion);
-    return;
   } else if (type === "ancient") {
     const archive = link("https://github.com/Azgaar/Fantasy-Map-Generator/wiki/Changelog", "archived version");
     message = `The map version you are trying to load (${mapVersion}) is too old and cannot be updated to the current version.<br>Please keep using an ${archive}`;
@@ -242,10 +288,6 @@ function showUploadMessage(type: string, mapData: string[] | null, mapVersion: s
   } else if (type === "newer") {
     message = `The map version you are trying to load (${mapVersion}) is newer than the current version.<br>Please load the file in the appropriate version`;
     title = "Newer file";
-  } else if (type === "outdated") {
-    INFO && console.info(`Loading map. Auto-updating from ${mapVersion} to ${MAP_FORMAT_VERSION}`);
-    parseLoadedData(mapData!, mapVersion);
-    return;
   }
 
   alertMessage.innerHTML = message;
@@ -260,6 +302,36 @@ function showUploadMessage(type: string, mapData: string[] | null, mapVersion: s
   });
 }
 
+function reportMapLoadError(error: unknown, mapVersion: string | null, replacementStarted: boolean): void {
+  ERROR && console.error(error);
+  clearMainTip();
+  const warning = replacementStarted
+    ? "载入未完成，当前地图可能不完整。请勿覆盖原文件，请重新打开已保存的地图副本。"
+    : "原地图尚未开始替换。";
+  alertMessage.innerHTML = /* html */ `地图载入失败。${warning}<br>地图版本：${escapeHtml(mapVersion ?? "未知")}；程序版本：${VERSION}。<pre id="errorBox"></pre>`;
+  ensureEl("errorBox").textContent = error instanceof Error ? (error.stack ?? error.message) : String(error);
+  $("#alert").dialog({
+    resizable: false,
+    title: "地图载入失败",
+    maxWidth: "40em",
+    buttons: {
+      清理缓存: () => clearCache(),
+      选择文件: function (this: HTMLElement) {
+        $(this).dialog("close");
+        pickMapFile();
+      },
+      新建地图: function (this: HTMLElement) {
+        $(this).dialog("close");
+        regenerateMap("loading error");
+      },
+      取消: function (this: HTMLElement) {
+        $(this).dialog("close");
+      }
+    },
+    position: { my: "center", at: "center", of: "svg" }
+  });
+}
+
 async function parseLoadedData(data: string[], mapVersion: string | null): Promise<void> {
   let isLogGroupOpen = false;
 
@@ -267,6 +339,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
     const { migrateLegacySettings, resolveVersionConflicts } = await import("./auto-update"); // TODO: don't load if not required
 
     closeDialogs();
+    ensureEl("coas").innerHTML = "";
     customization = 0;
     if (ensureEl("customizationMenu").offsetParent) ensureEl("styleTab").click();
 
@@ -674,34 +747,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
     const mapCreatedAt = +data[0].split("|")[6] || Date.now();
     registerMap(mapCreatedAt);
     logStats();
-    tip("Map is successfully loaded", true, "success", 7000);
-  } catch (error) {
-    ERROR && console.error(error);
-    clearMainTip();
-
-    alertMessage.innerHTML = /* html */ `An error occurred while loading the map. Select a different file to load, <br>generate a new random map or cancel the loading.<br>Map version: ${mapVersion}. Generator version: ${VERSION}.
-      <p id="errorBox">${parseError(error as Error)}</p>`;
-
-    $("#alert").dialog({
-      resizable: false,
-      title: "Loading error",
-      maxWidth: "40em",
-      buttons: {
-        "Clear cache": () => clearCache(),
-        "Select file": function (this: HTMLElement) {
-          $(this).dialog("close");
-          pickMapFile();
-        },
-        "New map": function (this: HTMLElement) {
-          $(this).dialog("close");
-          regenerateMap("loading error");
-        },
-        Cancel: function (this: HTMLElement) {
-          $(this).dialog("close");
-        }
-      },
-      position: { my: "center", at: "center", of: "svg" }
-    });
+    await runLoadSideEffect("地图载入成功提示失败", () => tip("Map is successfully loaded", true, "success", 7000));
   } finally {
     if (isLogGroupOpen) console.groupEnd();
   }

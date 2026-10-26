@@ -2,6 +2,8 @@
 
 import { tip } from "@/components/tooltips";
 import { Services } from "@/services";
+import { beginMapIO, isMapIOBusy } from "@/services/io/map-io";
+import { isMapModelStable } from "@/services/io/model-status";
 import { ra } from "@/utils";
 
 const MINUTE = 60000; // minute in milliseconds
@@ -14,8 +16,10 @@ export function initiateAutosave(): void {
     if (!timeoutMinutes) return;
 
     const diffInMinutes = (Date.now() - lastSavedAt) / MINUTE;
-    if (diffInMinutes < timeoutMinutes) return;
+    if (diffInMinutes < timeoutMinutes || !isMapModelStable()) return;
     if (customization) return tip("Autosave: map cannot be saved in edit mode", false, "warn", 2000);
+    const lease = beginMapIO("save");
+    if (!lease) return;
 
     try {
       tip("Autosave: saving map...", false, "warn", 3000);
@@ -26,6 +30,8 @@ export function initiateAutosave(): void {
     } catch (error) {
       ERROR && console.error(error);
       tip(`Autosave failed: ${(error as Error)?.message || "Unknown error"}`, true, "error", 4000);
+    } finally {
+      lease.release();
     }
   }
 
@@ -51,7 +57,7 @@ function startSaveReminder(): void {
   const interval = 15 * MINUTE; // remind every 15 minutes
 
   reminderInterval = setInterval(() => {
-    if (customization) return;
+    if (customization || isMapIOBusy() || !isMapModelStable()) return;
     tip(ra(message), true, "warn", 2500);
   }, interval);
   reminderActive = true;

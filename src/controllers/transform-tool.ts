@@ -3,9 +3,12 @@ import { destroyDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { registerMap } from "@/components/lifecycle";
 import { cellsDensityColor, changeCellsDensity } from "@/components/options/tabs/options-tab";
+import { tip } from "@/components/tooltips";
 import { undraw } from "@/components/undraw";
 import { POINTS_BY_DENSITY } from "@/data/graph-density";
 import { Resample } from "@/generators/resample";
+import { beginMapIO } from "@/services/io/map-io";
+import { isMapModelStable, markMapModelStable, markMapModelUnstable } from "@/services/io/model-status";
 import { logStats } from "@/services/logging";
 import { ensureEl, rn } from "../utils";
 
@@ -24,9 +27,8 @@ function open(): void {
     position: { my: "center", at: "center", of: "svg" },
     close: cleanup,
     buttons: {
-      Transform: function (this: HTMLElement) {
-        transformMap();
-        $(this).dialog("close");
+      Transform: async function (this: HTMLElement) {
+        if (await transformMap()) $(this).dialog("close");
       },
       Cancel: function (this: HTMLElement) {
         $(this).dialog("close");
@@ -195,27 +197,49 @@ function handleWheel(e: WheelEvent): void {
   handleInput();
 }
 
-function transformMap(): void {
-  INFO && console.group("transformMap");
+async function transformMap(): Promise<boolean> {
+  const lease = beginMapIO("generate");
+  if (!lease) {
+    tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+    return false;
+  }
 
-  const transformPointsValue = ensureEl<HTMLInputElement>("transformPointsInput").value;
-  const globalPointsValue = String(options.generation.graph.density);
-  if (transformPointsValue !== globalPointsValue) changeCellsDensity(+transformPointsValue);
+  try {
+    INFO && console.group("transformMap");
+    if (!isMapModelStable()) {
+      tip("当前地图状态不完整，请先成功重新载入地图或全新生成地图，再使用此工具。", true, "warn", 5000);
+      return false;
+    }
 
-  const [projection, inverse] = getProjection();
+    markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
 
-  applyGraphSize();
-  fitMapToScreen();
-  resetZoom(0);
-  undraw();
-  Resample.process({ projection, inverse, scale: 1 });
+    const transformPointsValue = ensureEl<HTMLInputElement>("transformPointsInput").value;
+    const globalPointsValue = String(options.generation.graph.density);
+    if (transformPointsValue !== globalPointsValue) changeCellsDensity(+transformPointsValue);
 
-  Layers.drawAll();
+    const [projection, inverse] = getProjection();
 
-  registerMap(); // a transformed map is a new map: it gets its own id and history entry
-  logStats();
+    applyGraphSize();
+    fitMapToScreen();
+    resetZoom(0);
+    undraw();
+    await Resample.process({ projection, inverse, scale: 1 });
 
-  INFO && console.groupEnd();
+    Layers.drawAll();
+
+    registerMap(); // a transformed map is a new map: it gets its own id and history entry
+    logStats();
+    markMapModelStable();
+    return true;
+  } catch (error) {
+    ERROR && console.error(error);
+    tip("变换地图失败，地图可能已部分更改。请重新加载已保存的地图后重试。", true, "error", 10000);
+    return false;
+  } finally {
+    lease.release();
+    INFO && console.groupEnd();
+  }
 }
 
 function getProjection(): [(x: number, y: number) => [number, number], (x: number, y: number) => [number, number]] {

@@ -18,6 +18,8 @@ import { getPointsNumber } from "@/data/graph-density";
 import { GenerationPipeline } from "@/generators/generation-pipeline";
 import { adoptLegacyIconSlots } from "@/generators/styles-legacy";
 import { initiateAutosave } from "@/services/autosave";
+import { beginMapIO, isMapIOBusy } from "@/services/io/map-io";
+import { markMapModelStable, markMapModelUnstable } from "@/services/io/model-status";
 import { logStats } from "@/services/logging";
 import { registerServiceWorker } from "@/services/platform";
 import { checkLoadParameters } from "@/services/url-params";
@@ -51,7 +53,14 @@ export type GenerationConfig = { seed?: string; graph?: GridGraph; width?: numbe
 
 /** Generate a whole new world */
 export async function generate(config?: GenerationConfig): Promise<void> {
+  const lease = beginMapIO("generate");
+  if (!lease) {
+    tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+    return;
+  }
   try {
+    markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
     const { seed: precreatedSeed, graph: precreatedGraph, width, height, points } = config || {};
     Options.setGraphSize(width, height);
     setSeed(precreatedSeed);
@@ -67,6 +76,7 @@ export async function generate(config?: GenerationConfig): Promise<void> {
     registerMap();
     logStats();
     invokeActiveZooming();
+    markMapModelStable();
   } catch (error) {
     ERROR && console.error(error);
     clearMainTip();
@@ -91,11 +101,17 @@ export async function generate(config?: GenerationConfig): Promise<void> {
       },
       position: { my: "center", at: "center", of: "svg" }
     });
+  } finally {
+    lease.release();
   }
 }
 
 /** Replace the current map with a new one. Debounced: the hotkey and the button both fire it */
 export const regenerateMap = debounce(async (config?: GenerationConfig | string) => {
+  if (isMapIOBusy()) {
+    tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+    return;
+  }
   const reason = typeof config === "string" ? config : "user request";
   WARN && console.warn(`Generate new random map: ${reason}`);
 

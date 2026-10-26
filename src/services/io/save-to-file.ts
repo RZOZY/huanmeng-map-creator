@@ -1,27 +1,31 @@
 import { downloadFile } from "@/utils/fileUtils";
+import { beginMapIO } from "./map-io";
+import { isMapModelStable } from "./model-status";
 
 export type SaveOutcome = { type: "saved"; filename: string } | { type: "downloaded-fallback" } | { type: "cancelled" };
 
 let destination: FileSystemFileHandle | undefined;
 let mapRevision = 0;
-let saving = false;
 
-window.addEventListener("map:generated", () => {
-  destination = undefined;
-  mapRevision++;
-});
+for (const event of ["map:replacing", "map:generated"]) {
+  window.addEventListener(event, () => {
+    destination = undefined;
+    mapRevision++;
+  });
+}
 
 export async function saveToFileSystem(
   prepareData: () => string,
   suggestedName: string,
   saveAs = false
 ): Promise<SaveOutcome> {
-  if (saving) return { type: "cancelled" };
-  saving = true;
+  if (!isMapModelStable()) return { type: "cancelled" };
+  const lease = beginMapIO("save");
+  if (!lease) return { type: "cancelled" };
   try {
     return await writeMapFile(prepareData, suggestedName, saveAs);
   } finally {
-    saving = false;
+    lease.release();
   }
 }
 
@@ -56,13 +60,18 @@ async function writeMapFile(prepareData: () => string, suggestedName: string, sa
       return { type: "cancelled" };
     }
     await writable.write(prepareData());
+    if (revision !== mapRevision) {
+      await writable.abort();
+      return { type: "cancelled" };
+    }
     await writable.close();
   } catch (error) {
     if (destination === handle) destination = undefined;
     await writable?.abort().catch(() => {});
     throw error;
   }
-  if (revision === mapRevision) destination = handle;
+  if (revision !== mapRevision) return { type: "cancelled" };
+  destination = handle;
   return { type: "saved", filename: handle.name };
 }
 

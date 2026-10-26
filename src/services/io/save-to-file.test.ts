@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { downloadFile } from "@/utils/fileUtils";
+import { beginMapIO, isMapIOBusy } from "./map-io";
+import { markMapModelStable, markMapModelUnstable } from "./model-status";
 import { saveToFileSystem } from "./save-to-file";
 
 vi.mock("@/utils/fileUtils", () => ({ downloadFile: vi.fn() }));
@@ -15,14 +17,29 @@ function makeHandle(name = "Chosen.map") {
   return { handle, stream };
 }
 
-beforeEach(() => window.dispatchEvent(new Event("map:generated")));
+beforeEach(() => {
+  markMapModelStable();
+  window.dispatchEvent(new Event("map:generated"));
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  expect(isMapIOBusy()).toBe(false);
 });
 
 describe("saveToFileSystem", () => {
+  it.each(["picker", "fallback"] as const)("does not serialize a quarantined model through %s", async mode => {
+    const picker = vi.fn();
+    vi.stubGlobal("showSaveFilePicker", mode === "picker" ? picker : undefined);
+    const prepare = vi.fn(() => "partial model");
+    markMapModelUnstable();
+    await expect(saveToFileSystem(prepare, "Original.map")).resolves.toEqual({ type: "cancelled" });
+    expect(picker).not.toHaveBeenCalled();
+    expect(prepare).not.toHaveBeenCalled();
+    expect(downloadFile).not.toHaveBeenCalled();
+    expect(isMapIOBusy()).toBe(false);
+  });
   it("picks a destination before preparing data and waits for close before reporting success", async () => {
     const { handle, stream } = makeHandle();
     let choose!: (handle: unknown) => void;
@@ -154,11 +171,182 @@ describe("saveToFileSystem", () => {
     first.stream.close.mockImplementation(async () => window.dispatchEvent(new Event("map:generated")));
     const picker = vi.fn().mockResolvedValueOnce(first.handle).mockResolvedValueOnce(second.handle);
     vi.stubGlobal("showSaveFilePicker", picker);
-    await saveToFileSystem(() => "first", "Map.map");
+    await expect(saveToFileSystem(() => "first", "Map.map")).resolves.toEqual({ type: "cancelled" });
     await saveToFileSystem(() => "second", "Map.map");
     expect(picker).toHaveBeenCalledTimes(2);
     expect(second.stream.write).toHaveBeenCalledWith("second");
   });
+
+  it.each(["picker", "permission"])(
+    "does not serialize a partially replaced map during a pending %s without a generated event",
+    async stage => {
+      const { handle, stream } = makeHandle();
+      const replaceMap = () => window.dispatchEvent(new Event("map:replacing"));
+      vi.stubGlobal(
+        "showSaveFilePicker",
+        vi.fn(async () => {
+          if (stage === "picker") replaceMap();
+          return handle;
+        })
+      );
+      handle.createWritable.mockImplementation(async () => {
+        replaceMap();
+        return stream;
+      });
+      const prepare = vi.fn(() => "partially replaced map");
+      await expect(saveToFileSystem(prepare, "Old.map")).resolves.toEqual({ type: "cancelled" });
+      expect(prepare).not.toHaveBeenCalled();
+      expect(stream.write).not.toHaveBeenCalled();
+      expect(stream.close).not.toHaveBeenCalled();
+      if (stage === "permission") expect(stream.abort).toHaveBeenCalledOnce();
+      else expect(handle.createWritable).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    { operation: "write", event: "map:replacing" },
+    { operation: "close", event: "map:replacing" },
+    { operation: "write", event: "map:generated" },
+    { operation: "close", event: "map:generated" }
+  ] as const)(
+    "does not commit or restore a destination when $event occurs during $operation",
+    async ({ operation, event }) => {
+      const first = makeHandle("Original.map");
+      const second = makeHandle("Replacement.map");
+      const picker = vi.fn().mockResolvedValueOnce(first.handle).mockResolvedValueOnce(second.handle);
+      vi.stubGlobal("showSaveFilePicker", picker);
+      await saveToFileSystem(() => "original", "Map.map");
+      first.stream.close.mockClear();
+      first.stream[operation].mockImplementationOnce(async () => {
+        window.dispatchEvent(new Event(event));
+      });
+      await expect(saveToFileSystem(() => "original snapshot", "Map.map")).resolves.toEqual({ type: "cancelled" });
+      if (operation === "write") {
+        expect(first.stream.abort).toHaveBeenCalledOnce();
+        expect(first.stream.close).not.toHaveBeenCalled();
+      } else {
+        expect(first.stream.close).toHaveBeenCalledOnce();
+        expect(first.stream.abort).not.toHaveBeenCalled();
+      }
+      await expect(saveToFileSystem(() => "replacement", "Map.map")).resolves.toEqual({
+        type: "saved",
+        filename: "Replacement.map"
+      });
+      expect(picker).toHaveBeenCalledTimes(2);
+      expect(first.stream.write.mock.calls).toEqual([["original"], ["original snapshot"]]);
+      expect(second.stream.write).toHaveBeenCalledExactlyOnceWith("replacement");
+    }
+  );
+
+  it.each(["map:replacing", "map:generated"])(
+    "propagates an abort failure without closing when %s invalidates a completed write",
+    async event => {
+      const { handle, stream } = makeHandle();
+      const error = new Error("Abort failed after write");
+      vi.stubGlobal("showSaveFilePicker", vi.fn().mockResolvedValue(handle));
+      stream.write.mockImplementationOnce(async () => {
+        window.dispatchEvent(new Event(event));
+      });
+      stream.abort.mockRejectedValue(error);
+      await expect(saveToFileSystem(() => "original snapshot", "Map.map")).rejects.toBe(error);
+      expect(stream.abort).toHaveBeenCalled();
+      expect(stream.close).not.toHaveBeenCalled();
+      expect(isMapIOBusy()).toBe(false);
+    }
+  );
+
+  it("forgets the previous destination on replacing even if generation never completes", async () => {
+    const first = makeHandle("Original.map");
+    const second = makeHandle("Recovered.map");
+    const picker = vi.fn().mockResolvedValueOnce(first.handle).mockResolvedValueOnce(second.handle);
+    vi.stubGlobal("showSaveFilePicker", picker);
+    await saveToFileSystem(() => "original", "Map.map");
+    window.dispatchEvent(new Event("map:replacing"));
+    await saveToFileSystem(() => "recovered", "Map.map");
+    expect(picker).toHaveBeenCalledTimes(2);
+    expect(first.stream.write).toHaveBeenCalledExactlyOnceWith("original");
+    expect(second.stream.write).toHaveBeenCalledExactlyOnceWith("recovered");
+  });
+
+  it.each(["load", "generate"] as const)("does not pick or serialize while %s holds the lease", async kind => {
+    const picker = vi.fn();
+    vi.stubGlobal("showSaveFilePicker", picker);
+    const prepare = vi.fn(() => "busy map");
+    const lease = beginMapIO(kind);
+    try {
+      expect(lease).not.toBeNull();
+      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "cancelled" });
+      expect(picker).not.toHaveBeenCalled();
+      expect(prepare).not.toHaveBeenCalled();
+      expect(downloadFile).not.toHaveBeenCalled();
+      expect(isMapIOBusy()).toBe(true);
+    } finally {
+      lease?.release();
+    }
+  });
+
+  it.each(["load", "generate"] as const)("does not download a fallback while %s holds the lease", async kind => {
+    vi.stubGlobal("showSaveFilePicker", undefined);
+    const prepare = vi.fn(() => "busy map");
+    const lease = beginMapIO(kind);
+    try {
+      expect(lease).not.toBeNull();
+      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "cancelled" });
+      expect(prepare).not.toHaveBeenCalled();
+      expect(downloadFile).not.toHaveBeenCalled();
+      expect(isMapIOBusy()).toBe(true);
+    } finally {
+      lease?.release();
+    }
+  });
+
+  it.each(["picker", "permission", "write", "close", "abort"] as const)(
+    "holds the save lease until a pending %s settles",
+    async stage => {
+      const { handle, stream } = makeHandle();
+      let resume!: () => void;
+      const pending = new Promise<void>(resolve => {
+        resume = resolve;
+      });
+      const picker = vi.fn(async () => {
+        if (stage === "picker") await pending;
+        return handle;
+      });
+      vi.stubGlobal("showSaveFilePicker", picker);
+      if (stage === "permission") {
+        handle.createWritable.mockImplementation(async () => {
+          await pending;
+          return stream;
+        });
+      } else if (stage !== "picker") {
+        stream[stage].mockImplementation(() => pending);
+      }
+      const error = new Error("Serialization failed");
+      const prepare = () => {
+        if (stage === "abort") throw error;
+        return "snapshot";
+      };
+      const result = saveToFileSystem(prepare, "Map.map").catch((error: unknown) => error);
+      try {
+        const operation = stage === "picker" ? picker : stage === "permission" ? handle.createWritable : stream[stage];
+        await vi.waitFor(() => expect(operation).toHaveBeenCalledOnce());
+        expect(isMapIOBusy()).toBe(true);
+        for (const kind of ["save", "load", "generate"] as const) {
+          const unexpected = beginMapIO(kind);
+          try {
+            expect(unexpected).toBeNull();
+          } finally {
+            unexpected?.release();
+          }
+        }
+      } finally {
+        resume();
+        await result;
+      }
+      expect(await result).toEqual(stage === "abort" ? error : { type: "saved", filename: "Chosen.map" });
+      expect(isMapIOBusy()).toBe(false);
+    }
+  );
 
   it("asks for a new destination on retry after access to the saved file is lost", async () => {
     const first = makeHandle("First.map");
@@ -204,6 +392,39 @@ describe("saveToFileSystem", () => {
     vi.stubGlobal("showSaveFilePicker", undefined);
     await expect(saveToFileSystem(() => "data", "Map.map")).resolves.toEqual({ type: "downloaded-fallback" });
     expect(downloadFile).toHaveBeenCalledExactlyOnceWith("data", "Map.map");
+  });
+
+  it.each(["prepare", "download"])("releases the lease after a fallback %s exception", async stage => {
+    vi.stubGlobal("showSaveFilePicker", undefined);
+    const error = new Error("Fallback failed");
+    const prepare = () => {
+      if (stage === "prepare") throw error;
+      return "data";
+    };
+    if (stage === "download") {
+      vi.mocked(downloadFile).mockImplementationOnce(() => {
+        throw error;
+      });
+    }
+    await expect(saveToFileSystem(prepare, "Map.map")).rejects.toBe(error);
+    expect(isMapIOBusy()).toBe(false);
+    await expect(saveToFileSystem(() => "retry", "Map.map")).resolves.toEqual({ type: "downloaded-fallback" });
+  });
+
+  it("releases the lease when aborting a replaced map fails", async () => {
+    const { handle, stream } = makeHandle();
+    const error = new Error("Abort failed");
+    vi.stubGlobal("showSaveFilePicker", vi.fn().mockResolvedValue(handle));
+    handle.createWritable.mockImplementation(async () => {
+      window.dispatchEvent(new Event("map:replacing"));
+      return stream;
+    });
+    stream.abort.mockRejectedValue(error);
+    const prepare = vi.fn(() => "partially replaced map");
+    await expect(saveToFileSystem(prepare, "Map.map")).rejects.toBe(error);
+    expect(prepare).not.toHaveBeenCalled();
+    expect(stream.write).not.toHaveBeenCalled();
+    expect(isMapIOBusy()).toBe(false);
   });
 
   it("propagates picker permission errors without silently downloading", async () => {

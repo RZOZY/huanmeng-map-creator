@@ -3,10 +3,13 @@ import { destroyDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { registerMap } from "@/components/lifecycle";
 import { cellsDensityColor, changeCellsDensity } from "@/components/options/tabs/options-tab";
+import { tip } from "@/components/tooltips";
 import { undraw } from "@/components/undraw";
 import { viewport } from "@/components/viewport";
 import { POINTS_BY_DENSITY } from "@/data/graph-density";
 import { Resample } from "@/generators/resample";
+import { beginMapIO } from "@/services/io/map-io";
+import { isMapModelStable, markMapModelStable, markMapModelUnstable } from "@/services/io/model-status";
 import { logStats } from "@/services/logging";
 import { getLatitude, getLongitude } from "@/utils";
 import { ensureEl, minmax, rn } from "../utils";
@@ -22,9 +25,8 @@ function open(): void {
     position: { my: "center", at: "center", of: "svg" },
     close: cleanup,
     buttons: {
-      Submap: function (this: HTMLElement) {
-        generateSubmap();
-        $(this).dialog("close");
+      Submap: async function (this: HTMLElement) {
+        if (await generateSubmap()) $(this).dialog("close");
       },
       Cancel: function (this: HTMLElement) {
         $(this).dialog("close");
@@ -76,33 +78,55 @@ function handlePointsInput(e: Event): void {
   output.style.color = cellsDensityColor(cells);
 }
 
-function generateSubmap(): void {
-  INFO && console.group("generateSubmap");
+async function generateSubmap(): Promise<boolean> {
+  const lease = beginMapIO("generate");
+  if (!lease) {
+    tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
+    return false;
+  }
 
-  const { scale, x: viewX, y: viewY } = viewport;
-  const [x0, y0] = [Math.abs(viewX / scale), Math.abs(viewY / scale)]; // top-left corner
-  recalculateMapSize(x0, y0, scale);
+  try {
+    INFO && console.group("generateSubmap");
+    if (!isMapModelStable()) {
+      tip("当前地图状态不完整，请先成功重新载入地图或全新生成地图，再使用此工具。", true, "warn", 5000);
+      return false;
+    }
 
-  const submapPointsValue = ensureEl<HTMLInputElement>("submapPointsInput").value;
-  const globalPointsValue = String(options.generation.graph.density);
-  if (submapPointsValue !== globalPointsValue) changeCellsDensity(+submapPointsValue);
+    const { scale, x: viewX, y: viewY } = viewport;
+    const [x0, y0] = [Math.abs(viewX / scale), Math.abs(viewY / scale)]; // top-left corner
+    const rescaleStyles = ensureEl<HTMLInputElement>("submapRescaleBurgStyles").checked;
+    markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
+    recalculateMapSize(x0, y0, scale);
 
-  const projection = (x: number, y: number): [number, number] => [(x - x0) * scale, (y - y0) * scale];
-  const inverse = (x: number, y: number): [number, number] => [x / scale + x0, y / scale + y0];
+    const submapPointsValue = ensureEl<HTMLInputElement>("submapPointsInput").value;
+    const globalPointsValue = String(options.generation.graph.density);
+    if (submapPointsValue !== globalPointsValue) changeCellsDensity(+submapPointsValue);
 
-  applyGraphSize();
-  fitMapToScreen();
-  resetZoom(0);
-  undraw();
-  Resample.process({ projection, inverse, scale });
+    const projection = (x: number, y: number): [number, number] => [(x - x0) * scale, (y - y0) * scale];
+    const inverse = (x: number, y: number): [number, number] => [x / scale + x0, y / scale + y0];
 
-  if (ensureEl<HTMLInputElement>("submapRescaleBurgStyles").checked) rescaleBurgStyles(scale);
-  Layers.drawAll();
+    applyGraphSize();
+    fitMapToScreen();
+    resetZoom(0);
+    undraw();
+    await Resample.process({ projection, inverse, scale });
 
-  registerMap(); // a submap is a new map: it gets its own id and history entry
-  logStats();
+    if (rescaleStyles) rescaleBurgStyles(scale);
+    Layers.drawAll();
 
-  INFO && console.groupEnd();
+    registerMap(); // a submap is a new map: it gets its own id and history entry
+    logStats();
+    markMapModelStable();
+    return true;
+  } catch (error) {
+    ERROR && console.error(error);
+    tip("创建局部地图失败，地图可能已部分更改。请重新加载已保存的地图后重试。", true, "error", 10000);
+    return false;
+  } finally {
+    lease.release();
+    INFO && console.groupEnd();
+  }
 }
 
 function recalculateMapSize(x0: number, y0: number, scale: number): void {
