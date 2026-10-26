@@ -8,7 +8,7 @@ import { unitNameZh } from "@/generators/military-generator";
 import { moveRegiment } from "@/renderers/draw-military";
 import type { Marker } from "../generators/markers-generator";
 import type { Regiment } from "../generators/military-generator";
-import { capitalize, ensureEl, escapeHtml, getAdjective, last, list, minmax, P, Pint, rand, rn, wiki } from "../utils";
+import { capitalize, ensureEl, escapeHtml, last, minmax, P, Pint, rand, rn, wiki } from "../utils";
 
 type Side = "attackers" | "defenders";
 
@@ -506,22 +506,51 @@ function definePlace(): string | null {
 
 function defineBattleName(): string {
   const b = battle!;
-  if (b.type === "field") return `Battle of ${b.place}`;
-  if (b.type === "naval") return `Naval Battle of ${b.place}`;
-  if (b.type === "siege") return `Siege of ${b.place}`;
-  if (b.type === "ambush") return `${b.place} Ambush`;
-  if (b.type === "landing") return `${b.place} Landing`;
-  return `${b.place} ${P(0.8) ? "Air Battle" : "Dogfight"}`; // "air"
+  if (b.type === "field") return `${b.place}之战`;
+  if (b.type === "naval") return `${b.place}海战`;
+  if (b.type === "siege") return `${b.place}围城战`;
+  if (b.type === "ambush") return `${b.place}伏击战`;
+  if (b.type === "landing") return `${b.place}登陆战`;
+  return `${b.place}${P(0.8) ? "空战" : "空中缠斗"}`; // "air"
 }
 
 function getTypeName(): string {
   const b = battle!;
-  if (b.type === "field") return "field battle";
-  if (b.type === "naval") return "naval battle";
-  if (b.type === "siege") return "siege";
-  if (b.type === "ambush") return "ambush";
-  if (b.type === "landing") return "landing";
-  return "battle"; // "air"
+  if (b.type === "field") return "野战";
+  if (b.type === "naval") return "海战";
+  if (b.type === "siege") return "围城战";
+  if (b.type === "ambush") return "伏击战";
+  if (b.type === "landing") return "登陆战";
+  return "空战"; // "air"
+}
+
+function getPhaseName(phase: string): string {
+  const names: Record<string, string> = {
+    skirmish: "远程交锋",
+    melee: "近战",
+    pursue: "追击",
+    retreat: "撤退",
+    shelling: "炮击",
+    boarding: "登船战",
+    chase: "海上追击",
+    withdrawal: "海上撤退",
+    blockade: "封锁",
+    bombardment: "轰击",
+    storming: "攻城",
+    looting: "劫掠",
+    sheltering: "据城防守",
+    sortie: "出击",
+    defense: "防御",
+    surrendering: "投降",
+    surprise: "突袭",
+    shock: "慌乱",
+    landing: "登陆",
+    flee: "逃离",
+    waiting: "等待",
+    maneuvering: "机动",
+    dogfight: "空中缠斗"
+  };
+  return names[phase] ?? phase;
 }
 
 function addHeaders(): void {
@@ -1097,7 +1126,7 @@ function runBattle(): void {
     return;
   }
 
-  const currentPhase = `Attackers: ${b.attackers.phase}, defenders: ${b.defenders.phase}`;
+  const currentPhase = `进攻方：${getPhaseName(b.attackers.phase!)}，防守方：${getPhaseName(b.defenders.phase!)}`;
   const lastRecord = b.phasesRecord.at(-1);
   if (lastRecord?.phase === currentPhase) lastRecord.count += 1;
   else b.phasesRecord.push({ phase: currentPhase, count: 1 });
@@ -1236,17 +1265,17 @@ function changePhase(event: Event, side: Side): void {
 }
 
 function getRegimentStatus(losses: number): string {
-  if (losses === 1) return "was annihilated";
-  if (losses > 0.9) return "was virtually wiped out";
-  if (losses > 0.75) return "was nearly destroyed";
-  if (losses > 0.6) return "was devastated";
-  if (losses > 0.45) return "sustained catastrophic losses";
-  if (losses > 0.3) return "sustained severe losses";
-  if (losses > 0.2) return "sustained heavy losses";
-  if (losses > 0.1) return "took considerable losses";
-  if (losses > 0.05) return "took noticeable losses";
-  if (losses > 0) return "took minor losses";
-  return "emerged unscathed";
+  if (losses === 1) return "全军覆没";
+  if (losses > 0.9) return "几乎全军覆没";
+  if (losses > 0.75) return "濒临覆灭";
+  if (losses > 0.6) return "遭受毁灭性打击";
+  if (losses > 0.45) return "遭受灾难性损失";
+  if (losses > 0.3) return "遭受严重损失";
+  if (losses > 0.2) return "遭受重大损失";
+  if (losses > 0.1) return "损失较大";
+  if (losses > 0.05) return "损失明显";
+  if (losses > 0) return "损失轻微";
+  return "毫发无损";
 }
 
 function applyResults(): void {
@@ -1258,15 +1287,15 @@ function applyResults(): void {
   const battleStatus = getBattleStatus(relativeCasualties, maxCasualties);
 
   function getBattleStatus(relative: number, max: number): [string, string] {
-    if (Number.isNaN(relative)) return ["standoff", "standoff"]; // if no casualties at all
-    if (max < 0.05) return ["minor skirmishes", "minor skirmishes"];
-    if (relative > 0.95) return ["attackers flawless victory", "disorderly retreat of defenders"];
-    if (relative > 0.7) return ["attackers decisive victory", "defenders disastrous defeat"];
-    if (relative > 0.6) return ["attackers victory", "defenders defeat"];
-    if (relative > 0.4) return ["stalemate", "stalemate"];
-    if (relative > 0.3) return ["attackers defeat", "defenders victory"];
-    if (relative >= 0) return ["attackers disorderly retreat", "flawless victory of defenders"];
-    return ["stalemate", "stalemate"]; // exception
+    if (Number.isNaN(relative)) return ["对峙", "对峙"]; // if no casualties at all
+    if (max < 0.05) return ["小规模交锋", "小规模交锋"];
+    if (relative > 0.95) return ["进攻方完胜", "防守方溃退"];
+    if (relative > 0.7) return ["进攻方决定性胜利", "防守方惨败"];
+    if (relative > 0.6) return ["进攻方获胜", "防守方战败"];
+    if (relative > 0.4) return ["僵持", "僵持"];
+    if (relative > 0.3) return ["进攻方战败", "防守方获胜"];
+    if (relative >= 0) return ["进攻方溃退", "防守方完胜"];
+    return ["僵持", "僵持"]; // exception
   }
 
   b.attackers.regiments.forEach(r => {
@@ -1287,12 +1316,12 @@ function applyResults(): void {
       const initialList = Object.keys(r.u)
         .map(t => (r.u[t] ? `${r.u[t]} ${unitNameZh(t)}` : null))
         .filter((c): c is string => Boolean(c));
-      const initialText = initialList.length ? ` Initial forces: ${list(initialList)}.` : "";
+      const initialText = initialList.length ? `初始兵力：${initialList.join("、")}。` : "";
       const casualtiesList = Object.keys(r.casualties!)
-        .map(t => (r.casualties![t] ? `${Math.abs(r.casualties![t])} ${t}` : null))
+        .map(t => (r.casualties![t] ? `${Math.abs(r.casualties![t])} ${unitNameZh(t)}` : null))
         .filter((c): c is string => Boolean(c));
-      const casualtiesText = casualtiesList.length ? ` Casualties: ${list(casualtiesList)}.` : "";
-      r.note += `<br><br>${battleName} (${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}): ${status}. The regiment ${regStatus}.${initialText}${casualtiesText}`;
+      const casualtiesText = casualtiesList.length ? `伤亡：${casualtiesList.join("、")}。` : "";
+      r.note += `<br><br>${battleName}（${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}）：${status}。该部队${regStatus}。${initialText}${casualtiesText}`;
     }
 
     r.u = { ...r.survivors };
@@ -1318,8 +1347,8 @@ function applyResults(): void {
 
   const getSide = (regs: Regiment[], n: number): string =>
     regs.length > 1
-      ? `${n ? "regiments" : "forces"} of ${list([...new Set(regs.map(r => pack.states[r.state].name))])}`
-      : `${getAdjective(pack.states[regs[0].state].name)} ${regs[0].name}`;
+      ? `${[...new Set(regs.map(r => pack.states[r.state].name))].join("、")}的${n ? "军团" : "部队"}`
+      : `${pack.states[regs[0].state].name}的${regs[0].name}`;
   const getLosses = (casualties: number): number => Math.min(rn(casualties * 100), 100);
 
   // aggregate units across all regiments of a side (casualties keys hold every unit type of the regiment)
@@ -1330,9 +1359,9 @@ function applyResults(): void {
     }, {});
   const unitsToText = (units: Record<string, number>): string => {
     const items = Object.keys(units)
-      .map(t => (units[t] ? `${units[t]} ${t}` : null))
+      .map(t => (units[t] ? `${units[t]} ${unitNameZh(t)}` : null))
       .filter((c): c is string => Boolean(c));
-    return items.length ? list(items) : "";
+    return items.join("、");
   };
   const getForcesLegend = (label: string, side: BattleSide): string => {
     // initial forces are reconstructed from survivors + casualties, as r.u now holds survivors
@@ -1340,31 +1369,29 @@ function applyResults(): void {
       aggregateUnits(side.regiments, (r, u) => (r.survivors![u] || 0) + Math.abs(r.casualties![u]))
     );
     const casualties = unitsToText(aggregateUnits(side.regiments, (r, u) => Math.abs(r.casualties![u])));
-    let text = initial ? `<br>${label} initial forces: ${initial}.` : "";
-    if (casualties) text += ` Casualties: ${casualties}.`;
+    let text = initial ? `<br>${label}初始兵力：${initial}。` : "";
+    if (casualties) text += `伤亡：${casualties}。`;
     return text;
   };
 
   const status = battleStatus[+P(0.7)];
-  const result = `The ${getTypeName()} ended in ${status}`;
-  let legend = `${b.name} took place in ${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}. It was fought between ${getSide(
+  const result = `这场${getTypeName()}的结果为：${status}`;
+  let legend = `${b.name}发生于${options.map.lore.calendar.year} ${options.map.lore.calendar.eraShort}。交战双方为${getSide(
     b.attackers.regiments,
     1
-  )} and ${getSide(b.defenders.regiments, 0)}. ${result}.
-      <br>Attackers losses: ${getLosses(b.attackers.casualties)}%, defenders losses: ${getLosses(
-        b.defenders.casualties
-      )}%.`;
-  legend += getForcesLegend("Attackers", b.attackers);
-  legend += getForcesLegend("Defenders", b.defenders);
+  )}与${getSide(b.defenders.regiments, 0)}。${result}。
+      <br>进攻方损失：${getLosses(b.attackers.casualties)}%，防守方损失：${getLosses(b.defenders.casualties)}%。`;
+  legend += getForcesLegend("进攻方", b.attackers);
+  legend += getForcesLegend("防守方", b.defenders);
 
   if (b.phasesRecord.length) {
     const phasesText = b.phasesRecord.map(r => (r.count > 1 ? `${r.phase} (x${r.count})` : r.phase)).join("<br>");
-    legend += `<br><br>Engagement progression:<br>${phasesText}`;
+    legend += `<br><br>交战过程：<br>${phasesText}`;
   }
 
   marker.note = legend;
 
-  tip(`${b.name} is over. ${result}`, true, "success", 4000);
+  tip(`${b.name}已结束。${result}`, true, "success", 4000);
 
   closeBattleScreen();
   cleanData();
