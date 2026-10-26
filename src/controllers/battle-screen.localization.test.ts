@@ -189,6 +189,218 @@ describe("Chinese default battle names", () => {
   });
 });
 
+describe("Chinese battle-screen chrome", () => {
+  test("renders translated side labels, controls and battle-type tips in the real dialog", () => {
+    open();
+    expect([...document.querySelectorAll("#battleBody > div > span")].map(node => node.textContent)).toEqual([
+      "进攻方",
+      "防守方"
+    ]);
+    const tips: Record<string, string> = {
+      battlePower_attackers: "进攻方在当前阶段的战斗力，决定造成的伤害",
+      battlePower_defenders: "防守方在当前阶段的战斗力，决定造成的伤害",
+      battleDie_attackers: "进攻方的随机因子，点击重新掷骰",
+      battleDie_defenders: "防守方的随机因子，点击重新掷骰",
+      battleType: "战斗类型，点击更改",
+      battleNameShow: "设置战斗名称",
+      battleNameHide: "隐藏战斗名称设置",
+      battleNamePlace: "输入地点名称",
+      battleNameFull: "输入完整战斗名称",
+      battleNameCulture: "根据文化生成地点和战斗名称",
+      battleNameRandom: "随机生成地点和战斗名称",
+      battleAddRegiment: "向战斗中添加部队",
+      battleRoll: "掷骰以更新随机因子",
+      battleRun: "推进一轮战斗",
+      battleApply: "结束战斗：应用当前结果并关闭窗口",
+      battleCancel: "取消战斗：撤销结果并关闭窗口",
+      battleWiki: "打开战斗模拟教程"
+    };
+    for (const [id, text] of Object.entries(tips)) expect(element(`#${id}`).dataset.tip).toBe(text);
+    for (const [side, label] of [
+      ["attackers", "进攻方"],
+      ["defenders", "防守方"]
+    ]) {
+      const meter = element<HTMLMeterElement>(`#battleMorale_${side}`);
+      expect(meter.dataset.tip).toBe(`${label}士气：${meter.value}`);
+      expect([meter.min, meter.max, meter.low, meter.high, meter.optimum]).toEqual([0, 100, 33, 66, 80]);
+    }
+    expect(
+      [...document.querySelectorAll<HTMLElement>(".battleTypes button")].map(node => [
+        node.dataset.type,
+        node.dataset.tip
+      ])
+    ).toEqual([
+      ["field", "野战：常规战斗"],
+      ["naval", "海战：舰船之间的战斗"],
+      ["siege", "围城战：封锁并攻打城镇"],
+      ["ambush", "伏击战：发动突袭"],
+      ["landing", "登陆战：两栖进攻"],
+      ["air", "空战：航空单位的机动作战"]
+    ]);
+    element("#battleNameShow").click();
+    expect(element("#battleNameSection").style.display).toBe("inline-block");
+    expect(element<HTMLInputElement>("#battleNameFull").value).toBe("Old Ford 42之战");
+    element("#battleNameHide").click();
+    expect(element("#battleNameSection").style.display).toBe("none");
+  });
+
+  test("translates force headers and rows without rewriting custom units, army names or quantities", () => {
+    const unitNames = ["infantry", "archers", "cavalry", "artillery", "fleet", "moon_guard 77"];
+    options.map.military.units = unitNames.map(name => ({ ...options.map.military.units[0], name }));
+    attacker.bx = defender.bx = 7;
+    attacker.by = defender.by = 16;
+    open();
+    for (const table of ["battleAttackers", "battleDefenders"]) {
+      expect(
+        [...element(`#${table}`).querySelectorAll("th[data-tip]")].map(node => node.getAttribute("data-tip"))
+      ).toEqual(["步兵", "弓手", "骑兵", "炮兵", "舰船", "moon_guard 77", "总兵力"]);
+      expect(element(`#${table} th:last-child`).textContent).toBe("总计");
+      expect(element(`#${table} .battleSurvivors td:nth-child(2)`).textContent).toBe("距基地：5 mi");
+      expect(element(`#${table} .battleSurvivors td:nth-child(2)`).dataset.tip).toBe("补给线长度，影响士气");
+      for (const [row, text, count] of [
+        ["battleInitial", "初始兵力", "100"],
+        ["battleCasualties", "伤亡", "0"],
+        ["battleSurvivors", "幸存兵力", "100"]
+      ]) {
+        const cells = [...element(`#${table} .${row}`).querySelectorAll<HTMLElement>("td")].slice(2);
+        expect(cells.map(cell => cell.dataset.tip)).toEqual(Array(7).fill(text));
+        expect(cells.at(-1)!.textContent).toBe(count);
+      }
+    }
+    expect(element("#battleAttackers .regiment").textContent).toBe("Morgan's Own 7");
+    expect(element("#battleDefenders .battleCasualties td:nth-child(2)").textContent).toBe("Dawn Republic");
+    expect(options.map.military.units.map(unit => unit.name)).toEqual(unitNames);
+    expect(attacker.u).toEqual({ infantry: 100 });
+  });
+
+  const phaseTips: Record<string, string> = {
+    skirmish: "远程交锋阶段：远程单位占优",
+    melee: "近战阶段：近战单位占优",
+    pursue: "追击阶段：骑乘单位占优",
+    retreat: "撤退阶段：单位战斗力降低",
+    shelling: "炮击阶段：舰炮轰击敌方舰队",
+    boarding: "登船战阶段：近战单位登上敌舰作战",
+    chase: "海上追击阶段：舰船追击敌方舰队，偶尔开炮",
+    withdrawal: "海上撤退阶段：舰船尝试摆脱敌方舰队",
+    blockade: "封锁阶段：准备或维持封锁",
+    bombardment: "轰击阶段：攻城器械攻击敌方",
+    storming: "攻城阶段：强攻敌方城镇，近战单位占优",
+    looting: "劫掠阶段：洗劫城镇，单位战斗力提高",
+    sheltering: "据城防守阶段：在城墙后隐蔽待命",
+    sortie: "出击阶段：从被围城镇出击，近战单位占优",
+    defense: "防御阶段：远程和近战单位占优",
+    surrendering: "投降阶段：放弃防御，单位战斗力降低",
+    shock: "慌乱阶段：单位战斗力降低",
+    surprise: "突袭阶段：单位战斗力提高，远程单位占优",
+    landing: "登陆阶段：两栖进攻，单位易受有备防御的打击",
+    flee: "逃离阶段：单位战斗力降低",
+    waiting: "等待阶段：无法追击逃离的舰船",
+    maneuvering: "机动阶段：单位战斗力降低",
+    dogfight: "空中缠斗阶段：单位战斗力提高"
+  };
+
+  test.each([
+    ["field", "attackers", ["skirmish", "melee", "pursue", "retreat"]],
+    ["field", "defenders", ["skirmish", "melee", "pursue", "retreat"]],
+    ["naval", "attackers", ["shelling", "boarding", "chase", "withdrawal"]],
+    ["naval", "defenders", ["shelling", "boarding", "chase", "withdrawal"]],
+    ["siege", "attackers", ["blockade", "bombardment", "storming", "looting", "retreat"]],
+    ["siege", "defenders", ["sheltering", "sortie", "bombardment", "defense", "surrendering", "pursue"]],
+    ["ambush", "attackers", ["shock", "melee", "pursue", "retreat"]],
+    ["ambush", "defenders", ["surprise", "melee", "pursue", "retreat"]],
+    ["landing", "attackers", ["landing", "melee", "pursue", "flee"]],
+    ["landing", "defenders", ["shock", "defense", "melee", "waiting", "pursue", "retreat"]],
+    ["air", "attackers", ["maneuvering", "dogfight", "pursue", "retreat"]],
+    ["air", "defenders", ["maneuvering", "dogfight", "pursue", "retreat"]]
+  ] as const)("clones Chinese %s phase tips and selects them for %s", (type, side, phases) => {
+    open();
+    if (type !== "field") changeType(type);
+    const expectedTips = phases.map(phase => {
+      if (type === "air" && phase === "pursue") return "追击阶段：单位战斗力提高";
+      if (type === "landing" && side === "defenders") {
+        if (phase === "shock") return "慌乱阶段：单位尚未做好防御准备";
+        if (phase === "defense") return "防御阶段：有备防御，单位战斗力提高";
+        if (phase === "pursue") return "追击阶段：尝试拦截逃离的进攻方，骑乘单位占优";
+      }
+      return phaseTips[phase];
+    });
+    const buttons = [...element(`#battlePhase_${side} + .battlePhases`).querySelectorAll<HTMLButtonElement>("button")];
+    expect(buttons.map(button => button.dataset.phase)).toEqual(phases);
+    expect(buttons.map(button => button.dataset.tip)).toEqual(expectedTips);
+    buttons.forEach((button, index) => {
+      button.click();
+      expect(element(`#battlePhase_${side}`).dataset.tip).toBe(expectedTips[index]);
+      expect(element(`#battlePhase_${side}`).className).toBe(`icon-button-${phases[index]}`);
+    });
+    expect(element("#battleType").className).toBe(`icon-button-${type}`);
+    expect(attacker.u).toEqual({ infantry: 100 });
+  });
+
+  test("renders Chinese reinforcement headers and preserves sorting keys and custom names", () => {
+    open();
+    element("#battleAddRegiment").click();
+    const dialog = dialogs.get("#regimentSelectorScreen")!;
+    expect(dialog.title).toBe("向战斗中添加部队");
+    expect(Object.keys(dialog.buttons!)).toEqual(["加入进攻方", "加入防守方", "取消"]);
+    expect(
+      [...element("#regimentSelectorHeader").children].map(node => [
+        (node as HTMLElement).dataset.sortby,
+        node.textContent!.trim(),
+        (node as HTMLElement).dataset.tip
+      ])
+    ).toEqual([
+      ["state", "国家", "点击按国家名称排序"],
+      ["regiment", "部队", "点击按部队名称排序"],
+      ["total", "总计", "点击按总兵力排序"],
+      ["distance", "距离", "点击按距战场的距离排序"]
+    ]);
+    const row = element('#regimentSelectorBody [data-s="1"][data-i="0"]');
+    expect(row.dataset.tip).toBe("点击选择部队");
+    expect(row.textContent).toContain("Northland");
+    expect(row.textContent).toContain("Morgan's Own 7");
+    expect([...row.querySelectorAll("div")].slice(-2).map(node => node.textContent)).toEqual(["100", "0 mi"]);
+    dialog.buttons!.取消();
+    expect(element("#regimentSelectorBody").children).toHaveLength(0);
+    expect(element("#battleScreen")).toBeTruthy();
+  });
+
+  test.each([0, 1])("requests selection in Chinese before reinforcement action %i", index => {
+    open();
+    element("#battleAddRegiment").click();
+    Object.values(dialogs.get("#regimentSelectorScreen")!.buttons!)[index]();
+    expect(tip).toHaveBeenLastCalledWith("请先选择一支部队", false, "error");
+    expect(element("#regimentSelectorBody").children).toHaveLength(2);
+  });
+
+  test("rejects an already participating regiment with a Chinese message", () => {
+    open();
+    element("#battleAddRegiment").click();
+    const row = element('#regimentSelectorBody [data-s="1"][data-i="0"]');
+    row.click();
+    expect(tip).toHaveBeenLastCalledWith("该部队已在战斗中", false, "error");
+    expect(row.classList.contains("selected")).toBe(false);
+  });
+
+  test.each([
+    ["attackers", "进攻方军队已被消灭"],
+    ["defenders", "防守方军队已被消灭"]
+  ])("warns in Chinese when %s have no strength without mutating forces or logs", (side, message) => {
+    if (side === "attackers") attacker.u = { infantry: 0 };
+    else defender.u = { infantry: 0 };
+    const unitsA = { ...attacker.u };
+    const unitsD = { ...defender.u };
+    open();
+    expect(element(`#battlePower_${side}`).textContent).toBe("0");
+    element("#battleRun").click();
+    expect(tip).toHaveBeenLastCalledWith(message, false, "warn");
+    expect(attacker.u).toEqual(unitsA);
+    expect(defender.u).toEqual(unitsD);
+    expect(attacker.note).toBe(originalNote);
+    expect(defender.note).toBe(originalNote);
+    expect(markers).toHaveLength(1);
+  });
+});
+
 describe("Chinese generated battle results", () => {
   test("appends Chinese reports while preserving user text, old records, unit keys, numbers and URLs", () => {
     const oldMarker = { ...markers[0] };
@@ -287,7 +499,7 @@ describe("Chinese generated battle results", () => {
       pack.states[addition.state].military!.push(addition);
       element("#battleAddRegiment").click();
       element(`#regimentSelectorBody [data-s="${addition.state}"][data-i="1"]`).click();
-      dialogs.get("#regimentSelectorScreen")!.buttons![`Add to ${side}`]();
+      dialogs.get("#regimentSelectorScreen")!.buttons![side === "attackers" ? "加入进攻方" : "加入防守方"]();
       const marker = apply();
       expect(marker.note).toContain(side === "attackers" ? "Northland、Dawn的军团" : "Dawn、Northland的部队");
       expect(marker.note).toContain(`${side === "attackers" ? "进攻方" : "防守方"}初始兵力：250 步兵。`);

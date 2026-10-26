@@ -8,7 +8,7 @@ import { unitNameZh } from "@/generators/military-generator";
 import { moveRegiment } from "@/renderers/draw-military";
 import type { Marker } from "../generators/markers-generator";
 import type { Regiment } from "../generators/military-generator";
-import { capitalize, ensureEl, escapeHtml, last, minmax, P, Pint, rand, rn, wiki } from "../utils";
+import { ensureEl, escapeHtml, last, minmax, P, Pint, rand, rn, wiki } from "../utils";
 
 type Side = "attackers" | "defenders";
 
@@ -88,209 +88,209 @@ function renderDialog(): void {
       <div id="battleBody">
         <template id="battlePhases_field">
           <button
-            data-tip="Skirmish phase. Ranged units excel"
+            data-tip="远程交锋阶段：远程单位占优"
             data-phase="skirmish"
             class="icon-button-skirmish"
           ></button>
-          <button data-tip="Melee phase. Melee units excel" data-phase="melee" class="icon-button-melee"></button>
+          <button data-tip="近战阶段：近战单位占优" data-phase="melee" class="icon-button-melee"></button>
           <button
-            data-tip="Pursue phase. Mounted units excel"
+            data-tip="追击阶段：骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <template id="battlePhases_naval">
           <button
-            data-tip="Shelling phase. Naval artillery bombardment of enemy fleet"
+            data-tip="炮击阶段：舰炮轰击敌方舰队"
             data-phase="shelling"
             class="icon-button-shelling"
           ></button>
           <button
-            data-tip="Boarding phase. Melee units go aboard"
+            data-tip="登船战阶段：近战单位登上敌舰作战"
             data-phase="boarding"
             class="icon-button-boarding"
           ></button>
           <button
-            data-tip="Сhase phase. Naval units pursue and rarely shell enemy fleet"
+            data-tip="海上追击阶段：舰船追击敌方舰队，偶尔开炮"
             data-phase="chase"
             class="icon-button-chase"
           ></button>
           <button
-            data-tip="Withdrawal phase. Naval units try to escape enemy fleet"
+            data-tip="海上撤退阶段：舰船尝试摆脱敌方舰队"
             data-phase="withdrawal"
             class="icon-button-withdrawal"
           ></button>
         </template>
         <template id="battlePhases_siege_attackers">
           <button
-            data-tip="Blockade phase. Prepare or hold the blockade"
+            data-tip="封锁阶段：准备或维持封锁"
             data-phase="blockade"
             class="icon-button-blockade"
           ></button>
           <button
-            data-tip="Bombardment phase. Attack enemy with machinery units"
+            data-tip="轰击阶段：攻城器械攻击敌方"
             data-phase="bombardment"
             class="icon-button-bombardment"
           ></button>
           <button
-            data-tip="Storming phase. Storm enemy town. Melee units excel"
+            data-tip="攻城阶段：强攻敌方城镇，近战单位占优"
             data-phase="storming"
             class="icon-button-storming"
           ></button>
           <button
-            data-tip="Looting phase. Plunder the town. Units strength increased"
+            data-tip="劫掠阶段：洗劫城镇，单位战斗力提高"
             data-phase="looting"
             class="icon-button-looting"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <template id="battlePhases_siege_defenders">
           <button
-            data-tip="Sheltering phase. Hide behind the walls and wait"
+            data-tip="据城防守阶段：在城墙后隐蔽待命"
             data-phase="sheltering"
             class="icon-button-sheltering"
           ></button>
           <button
-            data-tip="Sortie phase. Make a sortie from besieged town. Melee units excel"
+            data-tip="出击阶段：从被围城镇出击，近战单位占优"
             data-phase="sortie"
             class="icon-button-sortie"
           ></button>
           <button
-            data-tip="Bombardment phase. Attack enemy with machinery units"
+            data-tip="轰击阶段：攻城器械攻击敌方"
             data-phase="bombardment"
             class="icon-button-bombardment"
           ></button>
           <button
-            data-tip="Defense phase. Ranged and melee units excel"
+            data-tip="防御阶段：远程和近战单位占优"
             data-phase="defense"
             class="icon-button-defense"
           ></button>
           <button
-            data-tip="Surrendering phase. Give up the defense. Units strength reduced"
+            data-tip="投降阶段：放弃防御，单位战斗力降低"
             data-phase="surrendering"
             class="icon-button-surrendering"
           ></button>
           <button
-            data-tip="Pursue phase. Mounted units excel"
+            data-tip="追击阶段：骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
         </template>
         <template id="battlePhases_ambush_attackers">
           <button
-            data-tip="Shock phase. Units strength reduced"
+            data-tip="慌乱阶段：单位战斗力降低"
             data-phase="shock"
             class="icon-button-shock"
           ></button>
-          <button data-tip="Melee phase. Melee units excel" data-phase="melee" class="icon-button-melee"></button>
+          <button data-tip="近战阶段：近战单位占优" data-phase="melee" class="icon-button-melee"></button>
           <button
-            data-tip="Pursue phase. Mounted units excel"
+            data-tip="追击阶段：骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <template id="battlePhases_ambush_defenders">
           <button
-            data-tip="Surprice attack phase. Units strength increased, ranged units excel"
+            data-tip="突袭阶段：单位战斗力提高，远程单位占优"
             data-phase="surprise"
             class="icon-button-surprise"
           ></button>
-          <button data-tip="Melee phase. Melee units excel" data-phase="melee" class="icon-button-melee"></button>
+          <button data-tip="近战阶段：近战单位占优" data-phase="melee" class="icon-button-melee"></button>
           <button
-            data-tip="Pursue phase. Mounted units excel"
+            data-tip="追击阶段：骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <template id="battlePhases_landing_attackers">
           <button
-            data-tip="Landing phase. Amphibious attack. Units are vulnerable against prepared defense"
+            data-tip="登陆阶段：两栖进攻，单位易受有备防御的打击"
             data-phase="landing"
             class="icon-button-landing"
           ></button>
-          <button data-tip="Melee phase. Melee units excel" data-phase="melee" class="icon-button-melee"></button>
+          <button data-tip="近战阶段：近战单位占优" data-phase="melee" class="icon-button-melee"></button>
           <button
-            data-tip="Pursue phase. Mounted units excel"
+            data-tip="追击阶段：骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
-          <button data-tip="Flee phase. Units strength reduced" data-phase="flee" class="icon-button-flee"></button>
+          <button data-tip="逃离阶段：单位战斗力降低" data-phase="flee" class="icon-button-flee"></button>
         </template>
         <template id="battlePhases_landing_defenders">
           <button
-            data-tip="Shock phase. Units are not prepared for a defense"
+            data-tip="慌乱阶段：单位尚未做好防御准备"
             data-phase="shock"
             class="icon-button-shock"
           ></button>
           <button
-            data-tip="Defense phase. Prepared defense. Units strength increased"
+            data-tip="防御阶段：有备防御，单位战斗力提高"
             data-phase="defense"
             class="icon-button-defense"
           ></button>
-          <button data-tip="Melee phase. Melee units excel" data-phase="melee" class="icon-button-melee"></button>
+          <button data-tip="近战阶段：近战单位占优" data-phase="melee" class="icon-button-melee"></button>
           <button
-            data-tip="Waiting phase. Cannot pursue fleeing naval"
+            data-tip="等待阶段：无法追击逃离的舰船"
             data-phase="waiting"
             class="icon-button-waiting"
           ></button>
           <button
-            data-tip="Pursue phase. Try to intercept fleeing attackers. Mounted units excel"
+            data-tip="追击阶段：尝试拦截逃离的进攻方，骑乘单位占优"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <template id="battlePhases_air">
           <button
-            data-tip="Maneuvering phase. Units strength reduced"
+            data-tip="机动阶段：单位战斗力降低"
             data-phase="maneuvering"
             class="icon-button-maneuvering"
           ></button>
           <button
-            data-tip="Dogfight phase. Units strength increased"
+            data-tip="空中缠斗阶段：单位战斗力提高"
             data-phase="dogfight"
             class="icon-button-dogfight"
           ></button>
           <button
-            data-tip="Pursue phase. Units strength increased"
+            data-tip="追击阶段：单位战斗力提高"
             data-phase="pursue"
             class="icon-button-pursue"
           ></button>
           <button
-            data-tip="Retreat phase. Units strength reduced"
+            data-tip="撤退阶段：单位战斗力降低"
             data-phase="retreat"
             class="icon-button-retreat"
           ></button>
         </template>
         <div style="font-size: 1.2em; font-weight: bold; width: unset">
-          <span>Attackers</span>
+          <span>进攻方</span>
           <div style="float: right; font-size: 0.7em">
             <meter
               id="battleMorale_attackers"
-              data-tip="Attackers morale: "
+              data-tip="进攻方士气："
               min="0"
               max="100"
               low="33"
@@ -299,7 +299,7 @@ function renderDialog(): void {
             ></meter>
             <div
               id="battlePower_attackers"
-              data-tip="Attackers strength during this phase. Strength defines dealt damage"
+              data-tip="进攻方在当前阶段的战斗力，决定造成的伤害"
               style="display: inline-block; text-align: center"
               class="icon-button-power"
             ></div>
@@ -309,7 +309,7 @@ function renderDialog(): void {
             </div>
             <button
               id="battleDie_attackers"
-              data-tip="Random factor for attackers. Click to re-roll"
+              data-tip="进攻方的随机因子，点击重新掷骰"
               style="padding: 0.1em 0.2em; width: 3.2em"
               class="icon-button-die"
             ></button>
@@ -317,11 +317,11 @@ function renderDialog(): void {
         </div>
         <table id="battleAttackers"></table>
         <div style="font-size: 1.2em; font-weight: bold; width: unset">
-          <span>Defenders</span>
+          <span>防守方</span>
           <div style="float: right; font-size: 0.7em">
             <meter
               id="battleMorale_defenders"
-              data-tip="Defenders morale: "
+              data-tip="防守方士气："
               min="0"
               max="100"
               low="33"
@@ -330,7 +330,7 @@ function renderDialog(): void {
             ></meter>
             <div
               id="battlePower_defenders"
-              data-tip="Defenders strength during this phase. Strength defines dealt damage"
+              data-tip="防守方在当前阶段的战斗力，决定造成的伤害"
               style="display: inline-block; text-align: center"
               class="icon-button-power"
             ></div>
@@ -340,7 +340,7 @@ function renderDialog(): void {
             </div>
             <button
               id="battleDie_defenders"
-              data-tip="Random factor for defenders. Click to re-roll"
+              data-tip="防守方的随机因子，点击重新掷骰"
               style="padding: 0.1em 0.2em; width: 3.2em"
               class="icon-button-die"
             ></button>
@@ -349,70 +349,70 @@ function renderDialog(): void {
         <table id="battleDefenders"></table>
       </div>
       <div id="battleBottom">
-        <button id="battleType" data-tip="Battle type. Click to change"></button>
+        <button id="battleType" data-tip="战斗类型，点击更改"></button>
         <div class="battleTypes" style="display: none">
           <button
-            data-tip="Field Battle: a standard type of combat"
+            data-tip="野战：常规战斗"
             data-type="field"
             class="icon-button-field"
           ></button>
-          <button data-tip="Naval Battle: naval units combat" data-type="naval" class="icon-button-naval"></button>
-          <button data-tip="Siege: burg blockade and storming" data-type="siege" class="icon-button-siege"></button>
-          <button data-tip="Ambush: surprise attack" data-type="ambush" class="icon-button-ambush"></button>
-          <button data-tip="Landing: amphibious attack" data-type="landing" class="icon-button-landing"></button>
+          <button data-tip="海战：舰船之间的战斗" data-type="naval" class="icon-button-naval"></button>
+          <button data-tip="围城战：封锁并攻打城镇" data-type="siege" class="icon-button-siege"></button>
+          <button data-tip="伏击战：发动突袭" data-type="ambush" class="icon-button-ambush"></button>
+          <button data-tip="登陆战：两栖进攻" data-type="landing" class="icon-button-landing"></button>
           <button
-            data-tip="Air Battle: maneuring fight of avia units"
+            data-tip="空战：航空单位的机动作战"
             data-type="air"
             class="icon-button-air"
           ></button>
         </div>
-        <button id="battleNameShow" data-tip="Set battle name" class="icon-font"></button>
+        <button id="battleNameShow" data-tip="设置战斗名称" class="icon-font"></button>
         <div id="battleNameSection" style="display: none">
-          <button id="battleNameHide" data-tip="Hide the battle name section" class="icon-font"></button>
-          <input id="battleNamePlace" data-tip="Type place name" style="width: 30%" />
-          <input id="battleNameFull" data-tip="Type full battle name" style="width: 46%" />
+          <button id="battleNameHide" data-tip="隐藏战斗名称设置" class="icon-font"></button>
+          <input id="battleNamePlace" data-tip="输入地点名称" style="width: 30%" />
+          <input id="battleNameFull" data-tip="输入完整战斗名称" style="width: 46%" />
           <button
             id="battleNameCulture"
-            data-tip="Generate culture-specific name for place and battle"
+            data-tip="根据文化生成地点和战斗名称"
             class="icon-book"
           ></button>
           <button
             id="battleNameRandom"
-            data-tip="Generate random name for place and battle"
+            data-tip="随机生成地点和战斗名称"
             class="icon-globe"
           ></button>
         </div>
-        <button id="battleAddRegiment" data-tip="Add regiment to the battle" class="icon-user-plus"></button>
-        <button id="battleRoll" data-tip="Roll dice to update random factor" class="icon-die"></button>
-        <button id="battleRun" data-tip="Iterate battle" class="icon-play"></button>
+        <button id="battleAddRegiment" data-tip="向战斗中添加部队" class="icon-user-plus"></button>
+        <button id="battleRoll" data-tip="掷骰以更新随机因子" class="icon-die"></button>
+        <button id="battleRun" data-tip="推进一轮战斗" class="icon-play"></button>
         <button
           id="battleApply"
-          data-tip="End battle: apply current results and close the screen"
+          data-tip="结束战斗：应用当前结果并关闭窗口"
           class="icon-check"
         ></button>
         <button
           id="battleCancel"
-          data-tip="Cancel battle: roll back results and close the screen"
+          data-tip="取消战斗：撤销结果并关闭窗口"
           class="icon-cancel"
         ></button>
-        <button id="battleWiki" data-tip="Open Battle Simulation Tutorial" class="icon-info"></button>
+        <button id="battleWiki" data-tip="打开战斗模拟教程" class="icon-info"></button>
       </div>
     </div>
     <div id="regimentSelectorScreen" class="dialog">
       <div id="regimentSelectorHeader" class="header" style="grid-template-columns: 9em 13em 4em 6em">
-        <div data-tip="Click to sort by state name" class="sortable alphabetically" data-sortby="state">
-          State&nbsp;
+        <div data-tip="点击按国家名称排序" class="sortable alphabetically" data-sortby="state">
+          国家&nbsp;
         </div>
-        <div data-tip="Click to sort by regiment name" class="sortable alphabetically" data-sortby="regiment">
-          Regiment&nbsp;
+        <div data-tip="点击按部队名称排序" class="sortable alphabetically" data-sortby="regiment">
+          部队&nbsp;
         </div>
-        <div data-tip="Click to sort by total military forces" class="sortable" data-sortby="total">Total&nbsp;</div>
+        <div data-tip="点击按总兵力排序" class="sortable" data-sortby="total">总计&nbsp;</div>
         <div
-          data-tip="Click to sort by distance to the battlefield"
+          data-tip="点击按距战场的距离排序"
           class="sortable icon-sort-number-up"
           data-sortby="distance"
         >
-          Distance&nbsp;
+          距离&nbsp;
         </div>
       </div>
       <div id="regimentSelectorBody" class="table"></div>
@@ -557,11 +557,11 @@ function addHeaders(): void {
   let headers = "<thead><tr><th></th><th></th>";
 
   for (const u of options.map.military.units) {
-    const label = capitalize(u.name.replace(/_/g, " "));
+    const label = unitNameZh(u.name);
     headers += `<th data-tip="${label}">${Icons.html(u.icon)}</th>`;
   }
 
-  headers += '<th data-tip="Total military">Total</th></tr></thead>';
+  headers += '<th data-tip="总兵力">总计</th></tr></thead>';
   ensureEl("battleAttackers").innerHTML = headers;
   ensureEl("battleDefenders").innerHTML = headers;
 }
@@ -591,19 +591,19 @@ function addRegimentToSide(side: Side, regiment: Regiment): void {
     0,
     26
   )}</td>`;
-  let survivorsRow = `<tr class="battleSurvivors"><td></td><td data-tip="Supply line length, affects morale">Distance to base: ${distance} ${options.map.units.distance.unit}</td>`;
+  let survivorsRow = `<tr class="battleSurvivors"><td></td><td data-tip="补给线长度，影响士气">距基地：${distance} ${options.map.units.distance.unit}</td>`;
 
   for (const u of options.map.military.units) {
-    initial += `<td data-tip="Initial forces" style="width: 2.5em; text-align: center">${regiment.u[u.name] || 0}</td>`;
-    casualtiesRow += `<td data-tip="Casualties" style="width: 2.5em; text-align: center; color: red">0</td>`;
-    survivorsRow += `<td data-tip="Survivors" style="width: 2.5em; text-align: center; color: green">${
+    initial += `<td data-tip="初始兵力" style="width: 2.5em; text-align: center">${regiment.u[u.name] || 0}</td>`;
+    casualtiesRow += `<td data-tip="伤亡" style="width: 2.5em; text-align: center; color: red">0</td>`;
+    survivorsRow += `<td data-tip="幸存兵力" style="width: 2.5em; text-align: center; color: green">${
       regiment.u[u.name] || 0
     }</td>`;
   }
 
-  initial += `<td data-tip="Initial forces" style="width: 2.5em; text-align: center">${regiment.a || 0}</td></tr>`;
-  casualtiesRow += `<td data-tip="Casualties"  style="width: 2.5em; text-align: center; color: red">0</td></tr>`;
-  survivorsRow += `<td data-tip="Survivors" style="width: 2.5em; text-align: center; color: green">${
+  initial += `<td data-tip="初始兵力" style="width: 2.5em; text-align: center">${regiment.a || 0}</td></tr>`;
+  casualtiesRow += `<td data-tip="伤亡"  style="width: 2.5em; text-align: center; color: red">0</td></tr>`;
+  survivorsRow += `<td data-tip="幸存兵力" style="width: 2.5em; text-align: center; color: green">${
     regiment.a || 0
   }</td></tr>`;
 
@@ -632,7 +632,7 @@ function addSide(): void {
       return `<div ${added ? "class='inactive'" : ""} data-s=${s.i} data-i=${r.i} data-state=${
         s.name
       } data-regiment=${r.name}
-        data-total=${r.a} data-distance="${dist}" data-tip="Click to select regiment">
+        data-total=${r.a} data-distance="${dist}" data-tip="点击选择部队">
         <svg width=".9em" height=".9em" style="margin-bottom:-1px; stroke: #333"><rect x="0" y="0" width="100%" height="100%" fill="${
           s.color
         }" ></svg>
@@ -648,13 +648,13 @@ function addSide(): void {
   $("#regimentSelectorScreen").dialog({
     resizable: false,
     width: "fit-content",
-    title: "Add regiment to the battle",
+    title: "向战斗中添加部队",
     position: { my: "left center", at: "right+10 center", of: "#battleScreen" },
     close: addSideClosed,
     buttons: {
-      "Add to attackers": () => addSideClicked("attackers"),
-      "Add to defenders": () => addSideClicked("defenders"),
-      Cancel: () => $("#regimentSelectorScreen").dialog("close")
+      加入进攻方: () => addSideClicked("attackers"),
+      加入防守方: () => addSideClicked("defenders"),
+      取消: () => $("#regimentSelectorScreen").dialog("close")
     }
   });
 
@@ -664,7 +664,7 @@ function addSide(): void {
   function selectLine(event: Event): void {
     const target = event.target as HTMLElement;
     if (target.className === "inactive") {
-      tip("Regiment is already in the battle", false, "error");
+      tip("该部队已在战斗中", false, "error");
       return;
     }
     target.classList.toggle("selected");
@@ -673,7 +673,7 @@ function addSide(): void {
   function addSideClicked(side: Side): void {
     const selected = body.querySelectorAll<HTMLElement>(".selected");
     if (!selected.length) {
-      tip("Please select a regiment first", false, "error");
+      tip("请先选择一支部队", false, "error");
       return;
     }
 
@@ -1118,11 +1118,11 @@ function runBattle(): void {
   const b = battle!;
   // validations
   if (!b.attackers.power) {
-    tip("Attackers army destroyed", false, "warn");
+    tip("进攻方军队已被消灭", false, "warn");
     return;
   }
   if (!b.defenders.power) {
-    tip("Defenders army destroyed", false, "warn");
+    tip("防守方军队已被消灭", false, "warn");
     return;
   }
 
