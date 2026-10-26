@@ -2,53 +2,91 @@ import { type D3ZoomEvent, interpolateZoom, select, type ZoomView, zoom, zoomIde
 import { Layers } from "@/components/layers";
 import { setViewportTransform, viewport, ZOOM_CURVES, type ZoomedLayer, zoomFontSize } from "@/components/viewport";
 import { ViewportLayers } from "@/renderers/viewport/viewport-renderer";
-import { ensureEl, findEl } from "@/utils/nodeUtils";
+import { findEl } from "@/utils/nodeUtils";
 import { rn } from "@/utils/numberUtils";
 
 const DEFAULT_SCALE_EXTENT: [number, number] = [1, 20];
 const zoomBehavior = zoom<SVGSVGElement, unknown>().scaleExtent(DEFAULT_SCALE_EXTENT).interpolate(constrainedFlight);
 
 export function applyZoomBehavior(): void {
+  window.addEventListener("map:replacing", handleMapReplacing);
   select<SVGSVGElement, unknown>("#map").call(zoomBehavior.on("zoom", onZoom).on("end", handleZoomEnd));
 }
 
-let frameId: number | null = null;
+let zoomOwner: SVGSVGElement | null = null;
+let pendingFrame: { id: number; owner: SVGSVGElement } | null = null;
 let pendingScaleChange = false;
 let pendingPositionChange = false;
 let isViewChanged = false;
 
-function onZoom(event: D3ZoomEvent<SVGSVGElement, unknown>): void {
+const isCurrentMap = (owner: SVGSVGElement): boolean => owner.isConnected && findEl<SVGSVGElement>("map") === owner;
+
+function clearPendingZoom(): void {
+  if (pendingFrame) cancelAnimationFrame(pendingFrame.id);
+  pendingFrame = null;
+  zoomOwner = null;
+  pendingScaleChange = false;
+  pendingPositionChange = false;
+  isViewChanged = false;
+}
+
+/** Freeze and settle the current view before navigation capture. */
+export function stopMapZoom(): void {
+  try {
+    if (zoomOwner) handleZoomEnd.call(zoomOwner);
+  } finally {
+    handleMapReplacing();
+  }
+}
+
+function handleMapReplacing(): void {
+  clearPendingZoom(); // d3 interrupt emits end synchronously: discard the old gesture first.
+  select<SVGSVGElement, unknown>("#map").interrupt();
+}
+
+function onZoom(this: SVGSVGElement, event: D3ZoomEvent<SVGSVGElement, unknown>): void {
+  if (!isCurrentMap(this)) return;
+  const isNewOwner = zoomOwner !== this;
+  if (isNewOwner) clearPendingZoom();
   const { k, x, y } = event.transform;
 
-  const isScaleChanged = viewport.scale !== k;
-  const isPositionChanged = viewport.x !== x || viewport.y !== y;
+  const isScaleChanged = isNewOwner || viewport.scale !== k;
+  const isPositionChanged = isNewOwner || viewport.x !== x || viewport.y !== y;
   if (!isScaleChanged && !isPositionChanged) return;
+  zoomOwner = this;
   isViewChanged = true;
 
   setViewportTransform(k, x, y);
 
   pendingScaleChange = pendingScaleChange || isScaleChanged;
   pendingPositionChange = pendingPositionChange || isPositionChanged;
-  if (frameId !== null) return;
+  if (pendingFrame) return;
 
-  frameId = requestAnimationFrame(() => {
-    frameId = null;
-    handleZoomPerFrame();
+  const frame = { id: 0, owner: this };
+  pendingFrame = frame;
+  frame.id = requestAnimationFrame(() => {
+    if (pendingFrame !== frame) return;
+    pendingFrame = null;
+    handleZoomPerFrame(frame.owner);
   });
 }
 
 /** Per-frame view tracking. Keep this cheap */
-function handleZoomPerFrame(): void {
+function handleZoomPerFrame(owner: SVGSVGElement): void {
+  if (zoomOwner !== owner) return;
+  if (!isCurrentMap(owner)) {
+    clearPendingZoom();
+    return;
+  }
   const didScaleChange = pendingScaleChange;
   const didPositionChange = pendingPositionChange;
   pendingScaleChange = false;
   pendingPositionChange = false;
   if (!didScaleChange && !didPositionChange) return;
 
-  ensureEl<SVGGElement>("viewbox").setAttribute(
-    "transform",
-    `translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`
-  );
+  owner
+    .getElementById("viewbox")
+    ?.setAttribute("transform", `translate(${viewport.x} ${viewport.y}) scale(${viewport.scale})`);
 
   if (didScaleChange) {
     Layers.draw("scaleBar");
@@ -63,14 +101,14 @@ function handleZoomPerFrame(): void {
 }
 
 /** Rewrite map content once zoom gesture settles */
-function handleZoomEnd(): void {
-  if (!isViewChanged) return;
+function handleZoomEnd(this: SVGSVGElement): void {
+  if (!isCurrentMap(this) || zoomOwner !== this || !isViewChanged) return;
   isViewChanged = false;
 
-  if (frameId !== null) {
-    cancelAnimationFrame(frameId);
-    frameId = null;
-    handleZoomPerFrame();
+  if (pendingFrame) {
+    cancelAnimationFrame(pendingFrame.id);
+    pendingFrame = null;
+    handleZoomPerFrame(this);
   }
 
   invokeActiveZooming();

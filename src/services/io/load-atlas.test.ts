@@ -8,7 +8,7 @@ import { Load } from "./load";
 import * as loadOperation from "./load-operation";
 import { readMapBlob } from "./load-operation";
 import { isMapIOBusy } from "./map-io";
-import { isMapModelStable, markMapModelStable, markMapModelUnstable } from "./model-status";
+import { getMapModelEpoch, isMapModelStable, markMapModelStable, markMapModelUnstable } from "./model-status";
 
 const boundary = vi.hoisted(() => ({
   draw: vi.fn(),
@@ -404,6 +404,136 @@ describe("verified atlas adoption source lifecycle", () => {
     expect(getCurrentAtlasIdentity()).toBe(identity);
     expect(identity).not.toHaveProperty("liveVerified");
     expect(identity).not.toHaveProperty("currentSha256");
+  });
+});
+
+describe("call-bound Atlas receipts and navigation authorization", () => {
+  it("returns an immutable epoch belonging to this completed adoption", async () => {
+    const item = fixture();
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD);
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    click("放弃当前修改并采用目标");
+    const receipt = await operation;
+    expect(receipt.outcome).toEqual({ type: "loaded" });
+    expect(receipt.replacementEpoch).toBe(getCurrentAtlasIdentity()?.replacementEpoch);
+    expect(Object.isFrozen(receipt)).toBe(true);
+  });
+
+  it("keeps A's original epoch when B fully adopts before A's caller continuation", async () => {
+    const run = loadOperation.runMapLoad;
+    let interleave = true;
+    let epochA = -1;
+    let epochB = -1;
+    vi.spyOn(loadOperation, "runMapLoad").mockImplementation(async (...args) => {
+      const outcome = await run(...args);
+      if (interleave && outcome.type === "loaded") {
+        interleave = false;
+        epochA = getMapModelEpoch();
+        const next = fixture();
+        next.manifest.project.name = "B, independently completed";
+        const b = await adoptFixture(next);
+        epochB = b.replacementEpoch;
+      }
+      return outcome;
+    });
+    const item = fixture();
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD);
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    click("放弃当前修改并采用目标");
+    const receipt = await operation;
+    expect(receipt.outcome).toEqual({ type: "loaded" });
+    expect(receipt.replacementEpoch).toBe(epochA);
+    expect(epochB).toBeGreaterThan(epochA);
+    expect(getCurrentAtlasIdentity()?.replacementEpoch).toBe(epochB);
+    expect(getCurrentAtlasIdentity()?.projectName).toBe("B, independently completed");
+  });
+
+  it("returns no epoch on first-stage cancellation and reads no file", async () => {
+    const item = fixture();
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD);
+    click("取消，保留当前地图");
+    expect(await operation).toEqual({ outcome: { type: "cancelled" }, replacementEpoch: null });
+    expect(readMapBlob).not.toHaveBeenCalled();
+  });
+
+  it.each([false, "throw"])("checks the source again at final start, before mutation: %s", async mode => {
+    const source = await adoptFixture();
+    boundary.publish.mockClear();
+    const guard = vi.fn(() => {
+      if (mode === "throw") throw new Error("Source drifted during confirmation");
+      return false;
+    });
+    const item = fixture();
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD, {
+      canAdopt: guard
+    });
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    expect(guard).not.toHaveBeenCalled();
+    const before = { map: options.map, grid, pack, root: document.getElementById("map") };
+    click("放弃当前修改并采用目标");
+    const receipt = await operation;
+    expect(receipt.outcome.type).toBe(mode === "throw" ? "failed" : "cancelled");
+    expect(receipt.replacementEpoch).toBeNull();
+    expect(guard).toHaveBeenCalledOnce();
+    expect(options.map).toBe(before.map);
+    expect(grid).toBe(before.grid);
+    expect(pack).toBe(before.pack);
+    expect(document.getElementById("map")).toBe(before.root);
+    expect(getCurrentAtlasIdentity()).toBe(source);
+    expect(isMapModelStable()).toBe(true);
+    expect(boundary.publish).not.toHaveBeenCalled();
+  });
+
+  it("only navigation suppresses legacy URL focus and still performs the actual model check", async () => {
+    boundary.focus.mockImplementation(() => {
+      throw new Error("Foreign URL cell does not exist in the target map");
+    });
+    const item = fixture();
+    const guard = vi.fn(() => true);
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD, {
+      canAdopt: guard
+    });
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    click("放弃当前修改并采用目标");
+    expect((await operation).outcome).toEqual({ type: "loaded" });
+    expect(boundary.focus).not.toHaveBeenCalled();
+    expect(guard).toHaveBeenCalledOnce();
+    const next = await begin();
+    click("放弃当前修改并采用目标");
+    expect((await next.operation).type).toBe("failed");
+    expect(boundary.focus).toHaveBeenCalledOnce();
+  });
+
+  it("does not emit an epoch when adoption fails after model verification", async () => {
+    boundary.log.mockImplementation(() => {
+      throw new Error("Late logging failure");
+    });
+    const item = fixture();
+    const operation = Load.uploadAtlasMapWithReceipt(item.blob, JSON.stringify(item.manifest), WORLD, {
+      canAdopt: () => true
+    });
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    click("放弃当前修改并采用目标");
+    const receipt = await operation;
+    expect(receipt.outcome.type).toBe("failed");
+    expect(receipt.replacementEpoch).toBeNull();
+    expect(getCurrentAtlasIdentity()).toBeNull();
+    expect(isMapModelStable()).toBe(false);
   });
 });
 

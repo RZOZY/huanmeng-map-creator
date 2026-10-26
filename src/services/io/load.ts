@@ -127,6 +127,22 @@ function showUploadErrorMessage(error: string, maplink: string, random?: boolean
 
 let uploadTimeStart = 0;
 
+export interface AtlasMapLoadReceipt {
+  readonly outcome: MapLoadOutcome;
+  readonly replacementEpoch: number | null;
+}
+
+export interface AtlasNavigationLoadOptions {
+  readonly canAdopt: () => boolean;
+}
+
+interface AtlasLoadRequest {
+  readonly manifestJSON: string;
+  readonly mapId: string;
+  readonly navigation?: AtlasNavigationLoadOptions;
+  readonly captureEpoch?: (epoch: number) => void;
+}
+
 interface PreparedUpload {
   mapData: string[];
   mapVersion: string;
@@ -163,10 +179,28 @@ async function uploadAtlasMap(
   callback?: () => void | Promise<void>
 ): Promise<MapLoadOutcome> {
   try {
-    return await loadMapFromProvider(() => file, undefined, { manifestJSON, mapId });
+    return (await uploadAtlasMapWithReceipt(file, manifestJSON, mapId)).outcome;
   } finally {
     if (callback) await runLoadSideEffect("图集载入完成清理失败", callback);
   }
+}
+
+async function uploadAtlasMapWithReceipt(
+  file: Blob,
+  manifestJSON: string,
+  mapId: string,
+  navigation?: AtlasNavigationLoadOptions
+): Promise<AtlasMapLoadReceipt> {
+  let replacementEpoch: number | null = null;
+  const outcome = await loadMapFromProvider(() => file, undefined, {
+    manifestJSON,
+    mapId,
+    navigation,
+    captureEpoch: epoch => {
+      replacementEpoch = epoch;
+    }
+  });
+  return Object.freeze({ outcome, replacementEpoch: outcome.type === "loaded" ? replacementEpoch : null });
 }
 
 function hasCurrentMap(): boolean {
@@ -176,7 +210,7 @@ function hasCurrentMap(): boolean {
 async function loadMapFromProvider(
   provide: () => Blob | Promise<Blob>,
   onProviderError?: (error: unknown) => void | Promise<void>,
-  atlasRequest?: { readonly manifestJSON: string; readonly mapId: string }
+  atlasRequest?: AtlasLoadRequest
 ): Promise<MapLoadOutcome> {
   let mapVersion: string | null = null;
   let replacementStarted = false;
@@ -265,7 +299,8 @@ async function loadMapFromProvider(
               );
               assertAtlasSnapshot(manifest, mapId, live, "model");
             }
-          : undefined
+          : undefined,
+        !!atlasRequest?.navigation
       );
       if (prepared.atlas) adoptedAtlas = { ...prepared.atlas, epoch: replacementEpoch };
     },
@@ -278,11 +313,16 @@ async function loadMapFromProvider(
       if (hasCurrentMap()) return authorizeMapReplacement(controls);
       controls.start();
     },
-    () => typeof customization === "undefined" || customization === 0
+    () => {
+      if (typeof customization !== "undefined" && customization !== 0) return false;
+      if (atlasRequest?.navigation && atlasRequest.navigation.canAdopt() !== true) return false;
+      return typeof customization === "undefined" || customization === 0;
+    }
   );
   // The lease is released, so a newer replacement may already exist. Never re-sample its epoch for this receipt.
   if (outcome.type === "loaded" && adoptedAtlas) {
     const { manifest, mapId, sha256, epoch } = adoptedAtlas;
+    atlasRequest?.captureEpoch?.(epoch);
     recordVerifiedAtlasIdentity(manifest, mapId, sha256, epoch);
   }
   await runLoadSideEffect("地图载入结果提示失败", async () => {
@@ -405,7 +445,8 @@ async function parseLoadedData(
   scene: SVGSVGElement,
   { migrateLegacySettings, resolveVersionConflicts }: PreparedUpload["migrations"],
   stylePreset: PreparedUpload["stylePreset"],
-  verifyModel?: () => void
+  verifyModel?: () => void,
+  atlasNavigation = false
 ): Promise<void> {
   let isLogGroupOpen = false;
 
@@ -809,7 +850,7 @@ async function parseLoadedData(
     applyDefaultViewboxEvents();
     fitMapToScreen();
     resetZoom(0); // an opened map is shown fitted, whatever window size it was made on
-    focusOn();
+    if (!atlasNavigation) focusOn(); // URL cell/burg indices belong to the previous map, not an Atlas place.
     invokeActiveZooming();
 
     WARN && console.warn(`TOTAL: ${rn((performance.now() - uploadTimeStart) / 1000, 2)}s`);
@@ -833,5 +874,6 @@ export const Load = {
   loadMapFromURL,
   showUploadErrorMessage,
   uploadMap,
-  uploadAtlasMap
+  uploadAtlasMap,
+  uploadAtlasMapWithReceipt
 };

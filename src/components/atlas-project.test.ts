@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AtlasNavigationPorts } from "@/services/atlas/navigation-session";
 import type { MapLoadOutcome } from "@/services/io/load-operation";
 
-const mocks = vi.hoisted(() => ({ upload: vi.fn(), tip: vi.fn() }));
+const mocks = vi.hoisted(() => ({ upload: vi.fn(), tip: vi.fn(), receipt: vi.fn(), capture: vi.fn(), apply: vi.fn() }));
 vi.mock("@/services", () => ({ Services: { Load: { uploadAtlasMap: mocks.upload } } }));
 vi.mock("@/components/tooltips", () => ({ tip: mocks.tip }));
 const WORLD = "20000000-0000-4000-8000-000000000001";
@@ -83,6 +84,28 @@ let oldShowModal: PropertyDescriptor | undefined;
 let oldClose: PropertyDescriptor | undefined;
 beforeEach(async () => {
   vi.resetModules();
+  const identity = await import("@/services/atlas/identity");
+  const model = await import("@/services/io/model-status");
+  vi.doMock("@/components/atlas-navigation-ports", () => ({
+    createAtlasNavigationPorts: (): AtlasNavigationPorts => ({
+      identity: identity.getCurrentAtlasIdentity,
+      epoch: model.getMapModelEpoch,
+      stable: model.isMapModelStable,
+      observe: sha256 => ({
+        sha256,
+        projection: "equirectangular",
+        frame: { west: -180, east: 180, north: 90, south: -90 },
+        size: { width: 1000, height: 500 },
+        objects: []
+      }),
+      captureView: mocks.capture,
+      applyView: mocks.apply,
+      load: (file, json, mapId, canAdopt) => mocks.receipt(file, json, mapId, { canAdopt })
+    })
+  }));
+  mocks.receipt.mockReset().mockResolvedValue({ outcome: { type: "cancelled" }, replacementEpoch: null });
+  mocks.capture.mockReset().mockReturnValue({ x: 321.25, y: 123.5, scale: 1.25 });
+  mocks.apply.mockReset();
   mocks.upload.mockReset().mockResolvedValue({ type: "cancelled" });
   mocks.tip.mockReset();
   document.body.replaceChildren();
@@ -130,6 +153,204 @@ async function seedSource(name = "采用来源 <Alpha>") {
 }
 const identityText = () => node<HTMLElement>("[data-atlas-identity]")?.textContent;
 const refreshIdentity = () => node<HTMLButtonElement>('[data-action="refresh-identity"]').click();
+
+const localNav = () => node<HTMLButtonElement>('[data-direction="local"]');
+const worldNav = () => node<HTMLButtonElement>('[data-direction="world"]');
+const backNav = () => node<HTMLButtonElement>('[data-action="back-view"]');
+const minimize = () => node<HTMLButtonElement>('[data-action="minimize"]');
+const placeSelect = () => node<HTMLSelectElement>("[data-atlas-place]");
+function navigationSelection() {
+  const selected = selection();
+  const raw = {
+    ...selected.raw,
+    places: [
+      {
+        id: "30000000-0000-4000-8000-000000000001",
+        name: "同名 <img src=x>",
+        kind: "地点",
+        coordinate: { longitude: 0, latitude: 0 },
+        provenance: "测试",
+        revision: 1,
+        bindings: []
+      },
+      {
+        id: "30000000-0000-4000-8000-000000000002",
+        name: "同名 <img src=x>",
+        kind: "地点",
+        coordinate: { longitude: 10, latitude: 20 },
+        provenance: "测试",
+        revision: 1,
+        bindings: []
+      }
+    ]
+  };
+  const manifest = entry("工程/atlas.json", JSON.stringify(raw));
+  return { ...selected, raw, manifest, files: [manifest.file, selected.world.file, selected.local.file] };
+}
+async function readyNavigation() {
+  const selected = navigationSelection();
+  await ready(selected.files);
+  await seedSource();
+  refreshIdentity();
+  expect(localNav().disabled).toBe(false);
+  return selected;
+}
+async function mockRealizedNavigation() {
+  const model = await import("@/services/io/model-status");
+  const identity = await import("@/services/atlas/identity");
+  const { parseAtlasManifest } = await import("@/services/atlas/manifest");
+  mocks.receipt.mockImplementation(
+    async (_file: File, json: string, mapId: string, authorization: { canAdopt: () => boolean }) => {
+      if (!authorization.canAdopt()) return { outcome: { type: "cancelled" }, replacementEpoch: null };
+      model.markMapModelUnstable();
+      window.dispatchEvent(new Event("map:replacing"));
+      model.markMapModelStable();
+      const manifest = parseAtlasManifest(json);
+      const map = manifest.maps.find(map => map.id === mapId)!;
+      expect(identity.recordVerifiedAtlasIdentity(manifest, mapId, map.asset.sha256, model.getMapModelEpoch())).toBe(
+        true
+      );
+      return { outcome: { type: "loaded" }, replacementEpoch: model.getMapModelEpoch() };
+    }
+  );
+}
+async function moveToLocal() {
+  localNav().click();
+  await vi.waitFor(() => expect(status()).toContain("导航完成"));
+}
+
+describe("navigation UI and retained minimization capability", () => {
+  it("shows UUID/coordinates for duplicate names and enables only an associated selected project", async () => {
+    expect(localNav().disabled).toBe(true);
+    const selected = navigationSelection();
+    await ready(selected.files);
+    expect(localNav().disabled).toBe(true);
+    expect(placeSelect().options).toHaveLength(2);
+    expect(placeSelect().options[1].textContent).toContain("10°, 20°");
+    expect(placeSelect().options[1].textContent).toContain(selected.raw.places[1].id);
+    expect(document.querySelector("[data-atlas-navigation] img")).toBeNull();
+    await seedSource();
+    refreshIdentity();
+    expect(localNav().disabled).toBe(false);
+    expect(worldNav().disabled).toBe(true);
+  });
+  it("uses selected place UUID and exact target File through the receipt API, not raw open", async () => {
+    const selected = await readyNavigation();
+    await mockRealizedNavigation();
+    placeSelect().value = selected.raw.places[1].id;
+    await moveToLocal();
+    expect(mocks.receipt).toHaveBeenCalledOnce();
+    expect(mocks.receipt.mock.calls[0][0]).toBe(selected.local.file);
+    expect(mocks.receipt.mock.calls[0][2]).toBe(LOCAL);
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.apply.mock.calls[0][0].x).toBeCloseTo(527.7777777777778);
+    expect(mocks.apply.mock.calls[0][0].y).toBeCloseTo(194.44444444444446);
+    expect(mocks.apply.mock.calls[0][0].scale).toBe(2);
+    expect(backNav().disabled).toBe(false);
+    expect(identityText()).toContain(LOCAL);
+  });
+  it("can minimize to interact with the map and reopen the same authorized session to return", async () => {
+    const selected = await readyNavigation();
+    await mockRealizedNavigation();
+    await moveToLocal();
+    const panel = node<HTMLDialogElement>("#atlasProjectPanel");
+    const directory = input();
+    minimize().click();
+    expect(panel.open).toBe(false);
+    expect(panel.isConnected).toBe(true);
+    showAtlasProject();
+    expect(panel.open).toBe(true);
+    expect(input()).toBe(directory);
+    expect(backNav().disabled).toBe(false);
+    backNav().click();
+    await vi.waitFor(() => expect(mocks.receipt).toHaveBeenCalledTimes(2));
+    await vi.waitFor(() => expect(close().disabled).toBe(false));
+    expect(mocks.receipt.mock.calls[1][0]).toBe(selected.world.file);
+    expect(mocks.apply.mock.calls.at(-1)?.[0]).toEqual({ x: 321.25, y: 123.5, scale: 1.25 });
+    expect(backNav().disabled).toBe(true);
+    expect(identityText()).toContain(WORLD);
+  });
+  it("does not let a delayed native minimize-close event dispose a reopened session", async () => {
+    await readyNavigation();
+    const panel = node<HTMLDialogElement>("#atlasProjectPanel");
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value: vi.fn(function (this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      })
+    });
+    minimize().click();
+    showAtlasProject();
+    panel.dispatchEvent(new Event("close"));
+    expect(panel.isConnected).toBe(true);
+    expect(panel.open).toBe(true);
+    expect(placeSelect().options).toHaveLength(2);
+  });
+  it("keeps all controls locked through real receipt settlement and rejects hidden repeat events", async () => {
+    await readyNavigation();
+    const pending = deferred<{ outcome: { type: "cancelled" }; replacementEpoch: null }>();
+    mocks.receipt.mockReturnValueOnce(pending.promise);
+    localNav().click();
+    expect(close().disabled).toBe(true);
+    expect(minimize().disabled).toBe(true);
+    expect(choose().disabled).toBe(true);
+    localNav().dispatchEvent(new MouseEvent("click"));
+    expect(mocks.receipt).toHaveBeenCalledOnce();
+    minimize().dispatchEvent(new MouseEvent("click"));
+    expect(node<HTMLDialogElement>("#atlasProjectPanel").open).toBe(true);
+    pending.resolve({ outcome: { type: "cancelled" }, replacementEpoch: null });
+    await vi.waitFor(() => expect(close().disabled).toBe(false));
+    expect(backNav().disabled).toBe(true);
+    expect(status()).toContain("已停留");
+  });
+  it("retains valid return history after cancellation, but explicit close releases it", async () => {
+    await readyNavigation();
+    await mockRealizedNavigation();
+    await moveToLocal();
+    mocks.receipt.mockResolvedValueOnce({ outcome: { type: "cancelled" }, replacementEpoch: null });
+    worldNav().click();
+    await vi.waitFor(() => expect(status()).toContain("已停留"));
+    expect(backNav().disabled).toBe(false);
+    close().click();
+    showAtlasProject();
+    expect(backNav().disabled).toBe(true);
+    expect(placeSelect().options).toHaveLength(0);
+    expect(status()).toContain("尚未选择目录");
+  });
+  it("clears the prior project return chain on directory re-selection", async () => {
+    await readyNavigation();
+    await mockRealizedNavigation();
+    await moveToLocal();
+    const next = navigationSelection();
+    selectFiles(next.files);
+    await vi.waitFor(() => expect(status()).toContain("目录匹配完成"));
+    expect(backNav().disabled).toBe(true);
+    expect(mocks.receipt).toHaveBeenCalledOnce();
+  });
+  it("invalidates history and navigation immediately on an external replacement", async () => {
+    await readyNavigation();
+    await mockRealizedNavigation();
+    await moveToLocal();
+    const model = await import("@/services/io/model-status");
+    model.markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
+    expect(backNav().disabled).toBe(true);
+    expect(localNav().disabled).toBe(true);
+    expect(identityText()).toContain("失效");
+  });
+  it("reports loaded-but-view-failed honestly and never commits a return entry", async () => {
+    await readyNavigation();
+    await mockRealizedNavigation();
+    mocks.apply.mockImplementationOnce(() => {
+      throw new Error("renderer failed");
+    });
+    localNav().click();
+    await vi.waitFor(() => expect(status()).toContain("地图采用已完成"));
+    expect(status()).toContain("不是自动回滚");
+    expect(identityText()).toContain(LOCAL);
+    expect(backNav().disabled).toBe(true);
+  });
+});
 
 describe("read-only source identity in the atlas panel", () => {
   it("starts explicitly unknown; a loaded receipt alone cannot invent a source", async () => {
