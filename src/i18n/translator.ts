@@ -108,7 +108,7 @@ function applyPatterns(key: string): string | null {
 }
 
 const SKIP_TAGS = new Set(["SCRIPT", "STYLE", "CODE", "PRE", "TEXTAREA", "NOSCRIPT"]);
-const SKIP_IDS = new Set(["map"]);
+const SKIP_IDS = new Set(["map", "defElements"]);
 const ATTRS = ["data-tip", "placeholder", "aria-label", "title", "alt", "label"];
 
 /** 归一化：压缩空白，但保留 &nbsp; */
@@ -187,7 +187,17 @@ function walk(root: Node): void {
   const element = root as Element;
   if (SKIP_TAGS.has(element.tagName)) return;
   if (element.id && SKIP_IDS.has(element.id)) return;
-  if (element.closest("#map")) return;
+  if (element.closest("#map, #defElements, #iconPositioner .stage .art")) return;
+  // Editor mutations can be user changes that persist to the model; never translate their source.
+  if (
+    element.closest(
+      ".ql-editor, #notesBody, #notesHeader, #notesName, #notesSelect, [data-i18n-skip], [contenteditable]:not([contenteditable='false'])"
+    )
+  ) {
+    return;
+  }
+  // SVG sources are data, unlike rendered interface SVG (for example the color picker).
+  if (element.namespaceURI === "http://www.w3.org/2000/svg" && ["defs", "symbol"].includes(element.localName)) return;
 
   translateAttributes(element);
   for (const child of Array.from(element.childNodes)) walk(child);

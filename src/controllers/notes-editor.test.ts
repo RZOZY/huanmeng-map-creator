@@ -6,7 +6,9 @@ vi.mock("@/renderers/overlays/highlight", () => ({ highlightElement: () => {} })
 vi.mock("@/components/tooltips", () => ({ tip: () => {} }));
 
 import { Notes } from "@/generators/notes";
+import { rescan } from "@/i18n/translator";
 import { NotesEditor } from "./notes-editor";
+import { getEditorHtml } from "./notes-rich-text";
 
 const w = globalThis as unknown as Record<string, unknown>;
 const burg = { type: "burg", id: 1 } as const;
@@ -45,6 +47,28 @@ describe("NotesEditor bridge", () => {
     expect(document.querySelector("#notesLegend .ql-editor")?.innerHTML).toBe("<p>rewritten</p>");
     expect(document.getElementById("notesBody")?.innerHTML).toBe("<p>rewritten</p>");
     expect(document.getElementById("notesName")?.textContent).toBe("Kelmora");
+  });
+
+  it("does not translate or write back user notes when runtime translation scans a real Quill editor", async () => {
+    const original = "<p>Download</p>";
+    pack.burgs[1].name = "Download";
+    Notes.set(burg, original);
+    NotesEditor.open(burg);
+    const editor = Quill.find(document.getElementById("notesLegend")!) as Quill;
+    const selector = document.getElementById("notesSelect")!;
+    const selectionBefore = selector.innerHTML;
+
+    rescan();
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    expect(Notes.get(burg)).toBe(original);
+    expect(editor.root.innerHTML).toBe(original);
+    expect(getEditorHtml(editor)).toBe(original);
+    expect(document.getElementById("notesBody")!.innerHTML).toBe(original);
+    expect(document.getElementById("notesHeader")!.textContent).toBe("Download");
+    expect(document.getElementById("notesName")!.textContent).toBe("Download");
+    expect(selector.innerHTML).toBe(selectionBefore);
   });
 
   it("lists newly written notes without moving the open editor", () => {
