@@ -32,6 +32,7 @@ import {
 import { ensureEl, escapeHtml, last, link, rn, safeParseJSON } from "@/utils";
 import { repairCultureReferences, repairRouteReferences } from "./load-integrity";
 import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
+import { preflightMapData, prepareDetachedMapSvg } from "./map-preflight";
 
 async function quickLoad(): Promise<void> {
   try {
@@ -167,6 +168,7 @@ let uploadTimeStart = 0;
 interface PreparedUpload {
   mapData: string[];
   mapVersion: string;
+  scene: SVGSVGElement;
 }
 
 async function runLoadSideEffect(context: string, effect: () => void | Promise<void>): Promise<void> {
@@ -221,9 +223,11 @@ async function loadMapFromProvider(
         await runLoadSideEffect("地图版本校验提示失败", () => showUploadMessage("newer", mapVersion));
         return null;
       }
-      return { mapData, mapVersion: mapVersion! };
+      preflightMapData(mapData, mapVersion!);
+      const scene = prepareDetachedMapSvg(mapData[5]);
+      return { mapData, mapVersion: mapVersion!, scene };
     },
-    prepared => parseLoadedData(prepared.mapData, prepared.mapVersion),
+    prepared => parseLoadedData(prepared.mapData, prepared.mapVersion, prepared.scene),
     () => {
       replacementStarted = true;
       window.dispatchEvent(new Event("map:replacing"));
@@ -343,7 +347,7 @@ function reportMapLoadError(error: unknown, mapVersion: string | null, replaceme
   });
 }
 
-async function parseLoadedData(data: string[], mapVersion: string | null): Promise<void> {
+async function parseLoadedData(data: string[], mapVersion: string | null, scene: SVGSVGElement): Promise<void> {
   let isLogGroupOpen = false;
 
   try {
@@ -379,7 +383,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null): Promi
 
     undraw(); // every layer releases its scene and content before the loaded map takes over
     select("#map").remove();
-    document.body.insertAdjacentHTML("afterbegin", data[5]);
+    document.body.prepend(scene); // adopt the detached preflight scene without parsing the SVG again
     zonesFilter.type = "all"; // the dropped map's zone types say nothing about the loaded one
 
     // TODO: check if we need it or if LayersRegistry resolves it automatically?

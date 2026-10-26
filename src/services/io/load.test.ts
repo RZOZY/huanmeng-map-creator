@@ -58,9 +58,31 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+function mapRecords(marker = "target", version = MAP_FORMAT_VERSION): string[] {
+  const data = Array<string>(53).fill("");
+  data[0] = `${version}|`;
+  data[1] = "{}";
+  data[2] = marker;
+  data[3] = "[]";
+  data[5] = '<svg id="map"><g id="viewbox"></g></svg>';
+  data[6] = JSON.stringify({
+    spacing: 1,
+    cellsX: 1,
+    cellsY: 1,
+    points: [[0, 0]],
+    boundary: [
+      [-1, -1],
+      [1, 1]
+    ],
+    features: [0]
+  });
+  for (const index of [7, 8, 9, 10, 11, 16, 17, 18, 19, 20, 21, 22, 24, 25]) data[index] = "0";
+  for (const index of [12, 13, 14, 15]) data[index] = "[0]";
+  return data;
+}
+
 function mapBlob(marker = "target", version = MAP_FORMAT_VERSION): Blob {
-  const data = [`${version}|`, "{}", marker, "", "", '<svg id="map"></svg>', "{}", "0", "0", "0"];
-  return new Blob([data.join("\r\n")]);
+  return new Blob([mapRecords(marker, version).join("\r\n")]);
 }
 
 function response(blob: Blob | Promise<Blob> = mapBlob()) {
@@ -74,7 +96,7 @@ beforeEach(() => {
   boundary.fetch.mockReset().mockRejectedValue(new Error("Unexpected network request"));
   markMapModelStable();
   document.body.innerHTML =
-    '<div id="alertMessage"></div><select id="loadFromDropboxSelect"><option value="/test.map">test</option></select>';
+    '<svg id="map"><g id="viewbox"><text>Original map</text></g></svg><div id="alertMessage"></div><select id="loadFromDropboxSelect"><option value="/test.map">test</option></select>';
   vi.stubGlobal("alertMessage", document.getElementById("alertMessage"));
   vi.stubGlobal(
     "$",
@@ -84,6 +106,7 @@ beforeEach(() => {
   vi.stubGlobal("generateMapOnLoad", boundary.generate);
   vi.stubGlobal("mapHistory", [{ registeredAt: Date.now() }]);
   vi.stubGlobal("pack", { marker: "old model" });
+  vi.stubGlobal("grid", { marker: "old grid" });
   window.dispatchEvent(new Event("map:generated"));
 });
 
@@ -91,6 +114,62 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+describe("target preflight before any map replacement", () => {
+  const replacing = vi.fn();
+  beforeEach(() => {
+    replacing.mockClear();
+    window.addEventListener("map:replacing", replacing);
+  });
+  afterEach(() => window.removeEventListener("map:replacing", replacing));
+
+  it.each([
+    [1, "{"],
+    [6, "{}"],
+    [7, "0,1"],
+    [14, "[null]"],
+    [15, "[null]"],
+    [34, "{"],
+    [34, "[null]"],
+    [41, "[null]"],
+    [47, '[{"label":null}]'],
+    [5, '<svg id="map"></svg>'],
+    [5, '<svg id="map"><g id="viewbox"/><script>unexpected()</script></svg>']
+  ] as const)("rejects a broken record %s without touching the live map", async (index, value) => {
+    const data = mapRecords();
+    data[index] = value;
+    const oldModel = pack;
+    const oldOptions = options;
+    const oldGrid = grid;
+    const oldScene = document.getElementById("map");
+    const callback = vi.fn();
+    await expect(Load.uploadMap(new Blob([data.join("\r\n")]), callback)).resolves.toMatchObject({ type: "failed" });
+    expect(callback).toHaveBeenCalledOnce();
+    expect(replacing).not.toHaveBeenCalled();
+    expect(boundary.adopt).not.toHaveBeenCalled();
+    expect(pack).toBe(oldModel);
+    expect(options).toBe(oldOptions);
+    expect(grid).toBe(oldGrid);
+    expect(document.getElementById("map")).toBe(oldScene);
+    expect(isMapModelStable()).toBe(true);
+    expect(isMapIOBusy()).toBe(false);
+    expect(alertMessage.textContent).toContain("原地图尚未开始替换");
+  });
+
+  it("prepares exactly one detached scene and hands it to adoption", async () => {
+    const oldScene = document.getElementById("map");
+    boundary.adopt.mockImplementationOnce(async prepared => {
+      const { scene } = prepared as { scene: SVGSVGElement };
+      expect(scene).toBeInstanceOf(SVGSVGElement);
+      expect(scene.isConnected).toBe(false);
+      expect(scene.querySelector("#viewbox")).not.toBeNull();
+      expect(document.getElementById("map")).toBe(oldScene);
+    });
+    await expect(Load.uploadMap(mapBlob())).resolves.toEqual({ type: "loaded" });
+    expect(replacing).toHaveBeenCalledOnce();
+    expect(boundary.adopt).toHaveBeenCalledOnce();
+  });
 });
 
 describe("quick load storage failures", () => {
