@@ -105,11 +105,115 @@ beforeEach(async () => {
   showAtlasProject();
 });
 afterEach(() => {
+  document.querySelector<HTMLButtonElement>('#atlasProjectPanel [data-action="close"]')?.click();
   document.body.replaceChildren();
   if (oldShowModal) Object.defineProperty(HTMLDialogElement.prototype, "showModal", oldShowModal);
   else Reflect.deleteProperty(HTMLDialogElement.prototype, "showModal");
   if (oldClose) Object.defineProperty(HTMLDialogElement.prototype, "close", oldClose);
   else Reflect.deleteProperty(HTMLDialogElement.prototype, "close");
+});
+
+async function seedSource(name = "采用来源 <Alpha>") {
+  const { parseAtlasManifest } = await import("@/services/atlas/manifest");
+  const { recordVerifiedAtlasIdentity, getCurrentAtlasIdentity } = await import("@/services/atlas/identity");
+  const { getMapModelEpoch, markMapModelStable } = await import("@/services/io/model-status");
+  markMapModelStable();
+  expect(
+    recordVerifiedAtlasIdentity(
+      parseAtlasManifest(JSON.stringify(fixture(name))),
+      WORLD,
+      "a".repeat(64),
+      getMapModelEpoch()
+    )
+  ).toBe(true);
+  return getCurrentAtlasIdentity()!;
+}
+const identityText = () => node<HTMLElement>("[data-atlas-identity]")?.textContent;
+const refreshIdentity = () => node<HTMLButtonElement>('[data-action="refresh-identity"]').click();
+
+describe("read-only source identity in the atlas panel", () => {
+  it("starts explicitly unknown; a loaded receipt alone cannot invent a source", async () => {
+    expect(identityText()).toContain("未关联");
+    await ready();
+    mocks.upload.mockResolvedValueOnce({ type: "loaded" });
+    mapButton().click();
+    await vi.waitFor(() => expect(close().disabled).toBe(false));
+    expect(identityText()).toContain("未关联");
+  });
+  it("keeps source across close/reopen without retaining or inventing a selected directory", async () => {
+    const source = await seedSource();
+    close().click();
+    showAtlasProject();
+    expect(identityText()).toContain(source.projectName);
+    expect(identityText()).toContain(WORLD);
+    expect(identityText()).toContain(source.sourceAssetSha256);
+    expect(identityText()).toContain("不证明");
+    expect(document.querySelector("[data-atlas-identity] img")).toBeNull();
+    expect(status()).toContain("尚未选择目录");
+    expect(document.querySelector("tbody tr")).toBeNull();
+  });
+  it("never labels a reselected same-UUID different revision/hash as the current exact file", async () => {
+    await seedSource("原始来源");
+    refreshIdentity();
+    const data = selection("另一个来源声明");
+    data.raw.maps[0].asset.sha256 = "c".repeat(64);
+    data.raw.maps[0].geographicRevision = 2;
+    data.raw.maps[1].parent!.geographicRevision = 2;
+    const manifest = entry("工程/atlas.json", JSON.stringify(data.raw));
+    await ready([manifest.file, data.world.file, data.local.file]);
+    expect(identityText()).toContain("原始来源");
+    expect(identityText()).not.toContain("另一个来源声明");
+    expect(node("tbody").textContent).toContain("待双重核验");
+    expect(node("tbody").textContent).not.toContain("当前文件");
+  });
+  it("clears at actual replacement and cannot recover identity from a legacy generated timestamp", async () => {
+    await seedSource();
+    refreshIdentity();
+    const { markMapModelUnstable, markMapModelStable } = await import("@/services/io/model-status");
+    markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
+    expect(identityText()).toContain("未关联");
+    markMapModelStable();
+    window.dispatchEvent(new CustomEvent("map:generated", { detail: { mapId: 42 } }));
+    refreshIdentity();
+    expect(identityText()).toContain("未关联");
+  });
+  it("refreshes the actual source after service settlement, not from selected row names or map IDs", async () => {
+    await ready();
+    mocks.upload.mockImplementationOnce(async () => {
+      await seedSource("真实采用记录");
+      return { type: "loaded" };
+    });
+    mapButton().click();
+    await vi.waitFor(() => expect(close().disabled).toBe(false));
+    expect(identityText()).toContain("真实采用记录");
+    expect(identityText()).not.toContain("项目 <Beta>");
+  });
+  it("only re-reads metadata on manual refresh, never file bytes or another load", async () => {
+    const data = selection();
+    await ready(data.files);
+    await seedSource();
+    refreshIdentity();
+    expect(identityText()).toContain("采用来源");
+    expect(data.manifest.read).toHaveBeenCalledOnce();
+    expect(data.world.read).not.toHaveBeenCalled();
+    expect(data.local.read).not.toHaveBeenCalled();
+    expect(mocks.upload).not.toHaveBeenCalled();
+  });
+  it("releases replacement listeners and cannot mutate a detached source card after closing", async () => {
+    await seedSource();
+    refreshIdentity();
+    const oldCard = node<HTMLElement>("[data-atlas-identity]");
+    const previous = oldCard.textContent;
+    close().click();
+    const { markMapModelUnstable, markMapModelStable } = await import("@/services/io/model-status");
+    markMapModelUnstable();
+    window.dispatchEvent(new Event("map:replacing"));
+    expect(oldCard.textContent).toBe(previous);
+    markMapModelStable();
+    showAtlasProject();
+    expect(identityText()).toContain("未关联");
+  });
 });
 
 describe("session-owned explicit atlas project panel", () => {

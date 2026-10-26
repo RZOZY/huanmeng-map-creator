@@ -1,5 +1,6 @@
 import { tip } from "@/components/tooltips";
 import { Services } from "@/services";
+import { getCurrentAtlasIdentity } from "@/services/atlas/identity";
 import { type AtlasProjectFiles, readAtlasProjectFiles } from "@/services/atlas/project-files";
 import type { MapLoadOutcome } from "@/services/io/load-operation";
 
@@ -21,6 +22,8 @@ export function showAtlasProject(): void {
     <button type="button" data-action="choose">选择项目目录</button>
     <button type="button" data-action="close">关闭</button>
     <input id="atlasProjectDirectory" type="file" webkitdirectory multiple hidden aria-label="项目目录" />
+    <p data-atlas-identity style="overflow-wrap:anywhere" aria-live="polite"></p>
+    <button type="button" data-action="refresh-identity">刷新采用来源</button>
     <p data-project></p><p data-status role="status" aria-live="polite">尚未选择目录。</p>
     <div style="max-height:50vh;overflow:auto"><table style="width:100%;text-align:left">
     <thead><tr><th>地图</th><th>类型</th><th>相对路径</th><th>状态</th><th>操作</th></tr></thead>
@@ -29,6 +32,8 @@ export function showAtlasProject(): void {
   const directory = panel.querySelector<HTMLInputElement>("input")!;
   const choose = panel.querySelector<HTMLButtonElement>('[data-action="choose"]')!;
   const close = panel.querySelector<HTMLButtonElement>('[data-action="close"]')!;
+  const refresh = panel.querySelector<HTMLButtonElement>('[data-action="refresh-identity"]')!;
+  const identityView = panel.querySelector<HTMLElement>("[data-atlas-identity]")!;
   const projectName = panel.querySelector<HTMLElement>("[data-project]")!;
   const status = panel.querySelector<HTMLElement>("[data-status]")!;
   const body = panel.querySelector("tbody")!;
@@ -44,13 +49,36 @@ export function showAtlasProject(): void {
     project = null;
     directory.onchange = null;
     directory.value = "";
+    window.removeEventListener("map:replacing", updateIdentity);
     if (activePanel === panel) activePanel = null;
     if (panel.open) panel.close();
     panel.remove();
   }
 
+  function updateIdentity(): void {
+    const identity = getCurrentAtlasIdentity();
+    identityView.replaceChildren();
+    if (!identity) {
+      identityView.textContent = "当前图采用来源：未关联或身份已失效。只记录本会话完整核验采用的来源；可点击刷新核对。";
+      return;
+    }
+    const label = (value: string) => {
+      const element = document.createElement("bdi");
+      element.textContent = value;
+      return element;
+    };
+    identityView.append(
+      "当前图采用来源：",
+      label(identity.projectName),
+      " ／ ",
+      label(identity.mapName),
+      `；项目 UUID：${identity.projectId}；地图 UUID：${identity.mapId}；地理修订：${identity.geographicRevision}；原始输入 SHA-256：${identity.sourceAssetSha256}。`,
+      "此记录不证明当前模型仍与文件一致、地理仍有效或修改已保存；不能据此放行导航。"
+    );
+  }
+
   function updateButtons(): void {
-    choose.disabled = close.disabled = directory.disabled = busy;
+    choose.disabled = close.disabled = refresh.disabled = directory.disabled = busy;
     for (const button of body.querySelectorAll<HTMLButtonElement>("button")) {
       button.disabled = busy || button.dataset.available !== "true";
     }
@@ -105,7 +133,10 @@ export function showAtlasProject(): void {
       status.textContent = `载图调用异常：${errorText(error)}。当前模型可能已部分替换；关闭本窗口查看详情，必要时完整重载。`;
     } finally {
       busy = false;
-      if (!closed) updateButtons();
+      if (!closed) {
+        updateButtons();
+        updateIdentity();
+      }
     }
   }
 
@@ -133,6 +164,9 @@ export function showAtlasProject(): void {
     if (!busy && !closed) directory.click();
   };
   close.onclick = dispose;
+  refresh.onclick = () => {
+    if (!busy && !closed) updateIdentity();
+  };
   panel.addEventListener("cancel", event => {
     event.preventDefault();
     if (!busy) dispose();
@@ -143,6 +177,8 @@ export function showAtlasProject(): void {
   });
   document.body.append(panel);
   activePanel = panel;
+  window.addEventListener("map:replacing", updateIdentity);
+  updateIdentity();
   try {
     panel.showModal();
   } catch (error) {

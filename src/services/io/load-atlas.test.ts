@@ -2,15 +2,18 @@
 import { createHash, webcrypto } from "node:crypto";
 import { gzipSync } from "node:zlib";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { getCurrentAtlasIdentity } from "@/services/atlas/identity";
 import * as observation from "@/services/atlas/observation";
 import { Load } from "./load";
+import * as loadOperation from "./load-operation";
 import { readMapBlob } from "./load-operation";
 import { isMapIOBusy } from "./map-io";
-import { isMapModelStable, markMapModelStable } from "./model-status";
+import { isMapModelStable, markMapModelStable, markMapModelUnstable } from "./model-status";
 
 const boundary = vi.hoisted(() => ({
   draw: vi.fn(),
   publish: vi.fn(),
+  log: vi.fn(),
   persist: vi.fn(),
   tip: vi.fn(),
   dialog: vi.fn(),
@@ -43,7 +46,7 @@ vi.mock("@/renderers/draw-vignette", () => ({ applyVignetteOptions: vi.fn() }));
 vi.mock("@/renderers/draw-zones", () => ({ zonesFilter: {} }));
 vi.mock("@/renderers/heightmap-color-schemes", () => ({ HeightmapColorSchemes: { ensure: vi.fn() } }));
 vi.mock("@/services/fonts", () => ({ declareFont: vi.fn() }));
-vi.mock("@/services/logging", () => ({ logStats: vi.fn() }));
+vi.mock("@/services/logging", () => ({ logStats: boundary.log }));
 
 const WORLD = "20000000-0000-4000-8000-000000000001";
 const COORDINATES = { lonW: -180, lonE: 180, lonT: 360, latN: 90, latS: -90, latT: 180 };
@@ -145,6 +148,11 @@ async function begin(item = fixture(), callback = vi.fn()) {
 beforeEach(() => {
   vi.clearAllMocks();
   boundary.focus.mockReset();
+  boundary.publish.mockReset();
+  boundary.persist.mockReset();
+  boundary.log.mockReset();
+  boundary.tip.mockReset();
+  markMapModelUnstable();
   markMapModelStable();
   vi.stubGlobal("crypto", { subtle: webcrypto.subtle });
   vi.stubGlobal("customization", 0);
@@ -215,6 +223,188 @@ afterEach(() => {
   else Reflect.deleteProperty(Blob.prototype, "stream");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>(yes => {
+    resolve = yes;
+  });
+  return { promise, resolve };
+}
+async function adoptFixture(item = fixture()) {
+  const { operation } = await begin(item);
+  click("放弃当前修改并采用目标");
+  expect(await operation).toEqual({ type: "loaded" });
+  expect(getCurrentAtlasIdentity()).not.toBeNull();
+  return getCurrentAtlasIdentity()!;
+}
+
+describe("verified atlas adoption source lifecycle", () => {
+  it("records only after the whole adoption settles, not the legacy generated event or success tip", async () => {
+    const successTip = deferred<void>();
+    boundary.tip.mockImplementation((message: unknown) =>
+      message === "Map is successfully loaded" ? successTip.promise : undefined
+    );
+    boundary.publish.mockImplementation(() => {
+      expect(isMapModelStable()).toBe(false);
+      expect(getCurrentAtlasIdentity()).toBeNull();
+      window.dispatchEvent(new CustomEvent("map:generated", { detail: { mapId: 42 } }));
+    });
+    const item = fixture();
+    const { operation } = await begin(item);
+    click("放弃当前修改并采用目标");
+    await vi.waitFor(() => expect(boundary.publish).toHaveBeenCalledOnce());
+    expect(getCurrentAtlasIdentity()).toBeNull();
+    successTip.resolve();
+    expect(await operation).toEqual({ type: "loaded" });
+    expect(getCurrentAtlasIdentity()).toMatchObject({
+      projectId: item.manifest.project.id,
+      mapId: WORLD,
+      geographicRevision: 1,
+      sourceAssetSha256: item.manifest.maps[0].asset.sha256
+    });
+    expect(Object.isFrozen(getCurrentAtlasIdentity())).toBe(true);
+  });
+  it("rejects an old source publication when B fully adopts between A lease release and A continuation", async () => {
+    const actual = loadOperation.runMapLoad;
+    let interleave = true;
+    const newer: ReturnType<typeof getCurrentAtlasIdentity>[] = [];
+    vi.spyOn(loadOperation, "runMapLoad").mockImplementation(async (prepare, adopt, before, authorize, canAdopt) => {
+      const outcome = await actual(prepare, adopt, before, authorize, canAdopt);
+      if (outcome.type === "loaded" && interleave) {
+        interleave = false;
+        const item = fixture();
+        item.manifest.project.name = "B adopted before A continuation";
+        newer.push(await adoptFixture(item));
+      }
+      return outcome;
+    });
+    const first = await begin();
+    click("放弃当前修改并采用目标");
+    expect(await first.operation).toEqual({ type: "loaded" });
+    expect(newer).toHaveLength(1);
+    expect(getCurrentAtlasIdentity()).toBe(newer[0]);
+    expect(getCurrentAtlasIdentity()?.projectName).toBe("B adopted before A continuation");
+  });
+  it("stores the canonical UUID when a real dedicated load receives an uppercase A-F mapId", async () => {
+    const item = fixture();
+    const canonical = "abcdefab-0000-4000-8000-abcdefabcdef";
+    item.manifest.worldMapId = item.manifest.maps[0].id = canonical;
+    item.manifest.places[0].bindings[0].mapId = canonical;
+    const operation = Load.uploadAtlasMap(item.blob, JSON.stringify(item.manifest), canonical.toUpperCase());
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    click("放弃当前修改并采用目标");
+    expect(await operation).toEqual({ type: "loaded" });
+    expect(getCurrentAtlasIdentity()?.mapId).toBe(canonical);
+  });
+  it.each(["persist", "log", "finally"])("does not publish when %s fails after adoption began", async phase => {
+    await adoptFixture();
+    const error = new Error(`failure in ${phase}`);
+    boundary.publish.mockImplementation(() => window.dispatchEvent(new Event("map:generated")));
+    if (phase === "persist")
+      boundary.persist.mockImplementationOnce(() => {
+        throw error;
+      });
+    if (phase === "log")
+      boundary.log.mockImplementationOnce(() => {
+        throw error;
+      });
+    if (phase === "finally") {
+      vi.stubGlobal("INFO", true);
+      vi.spyOn(console, "groupEnd").mockImplementationOnce(() => {
+        throw error;
+      });
+    }
+    const { operation } = await begin();
+    click("放弃当前修改并采用目标");
+    expect(await operation).toEqual({ type: "failed", error });
+    expect(getCurrentAtlasIdentity()).toBeNull();
+    expect(isMapModelStable()).toBe(false);
+    markMapModelStable();
+    expect(getCurrentAtlasIdentity()).toBeNull();
+  });
+  it.each(["initial-cancel", "final-cancel", "hash", "busy"])(
+    "preserves the adopted source on %s before replacement",
+    async phase => {
+      const old = await adoptFixture();
+      if (phase === "busy") {
+        const { beginMapIO } = await import("./map-io");
+        const lease = beginMapIO("save");
+        try {
+          expect(await Load.uploadAtlasMap(fixture().blob, JSON.stringify(fixture().manifest), WORLD)).toEqual({
+            type: "busy"
+          });
+        } finally {
+          lease!.release();
+        }
+      } else if (phase === "initial-cancel") {
+        const operation = Load.uploadAtlasMap(fixture().blob, JSON.stringify(fixture().manifest), WORLD);
+        click("取消，保留当前地图");
+        expect(await operation).toEqual({ type: "cancelled" });
+      } else {
+        const item = fixture();
+        if (phase === "hash") item.manifest.maps[0].asset.sha256 = "b".repeat(64);
+        const { operation } = await begin(item);
+        if (phase === "final-cancel") click("取消，保留当前地图");
+        expect((await operation).type).toBe(phase === "hash" ? "failed" : "cancelled");
+      }
+      expect(getCurrentAtlasIdentity()).toBe(old);
+    }
+  );
+  it("invalidates immediately when ordinary loading replaces the map and never inherits Atlas source", async () => {
+    await adoptFixture();
+    const item = fixture();
+    const operation = Load.uploadMap(item.blob);
+    click("准备读取目标");
+    await vi.waitFor(() =>
+      expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+    );
+    expect(getCurrentAtlasIdentity()).not.toBeNull();
+    click("放弃当前修改并采用目标");
+    expect(getCurrentAtlasIdentity()).toBeNull();
+    expect(await operation).toEqual({ type: "loaded" });
+    expect(getCurrentAtlasIdentity()).toBeNull();
+  });
+  it("never resurrects lineage after failed live-model verification", async () => {
+    await adoptFixture();
+    boundary.focus.mockImplementationOnce(() => {
+      pack.markers[0].x += 1;
+    });
+    const { operation } = await begin();
+    click("放弃当前修改并采用目标");
+    expect((await operation).type).toBe("failed");
+    markMapModelStable();
+    expect(getCurrentAtlasIdentity()).toBeNull();
+  });
+  it("does not overwrite a newer successful source when an older loaded callback settles late", async () => {
+    const callback = deferred<void>();
+    const entered = vi.fn(() => callback.promise);
+    const first = await begin(fixture(), entered);
+    click("放弃当前修改并采用目标");
+    await vi.waitFor(() => expect(entered).toHaveBeenCalledOnce());
+    const a = getCurrentAtlasIdentity();
+    expect(a).not.toBeNull();
+    const next = fixture();
+    next.manifest.project.name = "New project, same immutable asset";
+    const b = await adoptFixture(next);
+    expect(b).not.toBe(a);
+    callback.resolve();
+    expect(await first.operation).toEqual({ type: "loaded" });
+    expect(getCurrentAtlasIdentity()).toBe(b);
+    expect(b.projectName).toBe("New project, same immutable asset");
+  });
+  it("keeps a source through later edits without certifying current geography or file equality", async () => {
+    const identity = await adoptFixture();
+    options.map.geography.coordinates.lonW += 1;
+    pack.markers[0].x += 1;
+    expect(getCurrentAtlasIdentity()).toBe(identity);
+    expect(identity).not.toHaveProperty("liveVerified");
+    expect(identity).not.toHaveProperty("currentSha256");
+  });
 });
 
 describe("atlas upload with the actual adoption function", () => {

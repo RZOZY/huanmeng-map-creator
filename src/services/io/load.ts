@@ -19,6 +19,7 @@ import { applyVignetteOptions } from "@/renderers/draw-vignette";
 import { zonesFilter } from "@/renderers/draw-zones";
 import { HeightmapColorSchemes } from "@/renderers/heightmap-color-schemes";
 import { Services } from "@/services";
+import { recordVerifiedAtlasIdentity } from "@/services/atlas/identity";
 import { type AtlasManifest, parseAtlasManifest } from "@/services/atlas/manifest";
 import { assertAtlasSnapshot, observeAtlasFile, observeAtlasModel, sha256MapBytes } from "@/services/atlas/observation";
 import { declareFont } from "@/services/fonts";
@@ -35,7 +36,7 @@ import { authorizeMapReplacement, confirmMapDeparture } from "./load-confirmatio
 import { repairCultureReferences, repairRouteReferences } from "./load-integrity";
 import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
 import { preflightMapData, prepareDetachedMapSvg } from "./map-preflight";
-import { isMapModelStable } from "./model-status";
+import { getMapModelEpoch, isMapModelStable } from "./model-status";
 import { Save } from "./save";
 
 async function quickLoad(): Promise<MapLoadOutcome> {
@@ -179,6 +180,8 @@ async function loadMapFromProvider(
 ): Promise<MapLoadOutcome> {
   let mapVersion: string | null = null;
   let replacementStarted = false;
+  let replacementEpoch = -1;
+  let adoptedAtlas: (NonNullable<PreparedUpload["atlas"]> & { epoch: number }) | undefined;
   let providerFailure: { error: unknown } | undefined;
   const outcome = await runMapLoad<PreparedUpload>(
     async preparation => {
@@ -240,8 +243,8 @@ async function loadMapFromProvider(
       ]);
       return { mapData, mapVersion: mapVersion!, scene, migrations, stylePreset, atlas };
     },
-    prepared =>
-      parseLoadedData(
+    async prepared => {
+      await parseLoadedData(
         prepared.mapData,
         prepared.mapVersion,
         prepared.scene,
@@ -263,9 +266,12 @@ async function loadMapFromProvider(
               assertAtlasSnapshot(manifest, mapId, live, "model");
             }
           : undefined
-      ),
+      );
+      if (prepared.atlas) adoptedAtlas = { ...prepared.atlas, epoch: replacementEpoch };
+    },
     () => {
       replacementStarted = true;
+      replacementEpoch = getMapModelEpoch();
       window.dispatchEvent(new Event("map:replacing"));
     },
     (_prepared, controls) => {
@@ -274,6 +280,11 @@ async function loadMapFromProvider(
     },
     () => typeof customization === "undefined" || customization === 0
   );
+  // The lease is released, so a newer replacement may already exist. Never re-sample its epoch for this receipt.
+  if (outcome.type === "loaded" && adoptedAtlas) {
+    const { manifest, mapId, sha256, epoch } = adoptedAtlas;
+    recordVerifiedAtlasIdentity(manifest, mapId, sha256, epoch);
+  }
   await runLoadSideEffect("地图载入结果提示失败", async () => {
     if (outcome.type === "busy") tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
     if (providerFailure && onProviderError) await onProviderError(providerFailure.error);
