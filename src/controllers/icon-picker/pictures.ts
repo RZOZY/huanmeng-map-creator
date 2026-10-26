@@ -35,26 +35,25 @@ async function fromFile(file: File, id: string, profile: PictureProfile = "icon"
   if (isSvg) {
     if (file.size > limits.svg)
       throw new Error(
-        `The SVG file is ${kilobytes(file.size)}, the limit is ${kilobytes(limits.svg)}. Simplify it or link to it instead`
+        `SVG 文件大小为 ${kilobytes(file.size)}，上限为 ${kilobytes(limits.svg)}。请简化文件，或改用图片链接。`
       );
     const svg = sanitizeSvgIcon(await file.text());
-    if (!svg) throw new Error("The file is not a valid SVG image");
+    if (!svg) throw new Error("文件不是有效的 SVG 图片。");
     scopeSvgIcon(svg, id);
     const picture = fromSvg(svg);
     return { ...picture, viewBox: svgFrame(picture.content, picture.viewBox) };
   }
 
-  if (!file.type.startsWith("image/"))
-    throw new Error("The file is not an image: upload an SVG, PNG, JPEG or WebP file");
+  if (!file.type.startsWith("image/")) throw new Error("文件不是图片，请上传 SVG、PNG、JPEG 或 WebP 文件。");
   if (file.size > limits.raster)
     throw new Error(
-      `The image is ${kilobytes(file.size)}, the limit is ${kilobytes(limits.raster)}. Make it smaller or link to it instead`
+      `图片大小为 ${kilobytes(file.size)}，上限为 ${kilobytes(limits.raster)}。请缩小图片，或改用图片链接。`
     );
   const url = URL.createObjectURL(file);
   try {
     const canvas = rasterize(
       await loadImage(url, false).catch(() => {
-        throw new Error("The file cannot be read as an image");
+        throw new Error("无法将此文件读取为图片。");
       }),
       limits.side
     );
@@ -68,10 +67,10 @@ async function fromFile(file: File, id: string, profile: PictureProfile = "icon"
 /** A link to an image hosted elsewhere, confirmed to load */
 async function fromLink(link: string): Promise<IconPicture> {
   const url = link.trim();
-  if (!/^https?:\/\/\S+$/i.test(url)) throw new Error("Paste a link that starts with http:// or https://");
+  if (!/^https?:\/\/\S+$/i.test(url)) throw new Error("请粘贴以 http:// 或 https:// 开头的图片链接。");
   const viewBox = await imageFrame(url).catch(async () => {
     await loadImage(url, false).catch(() => {
-      throw new Error("The link does not open an image, or its site does not allow it");
+      throw new Error("链接无法打开图片，或来源网站不允许访问。");
     });
     return IMAGE_FRAME; // shown, but its pixels cannot be read
   });

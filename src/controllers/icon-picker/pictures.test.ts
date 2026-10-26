@@ -65,28 +65,69 @@ test("the fitted frame is a padded square around the visible content", async () 
   }
 });
 
-test("oversize files and files that are not images are refused with a message for the author", async () => {
+test("oversize files and files that are not images are refused with Chinese guidance", async () => {
   await expect(IconPictures.fromFile(svgFile(`<svg>${" ".repeat(200_001)}</svg>`), "custom-a")).rejects.toThrow(
-    "limit is 200 kB"
+    "SVG 文件大小为 200 kB，上限为 200 kB。请简化文件，或改用图片链接。"
   );
-  await expect(IconPictures.fromFile(svgFile("not markup"), "custom-a")).rejects.toThrow("not a valid SVG");
+  await expect(IconPictures.fromFile(svgFile("not markup"), "custom-a")).rejects.toThrow("文件不是有效的 SVG 图片。");
   const text = new File(["hello"], "notes.txt", { type: "text/plain" });
-  await expect(IconPictures.fromFile(text, "custom-a")).rejects.toThrow("not an image");
+  await expect(IconPictures.fromFile(text, "custom-a")).rejects.toThrow(
+    "文件不是图片，请上传 SVG、PNG、JPEG 或 WebP 文件。"
+  );
   const huge = new File([new Uint8Array(2_000_001)], "photo.png", { type: "image/png" });
-  await expect(IconPictures.fromFile(huge, "custom-a")).rejects.toThrow("limit is 2 MB");
+  await expect(IconPictures.fromFile(huge, "custom-a")).rejects.toThrow(
+    "图片大小为 2 MB，上限为 2 MB。请缩小图片，或改用图片链接。"
+  );
 });
 
 test("the emblem profile accepts larger SVGs and applies its own input limit", async () => {
   const large = svgFile(`<svg viewBox="0 0 100 100"><path d="M0 0"/>${" ".repeat(210_000)}</svg>`);
-  await expect(IconPictures.fromFile(large, "custom-a", "icon")).rejects.toThrow("limit is 200 kB");
+  await expect(IconPictures.fromFile(large, "custom-a", "icon")).rejects.toThrow(
+    "SVG 文件大小为 210 kB，上限为 200 kB。请简化文件，或改用图片链接。"
+  );
   await expect(IconPictures.fromFile(large, "custom-a", "emblem")).resolves.toMatchObject({ kind: "svg" });
+  const hugeSvg = svgFile(`<svg>${" ".repeat(1_000_001)}</svg>`);
+  await expect(IconPictures.fromFile(hugeSvg, "custom-a", "emblem")).rejects.toThrow(
+    "SVG 文件大小为 1 MB，上限为 1 MB。请简化文件，或改用图片链接。"
+  );
   const huge = new File([new Uint8Array(10_000_001)], "photo.png", { type: "image/png" });
-  await expect(IconPictures.fromFile(huge, "custom-a", "emblem")).rejects.toThrow("limit is 10 MB");
+  await expect(IconPictures.fromFile(huge, "custom-a", "emblem")).rejects.toThrow(
+    "图片大小为 10 MB，上限为 10 MB。请缩小图片，或改用图片链接。"
+  );
+});
+
+test.each([
+  ["icon", 200_000],
+  ["emblem", 1_000_000]
+] as const)("an SVG exactly at the %s profile's byte limit is still accepted", async (profile, limit) => {
+  const wrapper = '<svg viewBox="0 0 20 20"></svg>';
+  const file = svgFile(wrapper.replace("</svg>", `${" ".repeat(limit - wrapper.length)}</svg>`));
+  expect(file.size).toBe(limit);
+  await expect(IconPictures.fromFile(file, "custom-boundary", profile)).resolves.toMatchObject({
+    kind: "svg",
+    viewBox: "0 0 20 20"
+  });
+});
+
+test("an unreadable raster upload reports Chinese guidance and releases its temporary URL", async () => {
+  class FailingImage {
+    onerror: (() => void) | null = null;
+    set src(_url: string) {
+      queueMicrotask(() => this.onerror?.());
+    }
+  }
+  const revokeObjectURL = vi.fn();
+  vi.stubGlobal("Image", FailingImage);
+  vi.stubGlobal("URL", { createObjectURL: () => "blob:unreadable", revokeObjectURL });
+  const file = new File(["not image bytes"], "Captain Morgan.png", { type: "image/png" });
+  await expect(IconPictures.fromFile(file, "custom-old-id")).rejects.toThrow("无法将此文件读取为图片。");
+  expect(file.name).toBe("Captain Morgan.png");
+  expect(revokeObjectURL).toHaveBeenCalledExactlyOnceWith("blob:unreadable");
 });
 
 test("a link must be a web address that opens an image; unreadable pixels keep the whole box", async () => {
-  await expect(IconPictures.fromLink("javascript:alert(1)")).rejects.toThrow("http:// or https://");
-  await expect(IconPictures.fromLink("ftp://a.b/c.png")).rejects.toThrow("http:// or https://");
+  for (const link of ["", "javascript:alert(1)", "ftp://a.b/c.png", "https://a.b/my picture.png"])
+    await expect(IconPictures.fromLink(link)).rejects.toThrow("请粘贴以 http:// 或 https:// 开头的图片链接。");
 
   // an image that loads, from a site that does not share its pixels
   class LoadingImage {
@@ -99,9 +140,13 @@ test("a link must be a web address that opens an image; unreadable pixels keep t
     }
   }
   vi.stubGlobal("Image", LoadingImage);
-  expect(await IconPictures.fromLink(" https://a.b/c.png ")).toEqual({
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => {
+    throw new Error("tainted canvas");
+  });
+  const link = "https://a.b/My%20Picture.png?name=CaptainMorgan&label=wood#Original";
+  expect(await IconPictures.fromLink(` ${link} `)).toEqual({
     kind: "image",
-    content: "https://a.b/c.png",
+    content: link,
     viewBox: "0 0 100 100"
   });
 
@@ -112,7 +157,9 @@ test("a link must be a web address that opens an image; unreadable pixels keep t
     }
   }
   vi.stubGlobal("Image", FailingImage);
-  await expect(IconPictures.fromLink("https://a.b/page.html")).rejects.toThrow("does not open an image");
+  await expect(IconPictures.fromLink("https://a.b/page.html")).rejects.toThrow(
+    "链接无法打开图片，或来源网站不允许访问。"
+  );
 });
 
 test("a raster upload is redrawn at 256 px as WebP, framed around its opaque pixels", async () => {
