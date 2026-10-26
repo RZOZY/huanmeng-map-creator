@@ -24,8 +24,8 @@ beforeEach(() => {
   // the dialog stub keeps a confirmation's Remove button, to press it as the author would
   (globalThis as Record<string, unknown>).$ = () => ({
     dialog: (settings: { buttons?: Record<string, () => void> }) => {
-      confirm.onConfirm = settings?.buttons?.Remove;
-      if (settings?.buttons?.Apply) confirm.apply = settings.buttons.Apply;
+      confirm.onConfirm = settings?.buttons?.移除;
+      if (settings?.buttons?.应用) confirm.apply = settings.buttons.应用;
     }
   });
 });
@@ -54,7 +54,7 @@ test("a set icon opens on its own subdirectory, with the icon pressed and named"
   expect(dialog.querySelector('[data-icon^="burgs-atlas-"]')).toBeNull(); // other entries draw nothing until shown
   expect(pressed()).toEqual(["burgs-watabou-city"]);
   expect(dialog.querySelector(".current .name")!.textContent).toBe("City");
-  expect(dialog.querySelector(".current .from")!.textContent).toBe("Settlements · Watabou");
+  expect(dialog.querySelector(".current .from")!.textContent).toBe("聚落 · Watabou");
 });
 
 test("the sources list the map's icons, then emoji by theme and sets by subdirectory under group headings", () => {
@@ -62,10 +62,10 @@ test("the sources list the map's icons, then emoji by theme and sets by subdirec
   const items = [...dialog.querySelectorAll<HTMLElement>("nav > *")].map(item =>
     item.dataset.source ? item.dataset.source : `# ${item.textContent}`
   );
-  expect(items.slice(0, 3)).toEqual(["custom", "# Emoji", "glyph/War & power"]);
-  expect(items).toEqual(expect.arrayContaining(["# Settlements", "burgs/watabou", "ports", "goods", "# Relief"]));
-  expect(items).not.toContain("# Goods"); // a set that is its own group stands alone
-  expect(items.indexOf("relief-simple")).toBeGreaterThan(items.indexOf("# Relief"));
+  expect(items.slice(0, 3)).toEqual(["custom", "# 表情", "glyph/War & power"]);
+  expect(items).toEqual(expect.arrayContaining(["# 聚落", "burgs/watabou", "ports", "goods", "# 地形"]));
+  expect(items).not.toContain("# 商品"); // a set that is its own group stands alone
+  expect(items.indexOf("relief-simple")).toBeGreaterThan(items.indexOf("# 地形"));
 });
 
 test("a slot opens where its current icon is: a glyph on Emoji, a custom icon on Custom", () => {
@@ -82,7 +82,7 @@ test("a slot opens where its current icon is: a glyph on Emoji, a custom icon on
 
   const none = open("");
   expect(none.source()).toBe("burgs/atlas"); // no icon yet: the first built-in entry
-  expect(none.dialog.querySelector(".current .name")!.textContent).toBe("None");
+  expect(none.dialog.querySelector(".current .name")!.textContent).toBe("无");
 });
 
 test("picking presses the tile, names it in the header and hands its reference back; typed text is a glyph", () => {
@@ -90,7 +90,7 @@ test("picking presses the tile, names it in the header and hands its reference b
   dialog.querySelector<HTMLElement>('button[data-icon="goods-iron"]')!.click();
   expect(onPick).toHaveBeenLastCalledWith("goods-iron");
   expect(pressed()).toEqual(["goods-iron"]);
-  expect(dialog.querySelector(".current .name")!.textContent).toBe("Iron");
+  expect(dialog.querySelector(".current .name")!.textContent).toBe("铁");
 
   show("glyph/War & power");
   const input = dialog.querySelector<HTMLInputElement>(".glyphText input")!;
@@ -189,7 +189,7 @@ test("removing tells how many slots use the icon, and removes it once confirmed"
   vi.spyOn(Icons, "uses").mockReturnValue({ marker: 12, good: 1 });
   const { dialog } = open("custom-1a2b3c4d");
   dialog.querySelector<HTMLElement>('.currentActions [data-action="remove"]')!.click();
-  expect(document.getElementById("alertMessage")!.textContent).toContain("12 markers, 1 good");
+  expect(document.getElementById("alertMessage")!.textContent).toContain("标记：12、商品：1");
   confirm.onConfirm?.();
   expect(CustomIcons.all).toEqual([]);
   expect(dialog.querySelector(".panel [data-icon]")).toBeNull();

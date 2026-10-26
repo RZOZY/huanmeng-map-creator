@@ -7,6 +7,7 @@ import { ICON_GROUPS } from "@/data/icons-list";
 import { IconsArchive } from "@/services/io/icons-archive";
 import type { IconSet } from "@/types/icons";
 import { capitalize, createFileInput, downloadFile, ensureEl, escapeHtml, getFileName } from "@/utils";
+import { matchesIconQuery, pickerIconName, pickerLabel, pickerUseSummary } from "./localization";
 import { IconPictures, type PictureProfile } from "./pictures";
 import { closePositioner, openPositioner } from "./positioner";
 
@@ -101,7 +102,7 @@ function open({ current, onPick, live = false, preferCustom, profile = "icon" }:
       <style>${STYLE}</style>
       <div class="head">
         <div class="current"></div>
-        <input type="search" class="search" placeholder="Search built-in icons" data-tip="Find a built-in icon or emoji by name" />
+        <input type="search" class="search" placeholder="搜索内置图标（支持中英文）" aria-label="搜索内置图标" title="按名称或分类搜索内置图标和表情，支持中英混合检索" data-tip="按名称或分类搜索内置图标和表情，支持中英混合检索" />
       </div>
       <div class="body">
         <nav></nav>
@@ -222,28 +223,27 @@ function open({ current, onPick, live = false, preferCustom, profile = "icon" }:
         if (!isOpen()) return;
         refreshCustom();
         const counts = [
-          `${added} added`,
-          unchanged && `${unchanged} already here`,
-          invalid && `${invalid} invalid skipped`
+          `已添加 ${added} 个`,
+          unchanged && `已存在 ${unchanged} 个`,
+          invalid && `已跳过 ${invalid} 个无效图标`
         ];
-        tip(`Custom icons imported: ${counts.filter(Boolean).join(", ")}`, false, "success", 5000);
+        tip(`自定义图标已导入：${counts.filter(Boolean).join("，")}`, false, "success", 5000);
         if (conflicts.length) askToReplace(conflicts);
       })
       .catch(error => isOpen() && tip((error as Error).message, false, "error", 6000))
       .finally(() => dialog.classList.remove("busy"));
   };
   const askToReplace = (conflicts: CustomIcon[]) => {
-    const count = conflicts.length === 1 ? "1 archived icon has" : `${conflicts.length} archived icons have`;
     confirmationDialog({
-      title: "Import custom icons",
-      message: `${count} the id of a different icon on this map. Replace the map's pictures with the archived ones? Everything using them will change`,
-      confirm: "Replace",
-      cancel: "Keep the map's",
+      title: "导入自定义图标",
+      message: `压缩包中有 ${conflicts.length} 个图标与地图中的其他图片使用相同 ID。是否用压缩包中的图片替换？所有引用都会随之更新。`,
+      confirm: "替换",
+      cancel: "保留地图中的图片",
       onConfirm: () => {
         for (const { id } of conflicts) closePositioner(id);
         IconsArchive.replace(conflicts);
         if (isOpen()) refreshCustom();
-        tip(`${conflicts.length} custom icon(s) replaced`, false, "success", 4000);
+        tip(`已替换 ${conflicts.length} 个自定义图标`, false, "success", 4000);
       }
     });
   };
@@ -253,11 +253,12 @@ function open({ current, onPick, live = false, preferCustom, profile = "icon" }:
     const uses = Icons.uses(id);
     const count = Object.values(uses).reduce((total, used) => total + used, 0);
     confirmationDialog({
-      title: "Remove custom icon",
+      title: "移除自定义图标",
       message: count
-        ? `The icon is used by ${Icons.describeUses(uses)}. ${count === 1 ? "It" : "They"} will show no icon.<br>Remove it anyway?`
-        : "The icon is not used on the map. Remove it?",
-      confirm: "Remove",
+        ? `此图标用于${pickerUseSummary(uses)}。移除后，这些位置将不再显示图标。<br>仍要移除吗？`
+        : "此图标未在地图中使用。是否移除？",
+      confirm: "移除",
+      cancel: "取消",
       onConfirm: () => {
         if (replacing === id) replacing = null;
         closePositioner(id);
@@ -312,7 +313,7 @@ function open({ current, onPick, live = false, preferCustom, profile = "icon" }:
   renderPanel();
 
   $(dialog).dialog({
-    title: "Select icon",
+    title: "选择图标",
     width: dialogWidth(),
     position: { my: "center", at: "center", of: "svg" },
     close: () => {
@@ -320,8 +321,8 @@ function open({ current, onPick, live = false, preferCustom, profile = "icon" }:
       destroyDialog(ICON_PICKER);
     },
     buttons: {
-      Apply: apply,
-      Cancel: () => $(dialog).dialog("close")
+      应用: apply,
+      取消: () => $(dialog).dialog("close")
     }
   });
   reveal(); // the panel has its height only once the dialog is laid out
@@ -379,7 +380,13 @@ function viewOf(current: string, entries: Entry[], preferCustom?: boolean): stri
 
 /** Relief · Simple, or Goods for a set that is its own group */
 function entryLabel(entry: Entry): string {
-  return entry.label === entry.group ? entry.group : `${entry.group} · ${entry.label}`;
+  const group = pickerLabel(entry.group);
+  const label = pickerLabel(entry.label);
+  return entry.label === entry.group ? group : `${group} · ${label}`;
+}
+
+function displayName(id: string): string {
+  return pickerIconName(id, Icons.name(id), Icons.glyphText(id), Relief.types);
 }
 
 /** the selected icon, with its custom icon actions */
@@ -387,39 +394,39 @@ function renderCurrent(current: string, replacing: string | null, entries: Entry
   const kind = Icons.kind(current);
   const located = kind === "set" ? locate(entries, current) : undefined;
   const from = !current
-    ? "No icon selected"
+    ? "未选择图标"
     : kind === "glyph"
-      ? "Emoji"
+      ? "表情或文字"
       : kind === "custom"
-        ? "Carried by this map"
+        ? "随此地图保存"
         : located
           ? entryLabel(located)
-          : "Built-in";
+          : "内置图标";
   const actions =
     kind === "custom" && CustomIcons.get(current)
       ? /* html */ `<div class="currentActions">
-          <button type="button" data-action="position" data-tip="Zoom and pan the picture in its frame"><span class="icon-resize-full"></span> Position</button>
-          <button type="button" data-action="replace" class="${replacing === current ? "pressed" : ""}" data-tip="Give the icon a new picture: every use follows"><span class="icon-upload"></span> Replace</button>
-          <button type="button" data-action="remove" data-tip="Remove the icon from the map"><span class="icon-trash-empty"></span></button>
+          <button type="button" data-action="position" title="调整图片位置" aria-label="调整图片位置" data-tip="在图框内缩放和平移图片"><span class="icon-resize-full"></span> 位置</button>
+          <button type="button" data-action="replace" class="${replacing === current ? "pressed" : ""}" title="替换图片" aria-label="替换图片" data-tip="为此图标替换图片，所有引用都会随之更新"><span class="icon-upload"></span> 替换</button>
+          <button type="button" data-action="remove" title="移除图标" aria-label="移除图标" data-tip="从地图中移除此图标"><span class="icon-trash-empty"></span></button>
         </div>`
       : "";
   return /* html */ `<span class="preview">${Icons.html(current)}</span>
-    <div class="about"><span class="name">${escapeHtml(current ? capitalize(Icons.name(current)) : "None")}</span><span class="from">${from}</span></div>
+    <div class="about"><span class="name">${escapeHtml(displayName(current))}</span><span class="from">${escapeHtml(from)}</span></div>
     ${actions}`;
 }
 
 /** the map's icons, then each entry under its group's heading; a set that is its own group stands alone */
 function renderSources(entries: Entry[], active: string | null): string {
   const item = (key: string, label: string, count: number, type = "") =>
-    `<button type="button" data-source="${escapeHtml(key)}" class="${type} ${key === active ? "active" : ""}">${label}${count ? ` <small>${count}</small>` : ""}</button>`;
+    `<button type="button" data-source="${escapeHtml(key)}" class="${type} ${key === active ? "active" : ""}">${escapeHtml(pickerLabel(label))}${count ? ` <small>${count}</small>` : ""}</button>`;
   let group = "";
   const list = entries.map(entry => {
     if (entry.label === entry.group) return item(entry.key, entry.label, entry.icons.length, "section");
-    const heading = entry.group === group ? "" : `<div class="section">${entry.group}</div>`;
+    const heading = entry.group === group ? "" : `<div class="section">${escapeHtml(pickerLabel(entry.group))}</div>`;
     group = entry.group;
     return heading + item(entry.key, entry.label, entry.icons.length, "entry");
   });
-  return item("custom", "Custom", CustomIcons.all.length) + list.join("");
+  return item("custom", "自定义", CustomIcons.all.length) + list.join("");
 }
 
 /** the entries' tiles, each under its label when asked */
@@ -427,7 +434,7 @@ function renderEntries(entries: Entry[], current: string, headings = false): str
   return entries
     .map(entry => {
       const tiles = entry.icons.map(id => tile(id, current)).join("");
-      return `${headings ? `<h4>${entry.label}</h4>` : ""}<div class="choices">${tiles}</div>`;
+      return `${headings ? `<h4>${escapeHtml(entry.label)}</h4>` : ""}<div class="choices">${tiles}</div>`;
     })
     .join("");
 }
@@ -437,41 +444,43 @@ function load(entries: Entry[]): void {
   for (const set of new Set(entries.map(entry => entry.set))) if (set) void Icons.retry(set);
 }
 
-/** the built-in icons and emoji whose name holds the query, entry by entry */
+/** Match built-in names and categories in either language, entry by entry. */
 function renderResults(entries: Entry[], query: string, current: string): string {
   const found = entries
     .map(entry => ({
       ...entry,
       label: entryLabel(entry),
-      icons: entry.icons.filter(id => Icons.name(id).toLowerCase().includes(query))
+      icons: entry.icons.filter(id =>
+        matchesIconQuery(query, [Icons.name(id), displayName(id), entry.group, entry.label, entryLabel(entry)])
+      )
     }))
     .filter(entry => entry.icons.length);
   load(found);
   return found.length
     ? renderEntries(found, current, true)
-    : `<p class="empty">No built-in icon is called “${escapeHtml(query)}”.</p>`;
+    : `<p class="empty">未找到名称或分类匹配“${escapeHtml(query)}”的内置图标。</p>`;
 }
 
 function renderGlyphText(current: string): string {
-  return /* html */ `<label class="glyphText">Type any short text
-      <input value="${escapeHtml(Icons.glyphText(current) ?? "")}" placeholder="XIV" />
+  return /* html */ `<label class="glyphText">输入简短文字
+      <input value="${escapeHtml(Icons.glyphText(current) ?? "")}" placeholder="XIV" aria-label="自定义文字" />
     </label>`;
 }
 
 function renderCustom(current: string, replacing: string | null, profile: PictureProfile): string {
   const icons = CustomIcons.all.map(({ id }) => tile(id, current));
   return /* html */ `<div class="customAdd">
-      <input type="url" placeholder="Paste a link to an image" data-tip="A linked image keeps the map small; it shows while its site serves it" />
-      <button type="button" data-action="link">Add link</button>
-      <button type="button" data-action="upload" data-tip="上传 SVG 文件（最大 ${profile === "emblem" ? "1 MB" : "200 kB"}），或 PNG、JPEG、WebP 图片ge (up to ${profile === "emblem" ? "10 MB, shrunk to 1024 px" : "2 MB, shrunk to 256 px"})">Upload</button>
+      <input type="url" placeholder="粘贴图片链接" aria-label="图片链接" title="链接图片可减小地图文件；仅在来源网站可访问时显示" data-tip="链接图片可减小地图文件；仅在来源网站可访问时显示" />
+      <button type="button" data-action="link">添加链接</button>
+      <button type="button" data-action="upload" data-tip="上传 SVG 文件（最大 ${profile === "emblem" ? "1 MB" : "200 kB"}），或 PNG、JPEG、WebP 图片（最大 ${profile === "emblem" ? "10 MB，缩小至 1024 像素" : "2 MB，缩小至 256 像素"}）">上传</button>
     </div>
-    <div class="replacing" ${replacing ? "" : "hidden"}>Link or upload the new picture of the selected icon. <a data-action="stopReplacing">Cancel</a></div>
-    ${icons.length ? `<div class="choices">${icons.join("")}</div>` : `<p class="empty">This map carries no custom icons yet.</p>`}
+    <div class="replacing" ${replacing ? "" : "hidden"}>通过链接或上传，为所选图标替换图片。<a data-action="stopReplacing">取消</a></div>
+    ${icons.length ? `<div class="choices">${icons.join("")}</div>` : `<p class="empty">此地图尚无自定义图标。</p>`}
     <div class="customArchive">
-      ${icons.length ? `<button type="button" data-action="exportAll" data-tip="Download all custom icons as a zip archive, to import them into another map">Download all</button>` : ""}
-      <button type="button" data-action="importArchive" data-tip="Import custom icons from a downloaded zip archive. An icon whose id the map uses for another picture is replaced only on confirmation">Import zip</button>
+      ${icons.length ? `<button type="button" data-action="exportAll" data-tip="将全部自定义图标下载为 ZIP 压缩包，以便导入其他地图">下载全部</button>` : ""}
+      <button type="button" data-action="importArchive" data-tip="从 ZIP 压缩包导入自定义图标；同一 ID 对应不同图片时，仅在确认后替换">导入 ZIP</button>
     </div>
-    <p class="note">Free icons: <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>,
+    <p class="note">免费图标： <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>,
       <a href="https://thenounproject.com" target="_blank" rel="noopener">The Noun Project</a>,
       <a href="https://openmoji.org" target="_blank" rel="noopener">OpenMoji</a>,
       <a href="https://commons.wikimedia.org" target="_blank" rel="noopener">Wikimedia Commons</a>.</p>`;
@@ -482,7 +491,8 @@ function tile(id: string, current: string): string {
   const pressed = id === current ? "pressed" : "";
   const text = Icons.glyphText(id);
   const content = text === null ? Icons.html(id) : escapeHtml(text);
-  return `<button type="button" class="${pressed}" data-icon="${escapeHtml(id)}" data-tip="${escapeHtml(capitalize(Icons.name(id)))}">${content}</button>`;
+  const name = escapeHtml(displayName(id));
+  return `<button type="button" class="${pressed}" data-icon="${escapeHtml(id)}" title="${name}" aria-label="${name}" data-tip="${name}">${content}</button>`;
 }
 
 export const IconPicker = { open };

@@ -79,7 +79,7 @@ test("a pool picker previews one addition, applies a double click once and undoe
   add();
   document.querySelector<HTMLElement>('#iconPicker .choices [data-icon="custom-b"]')!.click();
   expect(weight("custom-b")).toBeUndefined(); // added on Apply only
-  press("iconPicker", "Cancel");
+  press("iconPicker", "取消");
   expect(weight("custom-b")).toBeUndefined();
   expect(weight("custom-a")).toBe("3");
 
@@ -90,7 +90,7 @@ test("a pool picker previews one addition, applies a double click once and undoe
     input.value = text;
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }
-  press("iconPicker", "Apply");
+  press("iconPicker", "应用");
   expect(weight(Icons.glyph("X"))).toBeUndefined();
   expect(weight(Icons.glyph("XI"))).toBeUndefined();
   expect(weight(Icons.glyph("XIV"))).toBe("1");
@@ -112,7 +112,7 @@ test("an active picker can add and replace a picture", async () => {
   document.querySelector<HTMLElement>('#iconPicker [data-action="link"]')!.click();
   await vi.waitFor(() => expect(CustomIcons.get(id)?.content).toBe("https://example.com/replacement.png"));
   expect(CustomIcons.all).toHaveLength(3);
-  press("iconPicker", "Cancel");
+  press("iconPicker", "取消");
   expect(onPick).toHaveBeenLastCalledWith("glyph-58");
 });
 
@@ -123,7 +123,7 @@ test.each(["cancel", "reopen", "load map"])("a pending link cannot update the ma
   IconPicker.open({ current: "glyph-58", onPick, live: true });
   document.querySelector<HTMLElement>('#iconPicker nav [data-source="custom"]')!.click();
   document.querySelector<HTMLElement>('#iconPicker [data-action="link"]')!.click();
-  if (action === "cancel") press("iconPicker", "Cancel");
+  if (action === "cancel") press("iconPicker", "取消");
   else if (action === "reopen") IconPicker.open({ current: "glyph-59", onPick: vi.fn() });
   else options.map = { ...options.map, customIcons: [] };
   const icons = [...CustomIcons.all];
@@ -139,7 +139,7 @@ test("a pending replacement cannot change an icon after cancellation", async () 
   IconPicker.open({ current: "custom-a", onPick: vi.fn() });
   document.querySelector<HTMLElement>('#iconPicker .currentActions [data-action="replace"]')!.click();
   document.querySelector<HTMLElement>('#iconPicker [data-action="link"]')!.click();
-  press("iconPicker", "Cancel");
+  press("iconPicker", "取消");
   pending.resolve({ ...PICTURE, content: "https://example.com/replacement.png" });
   await pending.promise;
   expect(CustomIcons.get("custom-a")?.content).toBe(PICTURE.content);
