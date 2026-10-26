@@ -1,6 +1,6 @@
 # 只读项目目录与 File 能力
 
-状态：2026-10-26。目录适配与打开面板，不是世界／局部导航，不改存档格式，不保存清单或地图。
+状态：2026-10-26。本篇规定目录能力与打开面板；已接[会话内世界／局部导航及返回视野](<D:/fmg-cn/dreammap/docs/development/atlas-navigation.md>)。不改存档格式、不保存清单或地图，不承诺持久化身份。
 
 实现：[目录适配](<D:/fmg-cn/dreammap/src/services/atlas/project-files.ts>)、[原生项目面板](<D:/fmg-cn/dreammap/src/components/atlas-project.ts>)；从 [载入窗](<D:/fmg-cn/dreammap/src/components/options/io-panes.ts>) 的「打开图集项目目录」进入。打开仍通过 [专用核验入口](<D:/fmg-cn/dreammap/docs/development/atlas-observation.md>) 与 [两阶段确认](<D:/fmg-cn/dreammap/docs/development/load-departure.md>)。
 
@@ -16,9 +16,9 @@
 
 ## 会话、并发及反馈
 
-- 每个原生 HTML dialog 独占 input。读清单期间允许重选或关闭；generation／closed 同时防迟到成功和失败，旧 input 撤销 handler、清值并移除。关闭只是丢弃本会话引用，不宣称物理中止 IO。
+- 每个原生 HTML dialog 独占 input。读清单期间允许重选或关闭；generation／closed 同时防迟到成功和失败，旧 input 撤销 handler、清值并移除。「收起并看地图」解除 modal 但保留当前能力／导航历史；「关闭并释放」或重选目录丢弃会话。旧 close task 不得清掉迅速重开的面板；释放引用不宣称物理中止 IO。
 - 地图按钮按 UUID 找原 File 及冻结 manifest JSON。所有不可信名称／路径／错误使用 textContent，表格文本包在 bdi；不插入用户 HTML。
-- 打开前同步 busy，锁目录选择、所有地图、关闭、Escape 和再次打开，直到真实 `Load.uploadAtlasMap` settle。该 API 无外部 abort；不把忽略旧 Promise 伪装成取消采用。上层原生载图确认拥有取消／另存／最终放弃选择。
+- 打开前同步 busy，锁目录选择、所有地图／导航、关闭／收起、Escape 和再次打开，直到真实 `Load.uploadAtlasMap` 或专属导航载入 settle。该 API 无外部 abort；不把忽略旧 Promise 伪装成取消采用。上层原生载图确认拥有取消／另存／最终放弃选择。
 - 只有 `loaded` 显示「最近一次打开成功」，明确不代表后续编辑仍等于文件。busy／cancelled／rejected 分别反馈；failed 或调用异常提示当前模型可能混合并隔离，不能泛称原图未变或已回滚。必要时关闭面板查看底层详情、完整重载。
 - 原生目录取消不一定发送空 change；单测的空 FileList 只证明该事件分支。未宣称已验证全部 OS 取消和键盘／像素布局行为。
 
@@ -29,4 +29,4 @@
 - [真实候选目录与双层 modal](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/project-desktop-smoke.json>) **20 项通过**，刷新到 `index-noh6BmV4.js`。CDP 注入真实目录取得原生相对路径，选择只读一次清单／零地图读取；缺失和未核验禁用；同 basename 的局部文件具有不同 SHA，仍按 UUID 精确取原 File，经真实双阶段及发布前核验采用一次。初次／最终 Escape、另存取消、慢读取锁会话、迟到清单和关闭重开均通过。完整重载恢复，原图 SHA 不变；原生 OS 选择器／全部取消事件和自然慢磁盘性能未验证。
 - 首次夹具误把 local.parent 写成 UUID 字符串，被清单解析正确拒绝；[首次失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/project-desktop-smoke-invalid-parent.json>) 原样保留。只改测试父引用为 `{mapId,geographicRevision}`，复跑才通过，未因此放宽产品验证。
 - 目录和清单是私有测试复制件，不是正式世界／局部图交付，不向用户原项目伪造清单。已知 app 协议 boot ServiceWorkerRegistration InvalidStateError 仍在报告中单列，运行阶段无新增未捕获异常；不能写成零异常。
-- 项目身份与当前图身份的持久关联、导航／返回视野、轻量世界、可靠 dirty／无损恢复仍未完成。原项目尚无正式清单，不能将流程底座或合成测试资产当成已经完成的分层地图。
+- 上述为第7轮历史检查点；后续会话采用来源与导航／返回视野已接，见[导航合同与最新验证](<D:/fmg-cn/dreammap/docs/development/atlas-navigation.md>)。持久身份、正式轻量世界、可靠 dirty／无损恢复仍未完成。原项目尚无正式清单，不能将流程底座或合成测试资产当成已完成的分层地图。

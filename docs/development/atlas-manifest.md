@@ -1,6 +1,6 @@
 # 世界／局部图关联清单 v1
 
-状态：纯模型已实现；[专用载图入口与独立文件／活模型核验](<D:/fmg-cn/dreammap/docs/development/atlas-observation.md>)已接入。尚无项目目录选择或多图导航，不写入清单或 `.map`，不把现有地图改成天然对齐的图集。
+状态：纯模型、[专用载图与独立核验](<D:/fmg-cn/dreammap/docs/development/atlas-observation.md>)、[只读目录选择](<D:/fmg-cn/dreammap/docs/development/atlas-project-files.md>)及[会话内导航／返回视野](<D:/fmg-cn/dreammap/docs/development/atlas-navigation.md>)已接入。不写入清单或 `.map`，不把现有地图改成天然对齐的图集；正式轻量资产与持久化仍待验收。
 
 ## 1. 数据真值与身份
 
@@ -104,13 +104,13 @@ verifyMapSnapshot(manifest: AtlasManifest, mapId: string, observation: unknown):
 
 ## 6. 当前接入与下一阶段约束
 
-专用载图已接入两阶段保守确认、实际字节／模型独立观测和最终发布前核验；不符停止、不吸附、不改权威地点或地形。仅消费调用方给定的 Blob，不按 `asset.path` 浏览目录或写清单。普通上传仍兼容旧档，专用限制见独立观测合同。[只读目录与打开面板](<D:/fmg-cn/dreammap/docs/development/atlas-project-files.md>) 已将清单路径精确映射到用户所选 File 能力，但未建立持久化的当前项目／地图身份，也不是导航。
+专用载图已接入两阶段保守确认、实际字节／模型独立观测和最终发布前核验；不符停止、不吸附、不改权威地点或地形。仅消费调用方给定的 Blob，不按 `asset.path` 浏览目录或写清单。普通上传仍兼容旧档，专用限制见独立观测合同。只读目录按精确路径映射 File，[会话采用来源](<D:/fmg-cn/dreammap/docs/development/atlas-identity.md>)与[世界／局部导航及返回视野](<D:/fmg-cn/dreammap/docs/development/atlas-navigation.md>)已接；来源记录不是持久注册或单独的导航授权。
 
-P3 完整导航仍须：
+P3 后续仍须：
 
-1. 清单与当前地图各自可靠的未保存状态，不能把保存过旧快照当作已保存当前修改。
-2. 在现有 File 能力选择之上建立项目／当前地图身份、世界 → 局部 → 返回及视野恢复；物理 FS 入口须另行论证。
+1. 清单与当前地图各自可靠的未保存状态，不能把保存过旧快照当作已保存当前修改。目前每次仍明确确认放弃，不伪称精确 dirty。
+2. 正式轻量世界／局部资产与经内容核验的项目清单；持久身份注册和物理 FS 入口须另行论证，不把私有复制件当交付。
 3. 保存后的新摘要和再次核验；不能自动把文件变化当作地理仍正确。
-4. 一次仅常驻一张正式模型，完整失败恢复、旧档兼容及端到端冷暖态／内存测量。
+4. 保持单张正式模型常驻，补完整失败恢复、旧档兼容及端到端冷暖态／内存测量。
 
 当前采用失败仍可能留下混合模型并隔离保存，不是无损回滚。这些底座也不代表既有世界／详图已天然同源对齐。
