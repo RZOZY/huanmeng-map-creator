@@ -48,15 +48,15 @@ export function openPositioner(id: string): void {
     "beforeend",
     /* html */ `<div id="${DIALOG}" class="dialog" data-icon="${escapeHtml(id)}">
       <style>${STYLE}</style>
-      <div class="stage" data-tip="Drag to pan, scroll to zoom">
+      <div class="stage" data-tip="拖动平移，滚动缩放">
         <svg><g class="art"${Icons.paintAttributes(id)}>${document.getElementById(id)!.innerHTML}</g><path class="shade" fill="#000" fill-opacity=".45" fill-rule="evenodd"/><rect class="edge" fill="none" stroke="#d0240f" vector-effect="non-scaling-stroke" stroke-dasharray="4 3"/></svg>
       </div>
       <div class="controls">
-        <span>Zoom</span>
+        <span>缩放</span>
         <slider-input min="${MIN_ZOOM}" max="${MAX_ZOOM}" value="100"></slider-input>
-        <button type="button" class="fit" data-tip="Fit the frame to the picture's visible content">Fit</button>
+        <button type="button" class="fit" data-tip="根据图片的可见内容调整边框">适应图片</button>
       </div>
-      <div class="previews" data-tip="The icon at map sizes">
+      <div class="previews" data-tip="图标在地图上的尺寸预览">
         <span class="small">${Icons.html(id)}</span>
         <span>${Icons.html(id)}</span>
         <span class="circle">${Icons.html(id)}</span>
@@ -132,12 +132,12 @@ export function openPositioner(id: string): void {
     const fitted = await IconPictures.fit(icon);
     if (!dialog.isConnected) return;
     show(toFrame(fitted));
-    tip("The frame is fitted to the picture", false, "success", 2000);
+    tip("已根据图片调整边框", false, "success", 2000);
   });
 
   let applied = false;
   $(dialog).dialog({
-    title: "Position icon",
+    title: "调整图标位置",
     width: "20em",
     position: { my: "center", at: "center", of: "svg" },
     close: () => {
@@ -145,12 +145,12 @@ export function openPositioner(id: string): void {
       destroyDialog(DIALOG);
     },
     buttons: {
-      Apply: function (this: HTMLElement) {
+      应用: function (this: HTMLElement) {
         applied = true;
         CustomIcons.update(id, { viewBox: toViewBox(frame) });
         $(this).dialog("close");
       },
-      Cancel: function (this: HTMLElement) {
+      取消: function (this: HTMLElement) {
         $(this).dialog("close");
       }
     }

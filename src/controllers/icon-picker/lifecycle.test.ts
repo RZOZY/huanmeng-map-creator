@@ -158,17 +158,17 @@ test("opening another positioner restores the unapplied frame", () => {
   openPositioner("custom-b");
   expect(document.getElementById("custom-a")!.getAttribute("viewBox")).toBe(PICTURE.viewBox);
   zoom();
-  press("iconPositioner", "Cancel");
+  press("iconPositioner", "取消");
   expect(document.getElementById("custom-b")!.getAttribute("viewBox")).toBe(PICTURE.viewBox);
 });
 
 test("an applied frame survives reopening and cancelling", () => {
   openPositioner("custom-a");
   zoom();
-  press("iconPositioner", "Apply");
+  press("iconPositioner", "应用");
   openPositioner("custom-a");
   zoom();
-  press("iconPositioner", "Cancel");
+  press("iconPositioner", "取消");
   expect(CustomIcons.get("custom-a")?.viewBox).toBe("25 25 50 50");
   expect(document.getElementById("custom-a")!.getAttribute("viewBox")).toBe("25 25 50 50");
 });
