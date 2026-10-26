@@ -4,12 +4,15 @@ import { MAP_COMMANDS, type MapCommand } from "@/components/map-commands";
 import { ENTITY_TYPES, type EntityDisplay, type EntityTarget, MapEntities } from "@/components/map-entities";
 import { reveal, revealEntity } from "@/components/reveal";
 import { tip } from "@/components/tooltips";
+import { getCommandSearchText } from "@/i18n/command-search";
 import { getLabelsIndex, type LabelIndexEntry } from "@/renderers/labels/label-data";
 import { findEl } from "@/utils";
 
 interface SearchFields {
   name: string;
   alias: string; // the name with its context, an ordering tier below the name itself
+  localizedName?: string;
+  bilingualAlias?: string;
   note?: string;
   normalizedNote?: string;
   unnamed?: boolean; // titled by its kind only: found through its context and note, ranked last
@@ -93,14 +96,22 @@ class OmnibarController {
   }
 
   private collect(): Result[] {
-    const commands: CommandResult[] = MAP_COMMANDS.map(command => ({
-      kind: "command",
-      id: command.id,
-      name: command.name,
-      context: "Command",
-      fields: { name: normalize(command.name), alias: normalize(command.aliases) },
-      command
-    }));
+    const commands: CommandResult[] = MAP_COMMANDS.map(command => {
+      const { name, keywords } = getCommandSearchText(command);
+      return {
+        kind: "command",
+        id: command.id,
+        name,
+        context: "命令",
+        fields: {
+          name: normalize(command.name),
+          localizedName: normalize(name),
+          alias: normalize(command.aliases),
+          bilingualAlias: normalize(`${name} ${keywords} ${command.name} ${command.aliases}`)
+        },
+        command
+      };
+    });
     if (typeof pack === "undefined" || !pack.cells?.i?.length) return commands;
 
     const entities = new Map<string, Result>();
@@ -135,7 +146,7 @@ class OmnibarController {
         kind: "label",
         id: `label:${label.id}`,
         name,
-        context: `Label · ${owner.context}`,
+        context: `标签 · ${owner.context}`,
         fields: this.fields({ name, alias: `${owner.name} ${owner.context}` }),
         target: owner.target,
         label
@@ -173,7 +184,7 @@ class OmnibarController {
     const root = document.createElement("div");
     root.id = "omnibar";
     root.setAttribute("role", "dialog");
-    root.setAttribute("aria-label", "Search map and commands");
+    root.setAttribute("aria-label", "搜索地图和命令");
 
     root.innerHTML = /* html */ `
       <style>
@@ -321,18 +332,18 @@ class OmnibarController {
         <input
           id="omnibar-input"
           role="combobox"
-          aria-label="Search map and commands"
+          aria-label="搜索地图和命令"
           aria-expanded="true"
           aria-controls="omnibar-list"
           aria-autocomplete="list"
           autocomplete="off"
           spellcheck="false"
-          placeholder="Search map and commands"
+          placeholder="搜索地图和命令"
         >
-        <span class="omnibar-escape" aria-hidden="true">esc</span>
+        <span class="omnibar-escape" aria-hidden="true">Esc 关闭</span>
       </div>
 
-      <div id="omnibar-list" role="listbox" aria-label="Search results"></div>
+      <div id="omnibar-list" role="listbox" aria-label="搜索结果"></div>
       <div id="omnibar-status" role="status" aria-live="polite"></div>
     `;
 
@@ -420,7 +431,7 @@ class OmnibarController {
         if (!this.root) return;
         this.records = this.collect();
         this.search();
-        this.report("The map changed. Select a current result.");
+        this.report("地图已更改，请选择当前结果。");
       },
       { signal: this.events.signal }
     );
@@ -454,8 +465,10 @@ class OmnibarController {
   private score(result: Result, query: string, commandsOnly: boolean, recent: number): number {
     if (query) {
       const { fields } = result;
-      const name = match(fields.name, query);
-      const alias = match(fields.alias, query);
+      const name = Math.max(match(fields.name, query), fields.localizedName ? match(fields.localizedName, query) : 0);
+      const bilingual =
+        fields.bilingualAlias && /\p{Script=Han}/u.test(query) ? match(fields.bilingualAlias, query) : 0;
+      const alias = Math.max(match(fields.alias, query), bilingual);
       const note = fields.normalizedNote?.includes(query) ? NOTE_SCORE : 0;
       const matcher = result.kind === "command" && result.command.matches?.(query) ? MATCHER_SCORE : 0;
       const score = Math.max(name && name + 400, alias && alias + 200, matcher, note);
@@ -493,7 +506,7 @@ class OmnibarController {
       detail.className = "omnibar-detail";
       const layer = result.kind === "command" ? result.command.layer : undefined;
       detail.textContent =
-        unavailable || `${result.context}${layer ? ` · ${Layers.isOn(layer) ? "Visible" : "Hidden"}` : ""}`;
+        unavailable || `${result.context}${layer ? ` · ${Layers.isOn(layer) ? "已显示" : "已隐藏"}` : ""}`;
       row.append(prefix, title, detail);
 
       const note = result.kind === "entity" ? result.fields : undefined;
@@ -509,12 +522,10 @@ class OmnibarController {
     });
 
     const count =
-      this.matched > this.results.length ? `${this.results.length} of ${this.matched}` : this.results.length;
-    this.status.textContent = this.results.length
-      ? `${count} results · ↑↓ navigate · ↵ select`
-      : query
-        ? "No matches"
-        : "";
+      this.matched > this.results.length
+        ? `共 ${this.matched} 项结果，显示 ${this.results.length} 项`
+        : `${this.results.length} 项结果`;
+    this.status.textContent = this.results.length ? `${count} · ↑↓ 导航 · ↵ 选择` : query ? "未找到匹配结果" : "";
     this.select(this.selected);
   }
 
@@ -561,7 +572,7 @@ class OmnibarController {
     if (result.kind !== "command" && !this.current(result)) {
       this.records = this.collect();
       this.search();
-      this.report("The map changed. Select a current result.");
+      this.report("地图已更改，请选择当前结果。");
       return;
     }
 
@@ -580,7 +591,7 @@ class OmnibarController {
         else this.navigate(result.target); // the entity has no editor, so reveal it instead
       }
     } catch {
-      tip("Could not open the search result. Please try again.", false, "error");
+      tip("无法打开搜索结果，请重试。", false, "error");
     } finally {
       this.busy = false;
     }
@@ -604,7 +615,7 @@ class OmnibarController {
         element: () => findEl(label.id)
       });
     } else shown = revealEntity(target.ref);
-    if (!shown) this.report("This element has no map location", "warn");
+    if (!shown) this.report("此元素没有地图位置", "warn");
   }
 
   private remember(id: string): void {
@@ -685,9 +696,9 @@ function match(text: string, query: string): number {
 }
 
 function getMapActionUnavailable(): string {
-  if (typeof pack === "undefined" || !pack.cells?.i?.length) return "Generate or load a map first";
-  if (typeof customization !== "undefined" && customization) return "Exit customization mode first";
-  if (document.getElementById("canvas3d")) return "Switch to the 2D map first";
+  if (typeof pack === "undefined" || !pack.cells?.i?.length) return "请先生成或加载地图";
+  if (typeof customization !== "undefined" && customization) return "请先退出自定义模式";
+  if (document.getElementById("canvas3d")) return "请先切换到 2D 地图";
   return "";
 }
 

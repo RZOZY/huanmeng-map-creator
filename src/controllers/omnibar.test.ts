@@ -7,16 +7,17 @@ const mocks = vi.hoisted(() => ({
   highlightArea: vi.fn(),
   show: vi.fn(),
   toggle: vi.fn(),
+  isOn: vi.fn(() => false),
   zoom: vi.fn((_x: number, _y: number, _scale: number, _duration: number, onEnd?: () => void) => onEnd?.()),
   labels: vi.fn(() => []),
   tip: vi.fn()
 }));
 vi.mock("@/components/layers", () => ({
-  Layers: { draw: vi.fn(), show: mocks.show, toggle: mocks.toggle, has: () => true, isOn: () => false }
+  Layers: { draw: vi.fn(), show: mocks.show, toggle: mocks.toggle, has: () => true, isOn: mocks.isOn }
 }));
 vi.mock("@/components/options/tabs/layers-tab", () => ({
   LAYER_TOGGLES: new Map([["rivers", { label: "Ri<u>v</u>ers" }]]),
-  LAYER_PRESETS: {}
+  LAYER_PRESETS: { political: "Political map" }
 }));
 vi.mock("@/components/app-info", () => ({ showInfo: vi.fn() }));
 vi.mock("@/components/layers-presets", () => ({ applyPreset: vi.fn(), savePreset: vi.fn() }));
@@ -69,6 +70,7 @@ beforeEach(() => {
   sessionStorage.clear();
   vi.clearAllMocks();
   mocks.open.mockResolvedValue(undefined);
+  mocks.isOn.mockReturnValue(false);
   mocks.labels.mockReturnValue([]);
   globalThis.customization = 0;
   globalThis.pack = {
@@ -109,6 +111,192 @@ afterEach(() => {
   Omnibar.close();
   vi.useRealTimers();
   vi.restoreAllMocks();
+});
+
+describe("localized command search", () => {
+  function names(): string[] {
+    return rows().map(row => row.querySelector(".omnibar-name")?.textContent || "");
+  }
+
+  function marked(row: HTMLElement): string {
+    return Array.from(row.querySelectorAll(".omnibar-name mark"), mark => mark.textContent).join("");
+  }
+
+  it("indexes Chinese display names and keywords without dropping English names or aliases", () => {
+    Omnibar.open();
+    for (const query of ["> 国家编辑器", "> 王国", "> open states editor", "> countries"]) {
+      search(query);
+      expect(names()).toContain("打开国家编辑器");
+    }
+    search("> countries");
+    expect(marked(rows()[0])).toBe("");
+    search("> 国家编辑器");
+    expect(marked(rows()[0])).toBe("国家编辑器");
+  });
+
+  it("matches mixed Chinese and English terms, repeated terms, layers and built-in presets", () => {
+    Omnibar.open();
+    for (const query of ["> 保存 map", "> 保存 保存", "> save 地图"]) {
+      search(query);
+      expect(names()).toContain("保存地图文件");
+    }
+    search("> 河流");
+    expect(names()).toContain("切换河流图层");
+    search("> 政治");
+    expect(names()).toContain("应用图层预设：政治地图");
+  });
+
+  it("keeps name and alias tiers, definition-order ties, and an empty command query", () => {
+    Omnibar.open();
+    search("> rivers");
+    expect(names()).toEqual(["打开河流总览", "重新生成河流", "导出河流为 GeoJSON", "切换河流图层"]);
+    search("> countries");
+    expect(names().slice(0, 2)).toEqual(["打开国家编辑器", "显示国家图表"]);
+    search(">");
+    expect(names()).toHaveLength(MAP_COMMANDS.length);
+    expect(names().every(name => /\p{Script=Han}/u.test(name))).toBe(true);
+    expect(document.querySelectorAll("#omnibar-list mark")).toHaveLength(0);
+    search("   ");
+    expect(rows()).toHaveLength(0);
+  });
+
+  it("preserves keyboard indices, IME composition, execution and persistent command identity", async () => {
+    const command = MAP_COMMANDS.find(command => command.id === "showStatesChart")!;
+    const run = vi.spyOn(command, "run").mockResolvedValue(undefined);
+    Omnibar.open();
+    search("> 国家");
+    const index = names().indexOf("显示国家图表");
+    expect(index).toBeGreaterThan(0);
+    for (let i = 0; i < index; i++) key("ArrowDown");
+    expect(input().getAttribute("aria-activedescendant")).toBe(`omnibar-result-${index}`);
+    expect(rows()[index].getAttribute("aria-selected")).toBe("true");
+    input().dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", code: "Enter", isComposing: true, bubbles: true })
+    );
+    window.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", code: "Enter", bubbles: true }));
+    expect(run).not.toHaveBeenCalled();
+    key("Enter");
+    await vi.waitFor(() => expect(run).toHaveBeenCalledOnce());
+    expect(JSON.parse(localStorage.getItem("fmg-omnibar-history")!)).toEqual(["showStatesChart"]);
+    expect(command.name).toBe("Show States Chart");
+  });
+
+  it("highlights Chinese, literal regexp characters and repeated words without interpreting HTML", () => {
+    const originalName = '国家 C++[a].* 国家 <img src=x onerror="bad()">';
+    pack.burgs[1].name = originalName;
+    Omnibar.open();
+    for (const [query, expected] of [
+      ["国家 国家", "国家国家"],
+      ["C++[a].*", "C++[a].*"],
+      ["国家 c++[a].*", "国家C++[a].*国家"]
+    ]) {
+      search(query);
+      const row = rows().find(row => row.querySelector(".omnibar-name")?.textContent === originalName)!;
+      expect(row).toBeDefined();
+      expect(marked(row)).toBe(expected);
+      expect(row.querySelector("img")).toBeNull();
+      expect(row.querySelector(".omnibar-name")?.textContent).toBe(originalName);
+    }
+  });
+
+  it("does not translate user-owned entity names that resemble built-in English UI", () => {
+    pack.burgs[1].name = "Open States Editor";
+    Omnibar.open();
+    search("Open States Editor");
+    expect(names()).toContain("打开国家编辑器");
+    expect(names()).toContain("Open States Editor");
+    expect(pack.burgs[1].name).toBe("Open States Editor");
+  });
+});
+
+describe("localized search panel copy", () => {
+  function status(): string {
+    return document.getElementById("omnibar-status")?.textContent || "";
+  }
+
+  it("renders Chinese accessible names and placeholder directly without a DOM translator", () => {
+    Omnibar.open();
+    expect(document.getElementById("omnibar")?.getAttribute("aria-label")).toBe("搜索地图和命令");
+    expect(input().getAttribute("aria-label")).toBe("搜索地图和命令");
+    expect(input().placeholder).toBe("搜索地图和命令");
+    expect(document.querySelector(".omnibar-escape")?.textContent).toBe("Esc 关闭");
+    expect(input().getAttribute("role")).toBe("combobox");
+    expect(input().getAttribute("aria-controls")).toBe("omnibar-list");
+    expect(document.getElementById("omnibar-list")?.getAttribute("aria-label")).toBe("搜索结果");
+    expect(document.getElementById("omnibar-status")?.getAttribute("aria-live")).toBe("polite");
+  });
+
+  it("renders localized result counts and no-match feedback, clearing feedback on an empty query", () => {
+    Omnibar.open();
+    search("> add burg");
+    expect(rows()).toHaveLength(1);
+    expect(status()).toBe("1 项结果 · ↑↓ 导航 · ↵ 选择");
+    search("无此命令XYZ");
+    expect(rows()).toHaveLength(0);
+    expect(status()).toBe("未找到匹配结果");
+    search("");
+    expect(status()).toBe("");
+  });
+
+  it("reports the exact localized total and visible count when results are capped", () => {
+    pack.burgs = [
+      { i: 0 },
+      ...Array.from({ length: 60 }, (_, index) => ({ i: index + 1, name: `Onlymatch ${index + 1}`, x: 1, y: 1 }))
+    ] as typeof pack.burgs;
+    Omnibar.open();
+    search("onlymatch");
+    expect(rows()).toHaveLength(50);
+    expect(status()).toBe("共 60 项结果，显示 50 项 · ↑↓ 导航 · ↵ 选择");
+  });
+
+  it("renders both layer visibility states in Chinese without changing the layer identity", () => {
+    Omnibar.open();
+    for (const [visible, text] of [
+      [false, "已隐藏"],
+      [true, "已显示"]
+    ] as const) {
+      mocks.isOn.mockReturnValue(visible);
+      search("> toggle rivers");
+      expect(rows()).toHaveLength(1);
+      expect(rows()[0].querySelector(".omnibar-detail")?.textContent).toBe(`命令 · ${text}`);
+      expect(rows()[0].title).toBe(`切换河流图层 · 命令 · ${text}`);
+      expect(mocks.isOn).toHaveBeenLastCalledWith("rivers");
+    }
+  });
+
+  it.each([
+    ["no map", "请先生成或加载地图"],
+    ["customization", "请先退出自定义模式"],
+    ["3D view", "请先切换到 2D 地图"]
+  ])("shows the localized disabled reason for %s and refuses execution", (mode, reason) => {
+    if (mode === "no map") pack.cells.i = pack.cells.i.slice(0, 0);
+    else if (mode === "customization") globalThis.customization = 1;
+    else {
+      const canvas = document.createElement("div");
+      canvas.id = "canvas3d";
+      document.body.append(canvas);
+    }
+    Omnibar.open();
+    search("> add burg");
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0].getAttribute("aria-disabled")).toBe("true");
+    expect(rows()[0].querySelector(".omnibar-detail")?.textContent).toBe(reason);
+    key("Enter");
+    expect(status()).toBe(reason);
+    expect(mocks.open).not.toHaveBeenCalled();
+    expect(localStorage.getItem("fmg-omnibar-history")).toBeNull();
+    expect(document.getElementById("omnibar")).not.toBeNull();
+  });
+
+  it("warns in Chinese when a collected entity loses its map location", () => {
+    Omnibar.open();
+    search("Aldor");
+    pack.burgs[1].x = Number.NaN;
+    key("Enter");
+    expect(mocks.tip).toHaveBeenCalledWith("此元素没有地图位置", false, "warn", 4000);
+    expect(mocks.zoom).not.toHaveBeenCalled();
+    expect(mocks.open).not.toHaveBeenCalled();
+  });
 });
 
 describe("Omnibar public behavior", () => {
@@ -217,7 +405,7 @@ describe("Omnibar public behavior", () => {
     Omnibar.open();
     search("> add burg");
     expect(rows()[0].getAttribute("aria-disabled")).toBe("true");
-    expect(rows()[0].textContent).toContain("Exit customization mode");
+    expect(rows()[0].textContent).toContain("请先退出自定义模式");
     key("Enter");
     expect(mocks.open).not.toHaveBeenCalled();
     expect(document.querySelector("#omnibar")).not.toBeNull();
@@ -235,7 +423,7 @@ describe("Omnibar public behavior", () => {
     expect(JSON.parse(localStorage.getItem("fmg-omnibar-history")!)).toEqual(["regenerateRivers"]);
     Omnibar.open();
     expect(input().value).toBe("");
-    expect(rows()[0].textContent).toContain("Regenerate Rivers");
+    expect(rows()[0].textContent).toContain("重新生成河流");
   });
 
   it("runs creation commands without a corresponding button", async () => {
@@ -337,7 +525,8 @@ describe("Omnibar public behavior", () => {
     Omnibar.open();
     search("Aldor");
     expect(rows().filter(row => row.querySelector(".omnibar-name")?.textContent === "Aldor")).toHaveLength(2);
-    const label = rows().find(row => row.textContent?.includes("Label · Burg"))!;
+    const label = rows().find(row => row.textContent?.includes("标签 · Burg"))!;
+    expect(label).toBeDefined();
     expect(label.querySelector(".icon-font")).not.toBeNull();
     label.click();
     expect(mocks.zoom).toHaveBeenCalledWith(50, 60, 8, 1500);
@@ -381,9 +570,7 @@ describe("Omnibar public behavior", () => {
     Omnibar.open();
     search("Copper");
     key("Enter");
-    await vi.waitFor(() =>
-      expect(mocks.tip).toHaveBeenCalledWith(expect.stringContaining("Could not open"), false, "error")
-    );
+    await vi.waitFor(() => expect(mocks.tip).toHaveBeenCalledWith("无法打开搜索结果，请重试。", false, "error"));
   });
 
   it("ranks unnamed entities below every named match and titles them by their kind", () => {
@@ -396,7 +583,8 @@ describe("Omnibar public behavior", () => {
     search("route");
     const names = rows().map(row => row.querySelector(".omnibar-name")?.textContent);
     expect(names.at(-1)).toBe("Route");
-    expect(names.indexOf("Route")).toBeGreaterThan(names.lastIndexOf("Open Routes Overview")); // commands come first
+    expect(names).toContain("打开路线总览");
+    expect(names.indexOf("Route")).toBeGreaterThan(names.lastIndexOf("打开路线总览")); // commands come first
     expect(names.filter(name => name === "Route")).toHaveLength(3);
   });
 
@@ -437,7 +625,9 @@ describe("Omnibar public behavior", () => {
     Omnibar.open();
     search("burg");
     expect(rows()).toHaveLength(50);
-    expect(document.getElementById("omnibar-status")?.textContent).toMatch(/^50 of \d+ results/);
+    expect(document.getElementById("omnibar-status")?.textContent).toMatch(
+      /^共 \d+ 项结果，显示 50 项 · ↑↓ 导航 · ↵ 选择$/
+    );
   });
 
   it("keeps the browser's save dialog and help keys out while it is open", () => {
@@ -476,6 +666,7 @@ describe("Omnibar public behavior", () => {
 
     expect(mocks.zoom.mock.calls.length).toBe(before);
     expect(mocks.open).not.toHaveBeenCalled();
+    expect(document.getElementById("omnibar-status")?.textContent).toBe("地图已更改，请选择当前结果。");
   });
 
   it("refreshes its records when a new map arrives while it is open", () => {
@@ -484,6 +675,7 @@ describe("Omnibar public behavior", () => {
 
     pack.burgs.push({ i: 3, name: "Newstead", x: 5, y: 5, state: 1 } as (typeof pack.burgs)[number]);
     window.dispatchEvent(new Event("map:generated"));
+    expect(document.getElementById("omnibar-status")?.textContent).toBe("地图已更改，请选择当前结果。");
 
     search("Newstead");
     expect(rows().some(row => row.textContent?.includes("Newstead"))).toBe(true);
@@ -497,7 +689,7 @@ describe("Omnibar public behavior", () => {
     localStorage.setItem("fmg-omnibar-history", JSON.stringify(["gone", "addBurgTool", "addBurgTool", 1]));
     Omnibar.open();
     expect(rows()).toHaveLength(1);
-    expect(rows()[0].textContent).toContain("Add Burg");
+    expect(rows()[0].textContent).toContain("添加城镇");
   });
 
   it("lists every command on a bare >, the recent ones first", () => {
@@ -505,7 +697,7 @@ describe("Omnibar public behavior", () => {
     Omnibar.open();
     search(">");
     const names = rows().map(row => row.querySelector(".omnibar-name")?.textContent);
-    expect(names.slice(0, 2)).toEqual(["Zoom In", "Show App Info"]);
+    expect(names.slice(0, 2)).toEqual(["放大地图", "显示应用信息"]);
     expect(names.length).toBe(MAP_COMMANDS.length);
   });
 
