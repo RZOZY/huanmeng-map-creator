@@ -41,6 +41,8 @@ function open(ref?: EntityRef): void {
     fonts.map(font => font.family)
   );
 
+  quill.root.dataset.placeholder = "在此编写笔记。将鼠标悬停在地图元素上或点击它时，笔记会显示在笔记框中";
+
   quill.on("selection-change", range => {
     if (range) lastSelection = { index: range.index, length: range.length };
   });
@@ -51,15 +53,14 @@ function open(ref?: EntityRef): void {
     showNote(selected);
   } else {
     ensureEl("notesName").textContent = "";
-    quill.root.dataset.placeholder =
-      "No notes yet. Click a burg, marker, state or other element on the map and add a note from its editor";
+    quill.root.dataset.placeholder = "暂无笔记。请点击地图上的城镇、标记、国家或其他元素，在其编辑器中添加笔记";
     quill.disable();
     lastSelection = null;
     window.dispatchEvent(new Event("notes:context-changed"));
   }
 
   $("#notesEditor").dialog({
-    title: "Notes Editor",
+    title: "笔记编辑器",
     width: viewport.width * 0.8,
     height: viewport.height * 0.75,
     position: { my: "center", at: "center", of: "svg" },
@@ -141,8 +142,11 @@ const STYLES = /* html */ `
       #notesLegend .ql-editor.ql-blank::before { left: 16px; right: 16px; color: #9a96a3; font-style: italic; }
       /* the link box: Quill's is a bare white strip with blue text links for Edit and Remove */
       #notesLegend .ql-tooltip { z-index: 3; padding: 6px 10px; color: #333; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 4px 14px #00000026; }
-      #notesLegend .ql-tooltip::before { content: "Link:"; margin-right: 8px; color: #77737f; }
-      #notesLegend .ql-tooltip[data-mode="link"]::before { content: "Enter link:"; }
+      #notesLegend .ql-tooltip::before { content: "链接："; margin-right: 8px; color: #77737f; }
+      #notesLegend .ql-tooltip[data-mode="link"]::before { content: "输入链接："; }
+      #notesLegend .ql-tooltip a.ql-action::after { content: "编辑"; }
+      #notesLegend .ql-tooltip.ql-editing a.ql-action::after { content: "保存"; }
+      #notesLegend .ql-tooltip a.ql-remove::before { content: "移除"; }
       #notesLegend .ql-tooltip input[type="text"] { width: 17em; max-width: 50vw; height: 26px; padding: 3px 6px; border: 1px solid #dedbe2; border-radius: 3px; }
       #notesLegend .ql-tooltip input[type="text"]:focus { outline: 2px solid #5e4fa2; outline-offset: -2px; }
       #notesLegend .ql-tooltip a { color: #5e4fa2; }
@@ -161,22 +165,22 @@ function renderDialog(): void {
     ${STYLES}
     <div id="notesLayout">
       <div id="notesHead">
-        <strong>Element:</strong>
-        <select id="notesSelect" data-tip="Select the element the note belongs to"></select>
-        <strong id="notesName" data-tip="The element name, edited in the element's own editor"></strong>
-        <span id="notesNameSpeak" data-tip="Speak the name. You can change voice and language in options" class="speaker">🔊</span>
+        <strong>元素：</strong>
+        <select id="notesSelect" data-tip="选择笔记所属的元素"></select>
+        <strong id="notesName" data-tip="元素名称，请在该元素的编辑器中修改"></strong>
+        <span id="notesNameSpeak" data-tip="朗读名称，可在选项中更改语音和语言" class="speaker">🔊</span>
       </div>
       ${TOOLBAR_HTML}
       <div id="notesLegend"></div>
       <textarea id="notesSource" hidden spellcheck="false"></textarea>
       <div id="notesFooter">
-        <button id="notesFocus" data-tip="Focus on selected object" class="icon-target"></button>
-        <button id="notesPin" data-tip="Toggle notes box display: hide or do not hide the box on mouse move" class="icon-pin"></button>
-        <button id="notesSourceToggle" data-tip="Edit the note as HTML" class="icon-edit"></button>
-        <button id="notesFullscreen" data-tip="Toggle fullscreen" class="icon-resize-full"></button>
-        <button id="notesDownload" data-tip="Download notes to PC" class="icon-download"></button>
-        <button id="notesUpload" data-tip="Upload notes from PC" class="icon-upload"></button>
-        <button id="notesRemove" data-tip="Remove this note" class="icon-trash fastDelete"></button>
+        <button id="notesFocus" data-tip="定位所选对象" class="icon-target"></button>
+        <button id="notesPin" data-tip="切换笔记框固定状态：鼠标移动时隐藏或保持显示" class="icon-pin"></button>
+        <button id="notesSourceToggle" data-tip="以 HTML 源码编辑笔记" class="icon-edit"></button>
+        <button id="notesFullscreen" data-tip="切换全屏" class="icon-resize-full"></button>
+        <button id="notesDownload" data-tip="将笔记下载到电脑" class="icon-download"></button>
+        <button id="notesUpload" data-tip="从电脑导入笔记" class="icon-upload"></button>
+        <button id="notesRemove" data-tip="移除此笔记" class="icon-trash fastDelete"></button>
       </div>
     </div>
   </div>`;
@@ -206,7 +210,7 @@ function closeNotesEditor(): void {
 
 function selectedRef(): EntityRef | undefined {
   const ref = MapEntities.parseKey(ensureEl<HTMLSelectElement>("notesSelect").value);
-  if (!ref) tip("Note element is not found", true, "error", 4000);
+  if (!ref) tip("未找到笔记所属的元素", true, "error", 4000);
   return ref;
 }
 
@@ -247,7 +251,7 @@ function toggleSourceMode(): void {
     setEditorHtml(quill, source.value);
     setSourceMode(false);
   } else {
-    tip("The note has markup the rich text editor cannot keep, so it stays in HTML mode", false, "error", 4000);
+    tip("笔记包含富文本编辑器无法保留的 HTML 标记，因此仍以 HTML 源码模式编辑", false, "error", 4000);
   }
 }
 
@@ -310,9 +314,10 @@ function validateHighlightElement(): void {
 
   if (!MapEntities.get(ref)) {
     confirmationDialog({
-      title: "Element not found",
-      message: "Note element is not found. Would you like to remove the note?",
-      confirm: "Remove",
+      title: "未找到元素",
+      message: "未找到笔记所属的元素。是否移除此笔记？",
+      confirm: "移除",
+      cancel: "取消",
       onConfirm: removeSelectedNote
     });
     return;
@@ -326,7 +331,7 @@ function validateHighlightElement(): void {
   const position = MapEntities.getPosition(ref);
   if (position) return void zoomTo(position[0], position[1], 8, 1600);
 
-  tip("This element is not drawn on the map on its own", false, "warn", 4000);
+  tip("此元素不会单独绘制在地图上", false, "warn", 4000);
 }
 
 function removeSelectedNote(): void {
@@ -370,7 +375,7 @@ function pickLegendsFile(): void {
 function uploadLegends(dataLoaded: string): void {
   const rows = parseCsv(dataLoaded);
   if (!rows) {
-    tip("Cannot load the file. Please check the data format", false, "error");
+    tip("无法加载文件，请检查数据格式", false, "error");
     return;
   }
 
@@ -383,12 +388,12 @@ function uploadLegends(dataLoaded: string): void {
   }
 
   if (!applied) {
-    tip("No note matched an element on this map. Nothing was loaded", false, "error", 6000);
+    tip("没有笔记能匹配此地图上的元素，未加载任何内容", false, "error", 6000);
     return;
   }
 
-  const rejectedText = rejected ? `, ${rejected} skipped as their element is not on the map` : "";
-  tip(`Loaded ${applied} note(s)${rejectedText}`, true, "success", 6000);
+  const rejectedText = rejected ? `，另有 ${rejected} 条因所属元素不在地图上而跳过` : "";
+  tip(`已加载 ${applied} 条笔记${rejectedText}`, true, "success", 6000);
 
   const [first] = Notes.list();
   if (first) open(first.ref);
@@ -439,9 +444,10 @@ function parseCsv(data: string): [string, string, string][] | null {
 
 function triggerNotesRemove(): void {
   confirmationDialog({
-    title: "Remove note",
-    message: "Are you sure you want to remove the selected note? There is no way to undo this action",
-    confirm: "Remove",
+    title: "移除笔记",
+    message: "确定要移除所选笔记吗？此操作无法撤销",
+    confirm: "移除",
+    cancel: "取消",
     onConfirm: removeSelectedNote
   });
 }
