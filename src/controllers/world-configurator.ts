@@ -312,10 +312,10 @@ function updateWorld(): void {
   if (findEl("canvas3d")) setTimeout(() => window.Controllers.View3d.update(), 500);
 }
 
+// Preview the current frame; explicit geography edits recalculate coordinates.
 function updateGlobePosition(): void {
   const eqD = ((options.map.graph.height / 2) * 100) / options.map.geography.mapSize;
 
-  Coordinates.calculate();
   const mc = options.map.geography.coordinates;
   const unit = options.map.units.distance.unit;
   const meridian = eqD * 2 * options.map.units.distance.scale * getKmInDistanceUnit(); // 0 for a custom unit
