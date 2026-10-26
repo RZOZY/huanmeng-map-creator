@@ -44,7 +44,7 @@ Load.uploadAtlasMap(
 - 实际采用可能迁移、修复或由 `focusOn` 修改聚落，故最后检查必须在 `focusOn/invokeActiveZooming` **之后**、`Options.persist/registerMap` **之前**。重新读取实际 options/pack，通过才发布成功并由协调器解除不稳定状态。
 - 采用后不符返回 failed，不持久化或发布成功，保存仍受隔离；可能已经留下混合模型。只能重新完整载入恢复，不保证取回未另存编辑，不能把此机制写成无损回滚。
 - 没有诊断只证明观测与清单声明相容。`verified/evidence` 仍是人工记录；摘要不证明海岸线、地形和正式地点本来正确，项目 UUID／地理修订也不是从原生模型观察到的字段。
-- `asset.path` 仍仅词法相对路径合同。本 API 消费调用方给的 Blob，不据它开放任意文件读取；项目根、符号链接、平台别名及目录选择尚未实现。
+- `asset.path` 仍仅词法相对路径合同。本 API 消费调用方给的 Blob，不据它开放任意文件读取。[目录面板](<D:/fmg-cn/dreammap/docs/development/atlas-project-files.md>) 已能精确匹配用户所选 File；物理项目根／符号链接隔离、平台别名的全面证明仍未实现。
 
 ## 验收
 
