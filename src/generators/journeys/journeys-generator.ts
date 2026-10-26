@@ -71,7 +71,7 @@ class JourneysModule {
     const i = this.getNextId(pack.journeys);
     const journey: Journey = {
       i,
-      name: `Journey ${i + 1}`,
+      name: `旅程 ${i + 1}`,
       type: DEFAULT_JOURNEY_TYPE,
       color: getCardinalColor(i),
       segments: []
@@ -257,7 +257,7 @@ class JourneysModule {
 
     const segment: JourneySegment = {
       i,
-      name: `Segment ${i + 1}`,
+      name: `路段 ${i + 1}`,
       from: journey.segments.at(-1)?.to,
       transport: transport?.name ?? "Direct",
       speed: transport?.speed ?? 5,
@@ -702,7 +702,7 @@ class JourneysModule {
       );
     if (!segment) return null;
 
-    return { name: segment.name, type: "Travel", segments: [segment] };
+    return { name: segment.name, type: DEFAULT_JOURNEY_TYPE, segments: [segment] };
   }
 
   /** First burg pair in `pool` joined by a path that is genuinely valid for `domain`. */
@@ -720,7 +720,7 @@ class JourneysModule {
 
         return {
           i: 0,
-          name: `${pool[i].name ?? "Start"} → ${pool[j].name ?? "End"}`,
+          name: `${pool[i].name ?? "起点"} → ${pool[j].name ?? "终点"}`,
           from,
           to,
           transport: transport.name,
