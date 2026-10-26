@@ -11,7 +11,6 @@ import { clearMainTip, tip } from "@/components/tooltips";
 import { undraw } from "@/components/undraw";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { resetZoom } from "@/components/zoom";
-import { Controllers } from "@/controllers";
 import { type AddedLabel, normalizeLabelSize } from "@/generators/added-labels";
 import { GraphOverride } from "@/generators/graph-override";
 import { Styles } from "@/generators/styles";
@@ -30,24 +29,19 @@ import {
   parseMapVersion
 } from "@/services/versioning";
 import { ensureEl, escapeHtml, last, link, rn, safeParseJSON } from "@/utils";
+import { authorizeMapReplacement, confirmMapDeparture } from "./load-confirmation";
 import { repairCultureReferences, repairRouteReferences } from "./load-integrity";
 import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
 import { preflightMapData, prepareDetachedMapSvg } from "./map-preflight";
+import { isMapModelStable } from "./model-status";
+import { Save } from "./save";
 
-async function quickLoad(): Promise<void> {
-  try {
+async function quickLoad(): Promise<MapLoadOutcome> {
+  return loadMapFromProvider(async () => {
     const blob = await ldb.get("lastMap");
-    if (blob) loadMapPrompt(blob);
-    else
-      await runLoadSideEffect("浏览器暂存提示失败", () =>
-        tip("暂无暂存地图，请先将地图存入浏览器暂存", true, "error", 2000)
-      );
-  } catch (error) {
-    await runLoadSideEffect("浏览器暂存读取错误日志失败", () => console.error("无法读取浏览器暂存地图", error));
-    await runLoadSideEffect("浏览器暂存读取失败提示异常", () =>
-      tip("无法读取浏览器暂存地图，当前地图未更换", true, "error", 4000)
-    );
-  }
+    if (!(blob instanceof Blob)) throw new Error("暂无有效暂存地图，请先将地图存入浏览器暂存");
+    return blob;
+  });
 }
 
 async function loadFromDropbox(): Promise<MapLoadOutcome> {
@@ -74,41 +68,6 @@ async function createSharableDropboxLink(): Promise<void> {
   } catch (error) {
     ERROR && console.error(error);
     return tip("Dropbox API error. Can not create link.", true, "error", 2000);
-  }
-}
-
-function loadMapPrompt(blob: Blob): void {
-  const current = mapHistory.at(-1);
-  const workingTime = current ? (Date.now() - current.registeredAt) / 60000 : 0; // minutes
-  if (workingTime < 5) {
-    loadLastSavedMap();
-    return;
-  }
-
-  alertMessage.innerHTML = /* html */ `Are you sure you want to load saved map?<br />
-    All unsaved changes made to the current map will be lost`;
-  $("#alert").dialog({
-    resizable: false,
-    title: "Load saved map",
-    buttons: {
-      Cancel: function (this: HTMLElement) {
-        $(this).dialog("close");
-      },
-      Load: function (this: HTMLElement) {
-        loadLastSavedMap();
-        $(this).dialog("close");
-      }
-    }
-  });
-
-  function loadLastSavedMap() {
-    WARN && console.warn("Load last saved map");
-    try {
-      uploadMap(blob);
-    } catch (error) {
-      ERROR && console.error(error);
-      tip("Cannot load last saved map", true, "error", 2000);
-    }
   }
 }
 
@@ -169,6 +128,8 @@ interface PreparedUpload {
   mapData: string[];
   mapVersion: string;
   scene: SVGSVGElement;
+  migrations: typeof import("./auto-update");
+  stylePreset: typeof import("@/controllers/style-preset").StylePreset;
 }
 
 async function runLoadSideEffect(context: string, effect: () => void | Promise<void>): Promise<void> {
@@ -191,6 +152,10 @@ async function uploadMap(file: Blob, callback?: () => void | Promise<void>): Pro
   }
 }
 
+function hasCurrentMap(): boolean {
+  return typeof grid !== "undefined" && !!grid.cells?.h?.length;
+}
+
 async function loadMapFromProvider(
   provide: () => Blob | Promise<Blob>,
   onProviderError?: (error: unknown) => void | Promise<void>
@@ -199,7 +164,26 @@ async function loadMapFromProvider(
   let replacementStarted = false;
   let providerFailure: { error: unknown } | undefined;
   const outcome = await runMapLoad<PreparedUpload>(
-    async () => {
+    async preparation => {
+      if (typeof customization !== "undefined" && customization !== 0) {
+        preparation.cancel();
+        await runLoadSideEffect("编辑模式离图提示失败", () =>
+          tip("请先完成或退出当前编辑模式，再读取其他地图", true, "warn", 5000)
+        );
+        return null;
+      }
+      if (hasCurrentMap()) {
+        const proceed = await confirmMapDeparture(isMapModelStable(), () => {
+          preparation.cancel();
+          void runLoadSideEffect("离图前另存失败", async () => {
+            await Save.toMachine(true);
+          });
+        });
+        if (!proceed) {
+          preparation.cancel();
+          return null;
+        }
+      }
       uploadTimeStart = performance.now();
       let file: Blob;
       try {
@@ -225,13 +209,23 @@ async function loadMapFromProvider(
       }
       preflightMapData(mapData, mapVersion!);
       const scene = prepareDetachedMapSvg(mapData[5]);
-      return { mapData, mapVersion: mapVersion!, scene };
+      const [migrations, { StylePreset: stylePreset }] = await Promise.all([
+        import("./auto-update"),
+        import("@/controllers/style-preset")
+      ]);
+      return { mapData, mapVersion: mapVersion!, scene, migrations, stylePreset };
     },
-    prepared => parseLoadedData(prepared.mapData, prepared.mapVersion, prepared.scene),
+    prepared =>
+      parseLoadedData(prepared.mapData, prepared.mapVersion, prepared.scene, prepared.migrations, prepared.stylePreset),
     () => {
       replacementStarted = true;
       window.dispatchEvent(new Event("map:replacing"));
-    }
+    },
+    (_prepared, controls) => {
+      if (hasCurrentMap()) return authorizeMapReplacement(controls);
+      controls.start();
+    },
+    () => typeof customization === "undefined" || customization === 0
   );
   await runLoadSideEffect("地图载入结果提示失败", async () => {
     if (outcome.type === "busy") tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
@@ -347,12 +341,16 @@ function reportMapLoadError(error: unknown, mapVersion: string | null, replaceme
   });
 }
 
-async function parseLoadedData(data: string[], mapVersion: string | null, scene: SVGSVGElement): Promise<void> {
+async function parseLoadedData(
+  data: string[],
+  mapVersion: string | null,
+  scene: SVGSVGElement,
+  { migrateLegacySettings, resolveVersionConflicts }: PreparedUpload["migrations"],
+  stylePreset: PreparedUpload["stylePreset"]
+): Promise<void> {
   let isLogGroupOpen = false;
 
   try {
-    const { migrateLegacySettings, resolveVersionConflicts } = await import("./auto-update"); // TODO: don't load if not required
-
     closeDialogs();
     ensureEl("coas").innerHTML = "";
     customization = 0;
@@ -363,7 +361,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null, scene:
     if (!settings) throw new Error("Map settings are missing or malformed");
     Options.applyLoaded(settings);
     syncOptionInputs();
-    await Controllers.StylePresetsEditor.init(); // the preset row follows the loaded map
+    stylePreset.init(); // Preloaded before final authorization: no await before the first mutation.
 
     INFO && console.group(options.map.seed ? `Loaded Map ${options.map.seed}` : "Loaded Map");
     isLogGroupOpen = true;
@@ -482,7 +480,7 @@ async function parseLoadedData(data: string[], mapVersion: string | null, scene:
 
     const styleRecord = data[48] ? safeParseJSON(data[48]) : undefined; // data[48] should be already migrated by auto-update
     Styles.set(Styles.parse(styleRecord));
-    await Controllers.StylePresetsEditor.ensureGroupStyles();
+    stylePreset.ensureGroupStyles();
 
     Icons.syncCustom();
 

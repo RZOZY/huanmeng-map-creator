@@ -2,6 +2,7 @@ export type MapIOKind = "save" | "load" | "generate";
 
 export interface MapIOLease {
   readonly kind: MapIOKind;
+  isCurrent(): boolean;
   release(): void;
 }
 
@@ -11,6 +12,7 @@ export function beginMapIO(kind: MapIOKind): MapIOLease | null {
   if (owner) return null;
   const lease: MapIOLease = {
     kind,
+    isCurrent: () => owner === lease,
     release() {
       if (owner === lease) owner = null;
     }

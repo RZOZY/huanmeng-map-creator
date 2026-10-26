@@ -1,5 +1,5 @@
 // The app window itself: the SVG layer scaffold, browser-level behaviours
-import { alertDialog, closeDialogs, confirmationDialog } from "@/components/dialog/dialog-helpers";
+import { alertDialog, confirmationDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
 import { Pins } from "@/components/pins";
 import { Services } from "@/services";
@@ -102,7 +102,6 @@ function addDragToUpload(): void {
 
     mapOverlay.style.display = null as unknown as string;
     mapOverlay.innerHTML = "Uploading<span>.</span><span>.</span><span>.</span>";
-    closeDialogs();
     Services.Load.uploadMap(file, () => {
       mapOverlay.style.display = "none";
       mapOverlay.innerHTML = "Drop a map file to open";

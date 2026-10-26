@@ -208,7 +208,6 @@ mapInput.id = "mapToLoad";
 mapInput.onchange = () => {
   const file = mapInput.files?.[0];
   mapInput.value = "";
-  closeDialogs();
   if (file) void Services.Load.uploadMap(file);
 };
 

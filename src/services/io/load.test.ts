@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MAP_FORMAT_VERSION } from "@/services/versioning";
 import { Load } from "./load";
-import { readMapBlob, runMapLoad } from "./load-operation";
+import { type MapLoadAuthorization, type MapLoadControls, readMapBlob, runMapLoad } from "./load-operation";
 import { beginMapIO, isMapIOBusy } from "./map-io";
 import { isMapModelStable, markMapModelStable } from "./model-status";
 
@@ -12,7 +12,9 @@ const boundary = vi.hoisted(() => ({
   fetch: vi.fn<typeof fetch>(),
   dialog: vi.fn(),
   tip: vi.fn(),
-  generate: vi.fn()
+  generate: vi.fn(),
+  save: vi.fn<(force?: boolean) => Promise<unknown>>(),
+  stored: vi.fn<() => Promise<Blob | null>>()
 }));
 
 vi.mock("./load-operation", async importOriginal => {
@@ -22,12 +24,20 @@ vi.mock("./load-operation", async importOriginal => {
     readMapBlob: vi.fn(actual.readMapBlob),
     // Keep the real lease, provider and Blob preflight; only replace world/DOM adoption.
     runMapLoad: vi.fn(
-      <T>(prepare: () => Promise<T | null>, _adopt: (prepared: T) => Promise<void> | void, beforeAdopt?: () => void) =>
-        actual.runMapLoad(prepare, boundary.adopt, beforeAdopt)
+      <T>(
+        prepare: (controls: Pick<MapLoadControls, "cancel">) => Promise<T | null>,
+        _adopt: (prepared: T) => Promise<void> | void,
+        beforeAdopt?: () => void,
+        authorize?: MapLoadAuthorization<T>,
+        canAdopt?: () => boolean
+      ) => actual.runMapLoad(prepare, boundary.adopt, beforeAdopt, authorize, canAdopt)
     )
   };
 });
 vi.mock("@/services", () => ({ Services: { Cloud: { load: boundary.cloud } } }));
+vi.mock("./save", () => ({ Save: { toMachine: boundary.save } }));
+vi.mock("./auto-update", () => ({ migrateLegacySettings: vi.fn(), resolveVersionConflicts: vi.fn() }));
+vi.mock("@/controllers/style-preset", () => ({ StylePreset: { init: vi.fn(), ensureGroupStyles: vi.fn() } }));
 vi.mock("@/components/canvas", () => ({ fitMapToScreen: vi.fn() }));
 vi.mock("@/components/dialog/dialog-helpers", () => ({ closeDialogs: vi.fn() }));
 vi.mock("@/components/icons", () => ({ Icons: {} }));
@@ -94,6 +104,10 @@ beforeEach(() => {
   boundary.adopt.mockReset().mockResolvedValue();
   boundary.cloud.mockReset().mockRejectedValue(new Error("Unexpected cloud request"));
   boundary.fetch.mockReset().mockRejectedValue(new Error("Unexpected network request"));
+  boundary.save.mockReset().mockResolvedValue({ type: "saved" });
+  boundary.stored.mockReset().mockResolvedValue(mapBlob());
+  vi.stubGlobal("ldb", { get: boundary.stored });
+  vi.stubGlobal("customization", 0);
   markMapModelStable();
   document.body.innerHTML =
     '<svg id="map"><g id="viewbox"><text>Original map</text></g></svg><div id="alertMessage"></div><select id="loadFromDropboxSelect"><option value="/test.map">test</option></select>';
@@ -114,6 +128,194 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.useRealTimers();
+});
+
+describe("real common-entry departure protection", () => {
+  const originalShow = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "showModal");
+  const originalClose = Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, "close");
+  const enter = {
+    local: () => Load.uploadMap(mapBlob()),
+    URL: () => Load.loadMapFromURL("https://example.invalid/next.map"),
+    cloud: () => Load.loadFromDropbox(),
+    quick: () => Load.quickLoad()
+  };
+  const click = (text: string) => {
+    const action = [...document.querySelectorAll<HTMLButtonElement>("#mapLoadDeparture button")].find(
+      element => element.textContent === text
+    );
+    expect(action).toBeDefined();
+    action!.click();
+  };
+  const finalReady = async () =>
+    vi.waitFor(() => expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图"));
+  beforeEach(() => {
+    vi.stubGlobal("grid", { cells: { h: new Uint8Array([21]) } });
+    boundary.fetch.mockResolvedValue(response());
+    boundary.cloud.mockResolvedValue(mapBlob());
+    HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
+      this.setAttribute("open", "");
+    });
+    HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
+      this.removeAttribute("open");
+      this.dispatchEvent(new Event("close"));
+    });
+  });
+  afterEach(() => {
+    for (const [name, descriptor] of [
+      ["showModal", originalShow],
+      ["close", originalClose]
+    ] as const) {
+      if (descriptor) Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+      else Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+    }
+    expect(document.getElementById("mapLoadDeparture")).toBeNull();
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it.each(Object.keys(enter) as (keyof typeof enter)[])(
+    "asks before %s reading and cancellation makes every provider stay untouched",
+    async source => {
+      const oldRoot = document.getElementById("map");
+      const oldGrid = grid;
+      const oldPack = pack;
+      const operation = enter[source]();
+      expect(isMapIOBusy()).toBe(true);
+      click("取消，保留当前地图");
+      await expect(operation).resolves.toEqual({ type: "cancelled" });
+      expect(boundary.fetch).not.toHaveBeenCalled();
+      expect(boundary.cloud).not.toHaveBeenCalled();
+      expect(boundary.stored).not.toHaveBeenCalled();
+      expect(readMapBlob).not.toHaveBeenCalled();
+      expect(boundary.adopt).not.toHaveBeenCalled();
+      expect(document.getElementById("map")).toBe(oldRoot);
+      expect(grid).toBe(oldGrid);
+      expect(pack).toBe(oldPack);
+      expect(isMapModelStable()).toBe(true);
+    }
+  );
+
+  it.each(["saved", "downloaded", "cancelled", "busy", "failed"])(
+    "saves and stays for %s without reading any target",
+    async type => {
+      let clickReturned = false;
+      boundary.save.mockImplementationOnce(async force => {
+        expect(force).toBe(true);
+        expect(clickReturned).toBe(false);
+        expect(document.getElementById("mapLoadDeparture")).toBeNull();
+        const lease = beginMapIO("save");
+        expect(lease).not.toBeNull();
+        lease!.release();
+        return { type };
+      });
+      const callback = vi.fn();
+      const operation = Load.uploadMap(mapBlob(), callback);
+      click("另存副本并停留");
+      clickReturned = true;
+      expect(boundary.save).toHaveBeenCalledOnce();
+      await expect(operation).resolves.toEqual({ type: "cancelled" });
+      expect(callback).toHaveBeenCalledOnce();
+      expect(readMapBlob).not.toHaveBeenCalled();
+      expect(boundary.adopt).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(["URL", "cloud", "quick"] as const)("does not read %s on save-and-stay", async source => {
+    const operation = enter[source]();
+    click("另存副本并停留");
+    await expect(operation).resolves.toEqual({ type: "cancelled" });
+    expect(boundary.save).toHaveBeenCalledExactlyOnceWith(true);
+    expect(boundary.fetch).not.toHaveBeenCalled();
+    expect(boundary.cloud).not.toHaveBeenCalled();
+    expect(boundary.stored).not.toHaveBeenCalled();
+    expect(readMapBlob).not.toHaveBeenCalled();
+  });
+
+  it("never skips confirmation for a recently opened map", async () => {
+    vi.stubGlobal("mapHistory", [{ registeredAt: Date.now() }]);
+    const operation = Load.quickLoad();
+    expect(boundary.stored).not.toHaveBeenCalled();
+    click("取消，保留当前地图");
+    await expect(operation).resolves.toEqual({ type: "cancelled" });
+  });
+
+  it("allows final cancellation after reading but before any replacement", async () => {
+    const oldGrid = grid;
+    const oldPack = pack;
+    const oldRoot = document.getElementById("map");
+    const replacing = vi.fn();
+    window.addEventListener("map:replacing", replacing);
+    try {
+      const operation = Load.uploadMap(mapBlob());
+      click("准备读取目标");
+      await finalReady();
+      expect(readMapBlob).toHaveBeenCalledOnce();
+      expect(boundary.adopt).not.toHaveBeenCalled();
+      click("取消，保留当前地图");
+      await expect(operation).resolves.toEqual({ type: "cancelled" });
+      expect(replacing).not.toHaveBeenCalled();
+      expect(grid).toBe(oldGrid);
+      expect(pack).toBe(oldPack);
+      expect(document.getElementById("map")).toBe(oldRoot);
+      expect(isMapModelStable()).toBe(true);
+    } finally {
+      window.removeEventListener("map:replacing", replacing);
+    }
+  });
+
+  it("enters real adoption synchronously from the final click, before queued microtasks", async () => {
+    const adoption = deferred<void>();
+    const sequence: string[] = [];
+    boundary.adopt.mockImplementationOnce(() => {
+      sequence.push("adopt");
+      return adoption.promise;
+    });
+    const replacing = () => sequence.push("replacing");
+    window.addEventListener("map:replacing", replacing);
+    try {
+      const operation = Load.uploadMap(mapBlob());
+      click("准备读取目标");
+      await finalReady();
+      queueMicrotask(() => sequence.push("later edit"));
+      click("放弃当前修改并采用目标");
+      expect(sequence).toEqual(["replacing", "adopt"]);
+      expect(isMapModelStable()).toBe(false);
+      expect(isMapIOBusy()).toBe(true);
+      const modal = document.getElementById("mapLoadDeparture")!;
+      const cancelEvent = new Event("cancel", { cancelable: true });
+      modal.dispatchEvent(cancelEvent);
+      expect(cancelEvent.defaultPrevented).toBe(true);
+      expect(boundary.adopt).toHaveBeenCalledOnce();
+      await Promise.resolve();
+      expect(sequence).toEqual(["replacing", "adopt", "later edit"]);
+      adoption.resolve();
+      await expect(operation).resolves.toEqual({ type: "loaded" });
+      expect(isMapModelStable()).toBe(true);
+    } finally {
+      window.removeEventListener("map:replacing", replacing);
+    }
+  });
+
+  it("rechecks live editing mode in the final click rather than discarding it", async () => {
+    const operation = Load.uploadMap(mapBlob());
+    click("准备读取目标");
+    await finalReady();
+    vi.stubGlobal("customization", 1);
+    click("放弃当前修改并采用目标");
+    await expect(operation).resolves.toEqual({ type: "cancelled" });
+    expect(boundary.adopt).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+  });
+
+  it("fails closed if initial modal creation fails", async () => {
+    const error = new Error("dialog unavailable");
+    vi.mocked(HTMLDialogElement.prototype.showModal).mockImplementationOnce(() => {
+      throw error;
+    });
+    await expect(Load.uploadMap(mapBlob())).resolves.toEqual({ type: "failed", error });
+    expect(readMapBlob).not.toHaveBeenCalled();
+    expect(boundary.adopt).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+  });
 });
 
 describe("target preflight before any map replacement", () => {
@@ -177,11 +379,11 @@ describe("quick load storage failures", () => {
     const error = new Error("QuotaExceededError");
     vi.stubGlobal("ldb", { get: vi.fn().mockRejectedValue(error) });
     const oldModel = pack;
-    await expect(Load.quickLoad()).resolves.toBeUndefined();
+    await expect(Load.quickLoad()).resolves.toEqual({ type: "failed", error });
     expect(pack).toBe(oldModel);
     expect(boundary.adopt).not.toHaveBeenCalled();
     expect(boundary.generate).not.toHaveBeenCalled();
-    expect(boundary.tip).toHaveBeenCalledWith("无法读取浏览器暂存地图，当前地图未更换", true, "error", 4000);
+    expect(document.getElementById("alertMessage")?.textContent).toContain("原地图尚未开始替换");
     expect(isMapIOBusy()).toBe(false);
   });
 
@@ -193,15 +395,15 @@ describe("quick load storage failures", () => {
     vi.spyOn(console, "error").mockImplementation(() => {
       throw new Error("logger unavailable");
     });
-    await expect(Load.quickLoad()).resolves.toBeUndefined();
+    await expect(Load.quickLoad()).resolves.toMatchObject({ type: "failed" });
     expect(boundary.adopt).not.toHaveBeenCalled();
     expect(boundary.generate).not.toHaveBeenCalled();
   });
 
   it("reports missing browser storage in Chinese without generating a new map", async () => {
     vi.stubGlobal("ldb", { get: vi.fn().mockResolvedValue(null) });
-    await expect(Load.quickLoad()).resolves.toBeUndefined();
-    expect(boundary.tip).toHaveBeenCalledWith("暂无暂存地图，请先将地图存入浏览器暂存", true, "error", 2000);
+    await expect(Load.quickLoad()).resolves.toMatchObject({ type: "failed" });
+    expect(document.getElementById("errorBox")?.textContent).toContain("暂无有效暂存地图");
     expect(boundary.generate).not.toHaveBeenCalled();
   });
 });

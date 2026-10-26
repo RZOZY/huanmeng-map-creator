@@ -21,7 +21,8 @@ describe("map IO leases", () => {
   it.each(kinds)("acquires a %s lease synchronously", kind => {
     expect(isMapIOBusy()).toBe(false);
     const lease = acquire(kind);
-    expect(lease).toEqual({ kind, release: expect.any(Function) });
+    expect(lease).toEqual({ kind, isCurrent: expect.any(Function), release: expect.any(Function) });
+    expect(lease?.isCurrent()).toBe(true);
     expect(isMapIOBusy()).toBe(true);
   });
 

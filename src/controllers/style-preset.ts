@@ -8,6 +8,7 @@ import { Styles } from "@/generators/styles";
 import { applyVignetteOptions } from "@/renderers/draw-vignette";
 import { HeightmapColorSchemes } from "@/renderers/heightmap-color-schemes";
 import { IconsArchive } from "@/services/io/icons-archive";
+import { getMapModelEpoch, isMapModelStable } from "@/services/io/model-status";
 import { CUSTOM_PREFIX, LEGACY_PREFIX, StylePresetsService } from "@/services/style-presets";
 import { downloadFile, ensureEl, isValidJSON, openURL, uploadFile } from "@/utils";
 
@@ -68,15 +69,18 @@ export function ensureGroupStyles(): void {
 
 // the preset by name; when it is gone or broken, the default with a tip saying so
 async function loadPreset(name: string): Promise<{ name: string; styles: unknown }> {
+  const epoch = getMapModelEpoch();
   const loaded = await StylePresetsService.load(name);
-  if (loaded.error) tip(`${loaded.error}. Applying default style`, false, "error", 8000);
+  if (loaded.error && canApplyStyle(epoch)) tip(`${loaded.error}. Applying default style`, false, "error", 8000);
   return loaded;
 }
 
 /** The start-up path: the previously selected default or custom style */
 async function applyOnLoad(): Promise<void> {
+  const epoch = getMapModelEpoch();
   const desired = options.map.style.preset || "default";
   const { name, styles: preset } = await loadPreset(desired);
+  if (!canApplyStyle(epoch)) return;
   applyPreset(preset);
   if (name !== desired) {
     options.map.style.preset = name; // the fallback preset, if the stored one is gone
@@ -88,7 +92,13 @@ async function applyOnLoad(): Promise<void> {
 const CONFIRMED_KEY = "fmg-style-change-confirmed"; // session-scoped: ask once per session
 
 /** Apply a preset from the UI: once per session the user confirms losing unsaved changes */
+function canApplyStyle(epoch: number): boolean {
+  return isMapModelStable() && epoch === getMapModelEpoch();
+}
+
 function requestChange(name: string): void {
+  const epoch = getMapModelEpoch();
+  if (!canApplyStyle(epoch)) return;
   if (sessionStorage.getItem(CONFIRMED_KEY)) return void change(name);
 
   confirmationDialog({
@@ -96,6 +106,7 @@ function requestChange(name: string): void {
     message: "Are you sure you want to change the style preset? All unsaved style changes will be lost",
     confirm: "Change",
     onConfirm: () => {
+      if (!canApplyStyle(epoch)) return;
       sessionStorage.setItem(CONFIRMED_KEY, "true");
       void change(name);
     }
@@ -103,7 +114,10 @@ function requestChange(name: string): void {
 }
 
 async function change(desired: string): Promise<void> {
+  const epoch = getMapModelEpoch();
+  if (!canApplyStyle(epoch)) return;
   const { name, styles: preset } = await loadPreset(desired);
+  if (!canApplyStyle(epoch)) return;
   options.map.style.preset = name;
   Options.save();
   applyWithUiRefresh(preset);
@@ -254,6 +268,8 @@ function offerCustomIcons(json: string, name: string): void {
 
 /** Remove a custom preset; when it is the current one, the map falls back to default */
 function remove(name: string): void {
+  const epoch = getMapModelEpoch();
+  if (!canApplyStyle(epoch)) return;
   if (StylePresetsService.isSystem(name)) return void tip("Cannot remove system preset", false, "error");
 
   confirmationDialog({
@@ -261,6 +277,7 @@ function remove(name: string): void {
     message: `Are you sure you want to remove the "${StylePresetsService.displayName(name)}" preset? This action cannot be undone.`,
     confirm: "Remove",
     onConfirm: () => {
+      if (!canApplyStyle(epoch)) return;
       StylePresetsService.removeCustom(name);
       if (name === options.map.style.preset) void change("default");
       else void Controllers.StyleEditor.refresh();

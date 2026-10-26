@@ -157,6 +157,248 @@ describe("awaitable map load", () => {
   });
 });
 
+describe("one-shot adoption authorization", () => {
+  it("can cancel before changing model stability or notifying replacement", async () => {
+    const adopt = vi.fn();
+    const replacing = vi.fn();
+    const cleanup = vi.fn();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        adopt,
+        replacing,
+        (_prepared, controls) => {
+          expect(isMapIOBusy()).toBe(true);
+          expect(isMapModelStable()).toBe(true);
+          controls.cancel();
+          controls.start();
+          return cleanup;
+        }
+      )
+    ).resolves.toEqual({ type: "cancelled" });
+    expect(adopt).not.toHaveBeenCalled();
+    expect(replacing).not.toHaveBeenCalled();
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(isMapModelStable()).toBe(true);
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("starts replacement synchronously in the authorization click, once", async () => {
+    const adoption = deferred<void>();
+    let controls!: { start(): void; cancel(): void };
+    const adopt = vi.fn(() => adoption.promise);
+    const cleanup = vi.fn();
+    const operation = runMapLoad(
+      async () => "target",
+      adopt,
+      undefined,
+      (_prepared, value) => {
+        controls = value;
+        return cleanup;
+      }
+    );
+    await vi.waitFor(() => expect(controls).toBeDefined());
+    expect(isMapModelStable()).toBe(true);
+    controls.start();
+    expect(adopt).toHaveBeenCalledExactlyOnceWith("target");
+    expect(isMapModelStable()).toBe(false);
+    controls.start();
+    controls.cancel();
+    expect(adopt).toHaveBeenCalledOnce();
+    expect(isMapIOBusy()).toBe(true);
+    expect(cleanup).not.toHaveBeenCalled();
+    adoption.resolve();
+    await expect(operation).resolves.toEqual({ type: "loaded" });
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("releases a cancelled preparation synchronously so a save can keep user activation", async () => {
+    let saveLease: ReturnType<typeof beginMapIO>;
+    const adopt = vi.fn();
+    await expect(
+      runMapLoad(async controls => {
+        controls.cancel();
+        saveLease = beginMapIO("save");
+        expect(saveLease).not.toBeNull();
+        return "target";
+      }, adopt)
+    ).resolves.toEqual({ type: "cancelled" });
+    expect(adopt).not.toHaveBeenCalled();
+    expect(isMapIOBusy()).toBe(true);
+    saveLease!.release();
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("does not let stale authorization callbacks adopt or release another operation", async () => {
+    let controls!: { start(): void; cancel(): void };
+    const adopt = vi.fn();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        adopt,
+        undefined,
+        (_prepared, value) => {
+          controls = value;
+          value.cancel();
+        }
+      )
+    ).resolves.toEqual({ type: "cancelled" });
+    const lease = beginMapIO("save");
+    controls.start();
+    controls.cancel();
+    expect(adopt).not.toHaveBeenCalled();
+    expect(isMapIOBusy()).toBe(true);
+    lease!.release();
+  });
+
+  it("keeps an existing quarantine on authorization cancellation", async () => {
+    markMapModelUnstable();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        vi.fn(),
+        undefined,
+        (_prepared, controls) => controls.cancel()
+      )
+    ).resolves.toEqual({ type: "cancelled" });
+    expect(isMapModelStable()).toBe(false);
+  });
+
+  it("handles authorization setup failure before touching the model", async () => {
+    const error = new Error("dialog failed");
+    const adopt = vi.fn();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        adopt,
+        undefined,
+        () => {
+          throw error;
+        }
+      )
+    ).resolves.toEqual({ type: "failed", error });
+    expect(adopt).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("rechecks the live final guard inside start instead of trusting the earlier UI choice", async () => {
+    let allowed = true;
+    const adopt = vi.fn();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        adopt,
+        undefined,
+        (_prepared, controls) => {
+          allowed = false;
+          controls.start();
+        },
+        () => allowed
+      )
+    ).resolves.toEqual({ type: "cancelled" });
+    expect(adopt).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+  });
+
+  it("rejects a replacement epoch change during preparation", async () => {
+    const adopt = vi.fn();
+    await expect(
+      runMapLoad(async () => {
+        markMapModelUnstable();
+        markMapModelStable();
+        return "target";
+      }, adopt)
+    ).resolves.toEqual({ type: "cancelled" });
+    expect(adopt).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+  });
+
+  it("can recover an already quarantined model through successful adoption", async () => {
+    markMapModelUnstable();
+    await expect(
+      runMapLoad(
+        async () => "target",
+        vi.fn(),
+        undefined,
+        (_prepared, controls) => controls.start()
+      )
+    ).resolves.toEqual({ type: "loaded" });
+    expect(isMapModelStable()).toBe(true);
+  });
+
+  it("does not let disposal failure override a completed load or leak the lease", async () => {
+    await expect(
+      runMapLoad(
+        async () => "target",
+        vi.fn(),
+        undefined,
+        (_prepared, controls) => {
+          controls.start();
+          return () => {
+            throw new Error("cannot remove dialog");
+          };
+        }
+      )
+    ).resolves.toEqual({ type: "loaded" });
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("does not let an old preparation cancellation release the next owner's lease", async () => {
+    let cancel!: () => void;
+    await expect(
+      runMapLoad(async controls => {
+        cancel = controls.cancel;
+        return "target";
+      }, vi.fn())
+    ).resolves.toEqual({ type: "loaded" });
+    const next = beginMapIO("save");
+    cancel();
+    expect(isMapIOBusy()).toBe(true);
+    next!.release();
+  });
+
+  it("keeps an async adoption failure quarantined despite a late cancel", async () => {
+    const adoption = deferred<void>();
+    const error = new Error("adoption broke");
+    let controls!: { start(): void; cancel(): void };
+    const operation = runMapLoad(
+      async () => "target",
+      () => adoption.promise,
+      undefined,
+      (_prepared, value) => {
+        controls = value;
+        value.start();
+      }
+    );
+    await vi.waitFor(() => expect(controls).toBeDefined());
+    controls.cancel();
+    expect(isMapIOBusy()).toBe(true);
+    adoption.reject(error);
+    await expect(operation).resolves.toEqual({ type: "failed", error });
+    expect(isMapModelStable()).toBe(false);
+    expect(isMapIOBusy()).toBe(false);
+  });
+
+  it("awaits adoption even when authorization feedback throws after starting", async () => {
+    const adoption = deferred<void>();
+    const adopt = vi.fn(() => adoption.promise);
+    const operation = runMapLoad(
+      async () => "target",
+      adopt,
+      undefined,
+      (_prepared, controls) => {
+        controls.start();
+        throw new Error("late dialog error");
+      }
+    );
+    await vi.waitFor(() => expect(adopt).toHaveBeenCalledOnce());
+    expect(isMapIOBusy()).toBe(true);
+    adoption.resolve();
+    await expect(operation).resolves.toEqual({ type: "loaded" });
+  });
+});
+
 describe("failed adoption quarantine", () => {
   it("marks the model unstable before replacement notifications and only completes after adoption", async () => {
     const adoption = deferred<void>();
