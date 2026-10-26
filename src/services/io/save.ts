@@ -6,52 +6,101 @@ import { GraphOverride } from "@/generators/graph-override";
 import { Notes } from "@/generators/notes";
 import { Services } from "@/services";
 import { getUsedFonts } from "@/services/fonts";
-import { isElectron, savedMessage } from "@/services/platform";
 import { MAP_FORMAT_VERSION } from "@/services/versioning";
-import { ensureEl, escapeHtml, getFileName, link, parseError, rn } from "@/utils";
-import { isMapIOBusy } from "./map-io";
+import { ensureEl, escapeHtml, getFileName, parseError, rn } from "@/utils";
+import { beginMapIO, isMapIOBusy } from "./map-io";
 import { isMapModelStable } from "./model-status";
 import { type SaveOutcome, saveToFileSystem } from "./save-to-file";
 
-type Writer = () => Promise<void>;
+export type MapSaveOutcome =
+  | SaveOutcome
+  | { type: "rejected"; reason: "edit-mode" }
+  | { type: "stored"; target: "browser" | "dropbox" }
+  | { type: "failed"; error: unknown };
 
-const toStorage = (): Promise<void> => save(() => writeToStorage(prepareMapData(), true));
-const toMachine = (saveAs = false): Promise<void> => save(() => writeToMachine(saveAs));
-const toDropbox = (): Promise<void> => save(() => writeToDropbox(prepareMapData(), `${getFileName()}.map`));
+type Writer = () => Promise<MapSaveOutcome>;
 
-async function save(write: Writer): Promise<void> {
-  if (isMapIOBusy()) return tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
-  if (!isMapModelStable())
-    return tip("当前地图载入或生成未完整结束，请重新打开已保存的地图后再保存", true, "warn", 8000);
-  if (customization) return tip("Map cannot be saved in EDIT mode, please complete the edit and retry", false, "error");
-  closeDialogs("#alert");
+const toStorage = (): Promise<MapSaveOutcome> =>
+  save(() => storeSnapshot("browser", () => writeToStorage(prepareCheckedMapData())));
+const toMachine = (saveAs = false): Promise<MapSaveOutcome> =>
+  save(() => saveToFileSystem(prepareCheckedMapData, `${getFileName()}.map`, saveAs));
+const toDropbox = (): Promise<MapSaveOutcome> =>
+  save(() => storeSnapshot("dropbox", () => Services.Cloud.save(`${getFileName()}.map`, prepareCheckedMapData())));
 
+class SaveRejectedError extends Error {
+  constructor(readonly reason: "edit-mode" | "unstable-model") {
+    super(reason);
+  }
+}
+
+function prepareCheckedMapData(): string {
+  if (!isMapModelStable()) throw new SaveRejectedError("unstable-model");
+  if (customization) throw new SaveRejectedError("edit-mode");
+  return prepareMapData();
+}
+
+async function storeSnapshot(target: "browser" | "dropbox", write: () => Promise<unknown>): Promise<MapSaveOutcome> {
+  const lease = beginMapIO("save");
+  if (!lease) return { type: "busy" };
   try {
     await write();
-  } catch (error) {
-    ERROR && console.error(error);
-    const saveError = error instanceof Error ? error : new Error(String(error));
-    alertMessage.innerHTML = /* html */ `An error occurred while saving the map. If the issue persists, please copy the message below and report it on ${link(
-      "https://github.com/Azgaar/Fantasy-Map-Generator/issues",
-      "GitHub"
-    )}. <p id="errorBox">${parseError(saveError)}</p>`;
-
-    $("#alert").dialog({
-      resizable: false,
-      title: "Saving error",
-      width: "28em",
-      buttons: {
-        Retry: function (this: HTMLElement) {
-          $(this).dialog("close");
-          save(write);
-        },
-        Close: function (this: HTMLElement) {
-          $(this).dialog("close");
-        }
-      },
-      position: { my: "center", at: "center", of: "svg" }
-    });
+    return { type: "stored", target };
+  } finally {
+    lease.release();
   }
+}
+
+async function save(write: Writer): Promise<MapSaveOutcome> {
+  let outcome: MapSaveOutcome;
+  if (isMapIOBusy()) outcome = { type: "busy" };
+  else if (!isMapModelStable()) outcome = { type: "rejected", reason: "unstable-model" };
+  else if (customization) outcome = { type: "rejected", reason: "edit-mode" };
+  else {
+    runSaveSideEffect(() => closeDialogs("#alert"));
+    try {
+      outcome = await write();
+    } catch (error) {
+      outcome =
+        error instanceof SaveRejectedError ? { type: "rejected", reason: error.reason } : { type: "failed", error };
+    }
+  }
+  runSaveSideEffect(() => {
+    if (outcome.type === "failed") showSaveError(outcome.error, write);
+    else notifySaveOutcome(outcome);
+  });
+  return outcome;
+}
+
+function runSaveSideEffect(effect: () => void): void {
+  try {
+    effect();
+  } catch (error) {
+    try {
+      ERROR && console.error("地图保存界面提示失败", error);
+    } catch {
+      // Feedback must not change the persistence result.
+    }
+  }
+}
+
+function showSaveError(error: unknown, write: Writer): void {
+  const saveError = error instanceof Error ? error : new Error(String(error));
+  alertMessage.innerHTML = `保存地图时发生错误。请保留当前地图，修复问题后重试。<p id="errorBox">${parseError(saveError)}</p>`;
+  $("#alert").dialog({
+    resizable: false,
+    title: "保存失败",
+    width: "28em",
+    buttons: {
+      重试: function (this: HTMLElement) {
+        runSaveSideEffect(() => $(this).dialog("close"));
+        return save(write);
+      },
+      关闭: function (this: HTMLElement) {
+        runSaveSideEffect(() => $(this).dialog("close"));
+      }
+    },
+    position: { my: "center", at: "center", of: "svg" }
+  });
 }
 
 function prepareMapData(): string {
@@ -201,39 +250,51 @@ async function writeToStorage(mapData: string, showTip = false): Promise<void> {
   if (!isMapModelStable()) throw new Error("地图尚未完整载入或生成，已停止写入恢复副本");
   const blob = new Blob([mapData], { type: "text/plain" });
   await ldb.set("lastMap", blob);
-  showTip && tip("Map is saved to the browser storage", false, "success");
+  if (showTip) runSaveSideEffect(() => tip("地图快照已写入本地恢复副本", false, "success"));
 }
 
-async function writeToMachine(saveAs: boolean): Promise<void> {
-  notifySaveOutcome(await saveToFileSystem(prepareMapData, `${getFileName()}.map`, saveAs));
-}
-
-export function notifySaveOutcome(outcome: SaveOutcome): void {
-  if (outcome.type === "cancelled") return;
-  if (outcome.type === "saved") {
-    tip(`Map is saved to "${escapeHtml(outcome.filename)}"`, true, "success", 8000);
+export function notifySaveOutcome(outcome: MapSaveOutcome): void {
+  if (outcome.type === "cancelled" || outcome.type === "failed") return;
+  if (outcome.type === "busy") {
+    tip("正在读取、保存或生成地图，请完成后重试", true, "warn", 5000);
     return;
   }
-
-  let message = savedMessage("Map");
-  if (!isElectron()) {
-    const noticeKey = "savePickerFallbackNoticeShown";
-    try {
-      if (!localStorage.getItem(noticeKey)) {
-        message +=
-          ". A save-location picker is unavailable here; your browser's download settings control the location.";
-        localStorage.setItem(noticeKey, "true");
-      }
-    } catch {
-      // Storage preferences must never prevent a download.
-    }
+  if (outcome.type === "rejected") {
+    const message =
+      outcome.reason === "edit-mode"
+        ? "地图正处于高度图编辑模式，请完成编辑后再保存"
+        : "当前地图载入或生成未完整结束，请重新打开已保存的地图后再保存";
+    tip(message, true, "warn", 8000);
+    return;
   }
-  tip(message, true, "success", 12000);
-}
-
-async function writeToDropbox(mapData: string, filename: string): Promise<void> {
-  await Services.Cloud.save(filename, mapData);
-  tip("Map is saved to your Dropbox", true, "success", 8000);
+  if (outcome.type === "invalidated") {
+    tip("保存期间地图已被替换，无法确认此保存对应当前地图。请保留当前图并重新保存", true, "warn", 12000);
+    return;
+  }
+  if (outcome.type === "saved") {
+    tip(`地图快照已保存至“${escapeHtml(outcome.filename)}”，保存期间的后续修改可能尚未保存`, true, "success", 8000);
+    return;
+  }
+  if (outcome.type === "stored") {
+    tip(
+      outcome.target === "browser" ? "地图快照已写入本地恢复副本" : "地图快照已上传至 Dropbox",
+      true,
+      "success",
+      8000
+    );
+    return;
+  }
+  let message = "已发起地图下载，请确认下载完成并保留当前地图";
+  const noticeKey = "savePickerFallbackNoticeShown";
+  try {
+    if (!localStorage.getItem(noticeKey)) {
+      message += "。文件位置由浏览器或系统下载设置决定";
+      localStorage.setItem(noticeKey, "true");
+    }
+  } catch {
+    // Storage preferences must never prevent download feedback.
+  }
+  tip(message, true, "warn", 12000);
 }
 
 export const Save = { toStorage, toMachine, toDropbox, prepareMapData, writeToStorage };

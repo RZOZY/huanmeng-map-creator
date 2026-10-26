@@ -41,7 +41,7 @@ test.beforeEach(async ({ page }) => {
 test("Ctrl+S reuses the chosen file and Ctrl+Shift+S switches to a separate copy", async ({ page }) => {
   const initial = await page.evaluate(() => Services.Save.prepareMapData());
   await page.keyboard.press("Control+s");
-  await expect(page.locator("#tooltip")).toContainText('Map is saved to "Chosen-1.map"');
+  await expect(page.locator("#tooltip")).toContainText("地图快照已保存至“Chosen-1.map”，保存期间的后续修改可能尚未保存");
   expect(await page.evaluate(async () => (await window.saveTest.handles[0].getFile()).text())).toBe(initial);
 
   const edited = await page.evaluate(async () => {
@@ -55,7 +55,7 @@ test("Ctrl+S reuses the chosen file and Ctrl+Shift+S switches to a separate copy
   expect(await page.evaluate(() => window.saveTest.picks)).toBe(1);
 
   await page.keyboard.press("Control+Shift+s");
-  await expect(page.locator("#tooltip")).toContainText('Map is saved to "Chosen-2.map"');
+  await expect(page.locator("#tooltip")).toContainText("地图快照已保存至“Chosen-2.map”，保存期间的后续修改可能尚未保存");
   const copy = await page.evaluate(async () => {
     options.map.lore.name = "Edited copy";
     return Services.Save.prepareMapData();
@@ -71,21 +71,21 @@ test("Ctrl+S reuses the chosen file and Ctrl+Shift+S switches to a separate copy
 
 test("cancelling Save As retains the destination and loading a map clears it", async ({ page }) => {
   await page.keyboard.press("Control+s");
-  await expect(page.locator("#tooltip")).toContainText('Map is saved to "Chosen-1.map"');
+  await expect(page.locator("#tooltip")).toContainText("地图快照已保存至“Chosen-1.map”，保存期间的后续修改可能尚未保存");
   await page.evaluate(() => {
     window.saveTest.cancel = true;
     document.getElementById("tooltip")!.textContent = "";
   });
   await page.keyboard.press("Control+Shift+s");
   await expect.poll(() => page.evaluate(() => window.saveTest.picks)).toBe(2);
-  await expect(page.locator("#tooltip")).not.toContainText("Map is saved");
-  await expect(page.getByText("Saving error", { exact: true })).not.toBeVisible();
+  await expect(page.locator("#tooltip")).not.toContainText(/地图快照已保存至|已发起地图下载/);
+  await expect(page.getByText("保存失败", { exact: true })).not.toBeVisible();
 
   await page.evaluate(() => {
     window.saveTest.cancel = false;
   });
   await page.keyboard.press("Control+s");
-  await expect(page.locator("#tooltip")).toContainText('Map is saved to "Chosen-1.map"');
+  await expect(page.locator("#tooltip")).toContainText("地图快照已保存至“Chosen-1.map”，保存期间的后续修改可能尚未保存");
   expect(await page.evaluate(() => window.saveTest.picks)).toBe(2);
 
   const data = await page.evaluate(() => Services.Save.prepareMapData());
@@ -96,6 +96,6 @@ test("cancelling Save As retains the destination and loading a map clears it", a
   });
   await expect(page.locator("#tooltip")).toContainText("Map is successfully loaded");
   await page.keyboard.press("Control+s");
-  await expect(page.locator("#tooltip")).toContainText('Map is saved to "Chosen-3.map"');
+  await expect(page.locator("#tooltip")).toContainText("地图快照已保存至“Chosen-3.map”，保存期间的后续修改可能尚未保存");
   expect(await page.evaluate(() => window.saveTest.picks)).toBe(3);
 });

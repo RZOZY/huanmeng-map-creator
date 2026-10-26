@@ -34,7 +34,10 @@ describe("saveToFileSystem", () => {
     vi.stubGlobal("showSaveFilePicker", mode === "picker" ? picker : undefined);
     const prepare = vi.fn(() => "partial model");
     markMapModelUnstable();
-    await expect(saveToFileSystem(prepare, "Original.map")).resolves.toEqual({ type: "cancelled" });
+    await expect(saveToFileSystem(prepare, "Original.map")).resolves.toEqual({
+      type: "rejected",
+      reason: "unstable-model"
+    });
     expect(picker).not.toHaveBeenCalled();
     expect(prepare).not.toHaveBeenCalled();
     expect(downloadFile).not.toHaveBeenCalled();
@@ -134,7 +137,7 @@ describe("saveToFileSystem", () => {
     vi.stubGlobal("showSaveFilePicker", picker);
     const first = saveToFileSystem(() => "one", "Map.map");
     const prepare = vi.fn(() => "two");
-    await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "cancelled" });
+    await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "busy" });
     expect(picker).toHaveBeenCalledOnce();
     expect(prepare).not.toHaveBeenCalled();
     choose(handle);
@@ -158,7 +161,7 @@ describe("saveToFileSystem", () => {
         return stream;
       });
       const prepare = vi.fn(() => "new map");
-      await expect(saveToFileSystem(prepare, "Old.map")).resolves.toEqual({ type: "cancelled" });
+      await expect(saveToFileSystem(prepare, "Old.map")).resolves.toEqual({ type: "invalidated" });
       expect(prepare).not.toHaveBeenCalled();
       expect(stream.write).not.toHaveBeenCalled();
       if (stage === "permission") expect(stream.abort).toHaveBeenCalledOnce();
@@ -171,7 +174,7 @@ describe("saveToFileSystem", () => {
     first.stream.close.mockImplementation(async () => window.dispatchEvent(new Event("map:generated")));
     const picker = vi.fn().mockResolvedValueOnce(first.handle).mockResolvedValueOnce(second.handle);
     vi.stubGlobal("showSaveFilePicker", picker);
-    await expect(saveToFileSystem(() => "first", "Map.map")).resolves.toEqual({ type: "cancelled" });
+    await expect(saveToFileSystem(() => "first", "Map.map")).resolves.toEqual({ type: "invalidated" });
     await saveToFileSystem(() => "second", "Map.map");
     expect(picker).toHaveBeenCalledTimes(2);
     expect(second.stream.write).toHaveBeenCalledWith("second");
@@ -194,7 +197,7 @@ describe("saveToFileSystem", () => {
         return stream;
       });
       const prepare = vi.fn(() => "partially replaced map");
-      await expect(saveToFileSystem(prepare, "Old.map")).resolves.toEqual({ type: "cancelled" });
+      await expect(saveToFileSystem(prepare, "Old.map")).resolves.toEqual({ type: "invalidated" });
       expect(prepare).not.toHaveBeenCalled();
       expect(stream.write).not.toHaveBeenCalled();
       expect(stream.close).not.toHaveBeenCalled();
@@ -220,7 +223,7 @@ describe("saveToFileSystem", () => {
       first.stream[operation].mockImplementationOnce(async () => {
         window.dispatchEvent(new Event(event));
       });
-      await expect(saveToFileSystem(() => "original snapshot", "Map.map")).resolves.toEqual({ type: "cancelled" });
+      await expect(saveToFileSystem(() => "original snapshot", "Map.map")).resolves.toEqual({ type: "invalidated" });
       if (operation === "write") {
         expect(first.stream.abort).toHaveBeenCalledOnce();
         expect(first.stream.close).not.toHaveBeenCalled();
@@ -275,7 +278,7 @@ describe("saveToFileSystem", () => {
     const lease = beginMapIO(kind);
     try {
       expect(lease).not.toBeNull();
-      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "cancelled" });
+      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "busy" });
       expect(picker).not.toHaveBeenCalled();
       expect(prepare).not.toHaveBeenCalled();
       expect(downloadFile).not.toHaveBeenCalled();
@@ -291,7 +294,7 @@ describe("saveToFileSystem", () => {
     const lease = beginMapIO(kind);
     try {
       expect(lease).not.toBeNull();
-      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "cancelled" });
+      await expect(saveToFileSystem(prepare, "Map.map")).resolves.toEqual({ type: "busy" });
       expect(prepare).not.toHaveBeenCalled();
       expect(downloadFile).not.toHaveBeenCalled();
       expect(isMapIOBusy()).toBe(true);

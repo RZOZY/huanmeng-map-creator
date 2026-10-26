@@ -2,7 +2,13 @@ import { downloadFile } from "@/utils/fileUtils";
 import { beginMapIO } from "./map-io";
 import { isMapModelStable } from "./model-status";
 
-export type SaveOutcome = { type: "saved"; filename: string } | { type: "downloaded-fallback" } | { type: "cancelled" };
+export type SaveOutcome =
+  | { type: "saved"; filename: string }
+  | { type: "downloaded-fallback" }
+  | { type: "cancelled" }
+  | { type: "busy" }
+  | { type: "rejected"; reason: "unstable-model" }
+  | { type: "invalidated" };
 
 let destination: FileSystemFileHandle | undefined;
 let mapRevision = 0;
@@ -19,9 +25,9 @@ export async function saveToFileSystem(
   suggestedName: string,
   saveAs = false
 ): Promise<SaveOutcome> {
-  if (!isMapModelStable()) return { type: "cancelled" };
+  if (!isMapModelStable()) return { type: "rejected", reason: "unstable-model" };
   const lease = beginMapIO("save");
-  if (!lease) return { type: "cancelled" };
+  if (!lease) return { type: "busy" };
   try {
     return await writeMapFile(prepareData, suggestedName, saveAs);
   } finally {
@@ -49,7 +55,7 @@ async function writeMapFile(prepareData: () => string, suggestedName: string, sa
       throw error;
     }
   }
-  if (revision !== mapRevision) return { type: "cancelled" };
+  if (revision !== mapRevision) return { type: "invalidated" };
 
   let writable: FileSystemWritableFileStream | undefined;
   try {
@@ -57,12 +63,12 @@ async function writeMapFile(prepareData: () => string, suggestedName: string, sa
     writable = await handle.createWritable();
     if (revision !== mapRevision) {
       await writable.abort();
-      return { type: "cancelled" };
+      return { type: "invalidated" };
     }
     await writable.write(prepareData());
     if (revision !== mapRevision) {
       await writable.abort();
-      return { type: "cancelled" };
+      return { type: "invalidated" };
     }
     await writable.close();
   } catch (error) {
@@ -70,7 +76,7 @@ async function writeMapFile(prepareData: () => string, suggestedName: string, sa
     await writable?.abort().catch(() => {});
     throw error;
   }
-  if (revision !== mapRevision) return { type: "cancelled" };
+  if (revision !== mapRevision) return { type: "invalidated" };
   destination = handle;
   return { type: "saved", filename: handle.name };
 }

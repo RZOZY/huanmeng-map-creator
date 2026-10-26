@@ -29,7 +29,7 @@ describe("save feedback", () => {
     const filename = "<img src=x onerror=alert(1)>&世界.map";
     notifySaveOutcome({ type: "saved", filename });
     const tooltip = document.getElementById("tooltip")!;
-    expect(tooltip.textContent).toBe(`Map is saved to "${filename}"`);
+    expect(tooltip.textContent).toBe(`地图快照已保存至“${filename}”，保存期间的后续修改可能尚未保存`);
     expect(tooltip.querySelector("img")).toBeNull();
   });
 
@@ -40,17 +40,17 @@ describe("save feedback", () => {
 
   it("explains the browser fallback once", () => {
     notifySaveOutcome({ type: "downloaded-fallback" });
-    expect(document.getElementById("tooltip")!.textContent).toContain("download settings");
+    expect(document.getElementById("tooltip")!.textContent).toContain("下载设置");
     notifySaveOutcome({ type: "downloaded-fallback" });
-    expect(document.getElementById("tooltip")!.textContent).not.toContain("download settings");
-    expect(document.getElementById("tooltip")!.textContent).toContain("Map is saved");
+    expect(document.getElementById("tooltip")!.textContent).not.toContain("下载设置");
+    expect(document.getElementById("tooltip")!.textContent).toContain("已发起地图下载");
   });
 
-  it("preserves desktop feedback without browser advice", () => {
+  it("does not claim desktop fallback downloads have completed", () => {
     vi.stubGlobal("electron", { isElectron: true });
     notifySaveOutcome({ type: "downloaded-fallback" });
-    expect(document.getElementById("tooltip")!.textContent).toBe("Map is saved");
-    expect(localStorage.getItem("savePickerFallbackNoticeShown")).toBeNull();
+    expect(document.getElementById("tooltip")!.textContent).toContain("已发起地图下载");
+    expect(document.getElementById("tooltip")!.textContent).not.toContain("已保存");
   });
 
   it.each(["getItem", "setItem"] as const)("still reports the save when localStorage.%s throws", method => {
@@ -58,7 +58,7 @@ describe("save feedback", () => {
       throw new Error("Storage blocked");
     });
     expect(() => notifySaveOutcome({ type: "downloaded-fallback" })).not.toThrow();
-    expect(document.getElementById("tooltip")!.textContent).toContain("Map is saved");
+    expect(document.getElementById("tooltip")!.textContent).toContain("已发起地图下载");
   });
 });
 
@@ -122,7 +122,7 @@ describe("Save.toMachine", () => {
     vi.stubGlobal("showSaveFilePicker", picker);
     await Save.toMachine();
     expect(picker).not.toHaveBeenCalled();
-    expect(document.getElementById("tooltip")!.textContent).toContain("EDIT mode");
+    expect(document.getElementById("tooltip")!.textContent).toContain("高度图编辑模式");
   });
 
   it("cancels without attempting serialization or showing an error dialog", async () => {
@@ -152,9 +152,10 @@ describe("Save.toMachine", () => {
     await Save.toMachine();
     expect(document.getElementById("alertMessage")!.textContent).toContain("Permission denied");
     const config = dialog.mock.calls[0][0];
-    expect(config.title).toBe("Saving error");
-    config.buttons.Retry.call(document.getElementById("alertMessage"));
-    await Promise.resolve();
+    expect(config.title).toBe("保存失败");
+    await expect(config.buttons.重试.call(document.getElementById("alertMessage"))).resolves.toEqual({
+      type: "cancelled"
+    });
     expect(picker).toHaveBeenCalledTimes(2);
   });
 });
