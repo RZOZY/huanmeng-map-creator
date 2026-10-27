@@ -263,10 +263,19 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [该阶段构建16项真实桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native-v2.json>)在独立新profile／默认引擎参数／`entry=index-CG2BbG5g.js`，验证首启与受控minor／patch、DOM关闭、实际鼠标重载、声明用户源／抽样模型引用和受监测reload0枚举。只读Observer捕捉实际patch DOM，不宣称连续可见／精确时长。最终异常／error console／cleanup均空，原图和renderer目录内全部JS／CSS前后SHA不变，私有候选已退出，9333不动。
 - [首轮桌面失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native.json>)13项通过后瞬时tip查询超时，同时见既有Electron内部startupData null；未证两者因果，v2仅改观测并新profile严格重跑，不能称修复内部故障。[完整合同](<D:/fmg-cn/dreammap/docs/development/version-announcement.md>)保留原清理拒绝／无保存和IO门禁、AppOffer与项目元数据旧路由等边界。正式国界／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线与其余汉化仍开放，不启用更新／发布或替换用户便携版。
 
-### 8.16 gzip 字节收集去重复复制（2026-10-27，当前检查点）
+### 8.16 gzip 字节收集去重复复制（2026-10-27，历史内核检查点）
 
 - [拥有者](<D:/fmg-cn/dreammap/src/services/io/load.ts>)保原Blob／DecompressionStream、try内await和ERROR／null；新[3行原生收集](<D:/fmg-cn/dreammap/src/services/io/stream-bytes.ts>)用Response完整消费后返回Uint8Array，不再逐块Array.from与concat已收前缀。不是网络请求或文本解码；plain／base64、原始SHA、递归gzip、预检和准备／采用门禁不改。没有解决解压后体积／递归深度上限或压缩炸弹。
 - 新[10项字节回归](<D:/fmg-cn/dreammap/src/services/io/stream-bytes.test.ts>)及[实际拥有者增量](<D:/fmg-cn/dreammap/src/services/io/load-atlas.test.ts>)覆盖offset／空块／所有字节、空gzip／CRC／截断／部分失败、Response原拒绝、坏输入保旧／取消及Unicode／双层gzip两次消费。漏await控制先红再恢复，错误回执不被吞改。[完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/complete.log>)普通2941通过／13跳过、Electron23、脚本52、TypeScript、579源Biome、diff、构建及5资源戳全绿，无自动Playwright。
-- [当前实际renderer](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-renderer-v2.json>)为index-CPlsOKq0.js／Electron43.5.0／Chrome150.0.7871.250，默认引擎、新profile公告后前置。8项总检查含5项真正采用／字段一致性／取消检查，完整私有raw／gzip声明graph／frame／seed、grid100014／pack79568及typed／标签／标记SHA一致；原图、helper及renderer目录全部JS／CSS前后SHA不变，错误／cleanup为空、私有进程退出，9333不动。不是全部模型或无损证明。
+- [该阶段实际renderer](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-renderer-v2.json>)为index-CPlsOKq0.js／Electron43.5.0／Chrome150.0.7871.250，默认引擎、新profile公告后前置。8项总检查含5项真正采用／字段一致性／取消检查，完整私有raw／gzip声明graph／frame／seed、grid100014／pack79568及typed／标签／标记SHA一致；原图、helper及renderer目录全部JS／CSS前后SHA不变，错误／cleanup为空、私有进程退出，9333不动。不是全部模型或无损证明。
 - [有限方法micro](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-summary.json>)仅最终helper源码纯转译vs旧算法拷贝，非实际bundle方法A/B。2对暖身、8对AB／BA、4对AA和4对NN、默认native流／无强制GC；2MiB派生载荷old／new中位数92.25／13.10ms，配对节省中位数86.15%（IQR85.42–87.68%，非置信区间），8／8为正；64KiB为1.95／0.50ms但6／8快、2／8慢，无平局。AA／NN噪声和所有样本保留，不宣称普适、整图加载／首帧、普通raw或OS内存收益。
 - [首轮整体失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-renderer.json>)前7检查虽过，仍因Electron内部sandbox startupData null两条console error严格拒绝，整轮timings不采信；仅新资源完整复跑一次、错误门禁不变，不能称内部错误无关或已修。B只读交叉，不冒称独立执行；[完整合同](<D:/fmg-cn/dreammap/docs/development/gzip-byte-collection.md>)保留压缩资源风险与测量边界。正式国界／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线及其余汉化仍开放。
+
+### 8.17 桌面下载提示源端中文与真实路由（2026-10-27，当前检查点）
+
+- [拥有者](<D:/fmg-cn/dreammap/src/services/app-offer.ts>)修owned中文与两条已核对origin的发布查询／页面路由，移除两处any为局部可选UA类型；检测顺序、ARM默认、六格式后缀、URL／版本／大小、Promise流程及关闭this不变。推荐只按启发式，请核对系统／架构；保存位置／安装或运行按浏览器与发布说明，不承诺完整离线或自动安装，不指导绕过未知来源保护。
+- 便携ZIP发布但无可识别安装包，不误称项目未发布；不扩六格式匹配，不启用provider／发布／下载／安装。包metadata及桌面updater其他历史路由、共享alert迟到结果与API字段HTML净化不在本轮修复。
+- [44项真实模块回归](<D:/fmg-cn/dreammap/src/services/app-offer.test.ts>)直接使用AppOffer／platform，控制fetch／UA／matchMedia／jQuery壳，核对各分支、原六URL／target／版本／大小、真实this关闭与声明用户源／存储／模型fixture。[完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/complete.log>)普通2985通过／13跳过、Electron23、脚本52、TypeScript、580源Biome、diff、构建及5资源戳绿；首次44及类型通过后，仅新测试两处格式失败，局部格式化后完整重跑，无自动Playwright。
+- [实际开发态renderer12项](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/app-offer-native-v2.json>)为index-bRJHIicL.js／Electron43.5.0，新profile／默认引擎参数；真正服务生成loading／六链接／条件性中文、ZIP无匹配／拒绝／手持零API、实际CDP鼠标关闭及声明用户源保持。只有受测fetch／UA受控，其他应用与主进程网络未全隔离；没有激活任何资产链接，不能证明真实发布／资产可达／机型兼容／下载／签名／安装／更新或离线。最终异常／error console／downloads／cleanup为空，原两图与renderer全部JS／CSS SHA不变、私有进程退出，9333不动。
+- [首轮严格失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/app-offer-native.json>)11场景虽过，最后因两条Electron内部sandbox startupData null console error拒绝；保留原回执，不称错误无关或已修。同源码／断言／门禁仅更换output／新profile完整复跑一次，不再反复刷新。B只读交叉，不冒称独立执行；[范围合同](<D:/fmg-cn/dreammap/docs/development/desktop-offer.md>)保留所有未验边界。
+- 整体目标仍未完成：正式国界／河湖和单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线、剩余面域汉化和稳定发布仍开放；不替换用户便携版，不将技术候选作正式地图内容。
