@@ -108,28 +108,28 @@ export async function cleanupData(): Promise<void> {
 function showUpdateWindow(storedVersion: string | null): void {
   localStorage.setItem("version", VERSION);
 
-  const repository = "https://github.com/RZOZY/humeng-map-generator";
+  const repository = "https://github.com/RZOZY/huanmeng-map-creator";
 
-  alertMessage.innerHTML = /* html */ `HuanMeng Map Creator is updated up to version <strong>${VERSION}</strong>. Save files stay compatible and are auto-upgraded on load.
-    ${storedVersion ? "<span>In case of errors reload the page to update the code.</span>" : ""}
+  alertMessage.innerHTML = /* html */ `HuanMeng Map Creator ${storedVersion ? "已更新至" : "当前版本为"} <strong>${VERSION}</strong>。存档保持兼容，加载时会自动升级。
+    ${storedVersion ? "<span>如遇错误，请重新载入页面以更新代码。</span>" : ""}
 
     <ul>
-      <strong>Latest changes:</strong>
+      <strong>近期更新：</strong>
       ${latestPublicChanges.map(change => `<li>${change}</li>`).join("")}
     </ul>
 
-    ${isElectron() ? "" : `<p>Also available as a <a href="#" onclick="window.Services.AppOffer.open(); return false">desktop app</a> that works offline.</p>`}
+    ${isElectron() ? "" : `<p>也可使用支持离线运行的<a href="#" onclick="window.Services.AppOffer.open(); return false">桌面应用</a>。</p>`}
 
-    <p>Source and bug reports: <a href="${repository}" target="_blank">${repository}</a></p>`;
+    <p>源代码与问题反馈：<a href="${repository}" target="_blank">${repository}</a></p>`;
 
   $("#alert").dialog({
     resizable: false,
-    title: "HuanMeng Map Creator update",
+    title: "HuanMeng Map Creator 版本公告",
     width: "28em",
     position: { my: "center center-4em", at: "center", of: "svg" },
     buttons: {
-      "Clear cache": () => clearCache(),
-      "Don't show again": function (this: HTMLElement) {
+      [isElectron() ? "重新载入" : "清理缓存并重新载入"]: () => clearCache(),
+      关闭公告: function (this: HTMLElement) {
         $(this).dialog("close");
       }
     }
@@ -153,7 +153,7 @@ function announceVersion(): void {
     setTimeout(() => showUpdateWindow(storedVersion), 6000);
   } else if (compareVersions(storedVersion, VERSION).isOlder) {
     localStorage.setItem("version", VERSION);
-    tip(`Updated to v${VERSION}. Reload the page if you get errors`, true, "success", 6000);
+    tip(`已更新至 v${VERSION}。如遇错误，请重新载入页面。`, true, "success", 6000);
   }
 }
 
