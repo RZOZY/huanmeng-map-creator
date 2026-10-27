@@ -238,7 +238,7 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - 最终`index-MmxAo0xy.js`的[19项独立桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/native-river-smoke.json>)通过：app受监测reload及其初始化的worker与cache枚举均0、实际内容戳、可见真RAF、真实D3点击＋受控公共editor getter迟到后采用新模型、旧回调不终止marker、同图取消重开、正常／Shift落标、手工建河真实接管后释放旧getter仍零标签且handler保留／实际点击选格绘polygon，以及实际高度图窗口和两级取消保模型。首轮15项回执保留，B指出未覆盖手工建河后先红灯补修，再重建完整复跑19项，并未放宽断言。全部未捕获异常／error console／cleanup errors为空，私有候选模型恢复且源SHA不变。getter延迟是显式受控边界，冷／缓存microtask另由真实模块测试覆盖；不声称原生网络冷加载、物理OS输入或实际擦除确认已验。
 - 候选仅9334独立profile，使用[现场启动参数](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/candidate-river-command.json>)中的三个禁后台测试flag；不触碰9333／原地图，不作默认性能基线。本轮没有重跑历史所有面域，历史异常记录不删；新构建有限场景无异常不等于全应用零异常。正式国家地缘／河湖内容、精确dirty／无损恢复、持久项目、默认冷暖／内存／离线及其余汉化仍开放。
 
-### 8.13 默认引擎参数基线与About自有正文（2026-10-27，当前检查点）
+### 8.13 默认引擎参数基线与About自有正文（2026-10-27，历史检查点）
 
 - [基线合同](<D:/fmg-cn/dreammap/docs/development/default-performance-baseline.md>)记录六个默认引擎flags进程／全新profile、各两次原始v10／v9载入。真实6秒首启公告确认后、显式前置窗口开始计时，无并发构建／测试／profiler，重复前无强制GC。整体前后230项JS／CSS逐字节SHA同一；原图SHA及grid／pack数保留，不把私有复制、技术候选或降低模型密度冒称内核优化。
 - 当前旧产物`entry=index-MmxAo0xy.js`的API调用至fulfilled／loaded中位数：世界首次2144.3ms／自然重复2020.5ms；局部1277.8ms／970.7ms，各n=3。API调用至注册后第2次RAF分别2281.1／2098.9和1321.1／994.2ms。包含真实两层确认的自动等待，不是OS冷态、所有资源／像素完成或Atlas导航；公告等待有预热，同进程前置模型／wheel状态不同，不拿行间差异或历史数字称提速。两次结束后才采强制GC JS heap诊断，默认完整内存基线仍未完成。
@@ -247,3 +247,11 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [当前产物24项实际About](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native-v2.json>)通过公开Omnibar的真实中文命令、实际jQuery窗口／确定／重开验证正文与14链接。最终异常／error console／cleanup数组仍空，声明用户源夹具与抽样模型状态保持、原图SHA不变；不是全部用户DOM、完整模型无损、OS输入或外链可用性证明。仅9334私有默认参数候选，结束后已退出。
 - [首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native.json>)未删：helper误把seed当全局变量，另观察到Electron内部`Electron sandboxed_renderer.bundle.js script failed to run`及`TypeError: Cannot destructure property 'preloadScripts' of 'binding.startupData' as it is null.`。v2只纠正为实际options.map.seed并使用新profile，未过滤error；这一次通过不表示已定位／修复该内部启动现象。默认性能v1–v3失败及非唯一遮挡归因也在基线合同保留，未拼部分成功样本。
 - 本轮无内核性能代码更改。独立B只读复核基线和About源／回执，未确认产品阻断；正式国家地缘／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认内存／离线与剩余汉化仍开放，不启用更新、发布或替换用户便携版。
+
+### 8.14 地物 seed 搜索前缀复用（2026-10-27，当前检查点）
+
+- [实际两行内核改动](<D:/fmg-cn/dreammap/src/generators/features-generator.ts>)仅把grid／pack的下一未标记seed搜索从零改为**包含当前firstCell**，复用确定非零前缀；不改ID类型、邻接／队列／面积／浮点顺序、顶点追踪、湖岸或格网。复杂度改善仅针对seed搜索。Uint16回绕时必须允许重复同一seed；不声称修复旧有溢出有环不终止问题。完整证明和[测量合同](<D:/fmg-cn/dreammap/docs/development/feature-search-frontier.md>)保留此边界。
+- [差分测试](<D:/fmg-cn/dreammap/src/generators/features-markup-search.test.ts>)用真实两方法与旧搜索控制比较全部输出／feature顺序，覆盖真实Voronoi、water0等距haven、浮点顺序、重复／自邻接／有向图、空输入及两方法各65536孤立分量。旧两行红2例后恢复，25定向全绿；完整[2902通过／13跳过、Electron23、脚本52](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/complete.log>)，TypeScript、576源Biome、diff、构建与5资源戳绿，无自动Playwright。
+- `entry=index-C57QwgTp.js`在原v10／v9各一个新profile／默认flags进程中，首启公告确认后载入真实模型，额外参数正证据、5对热身、12对AB／BA与12对A／A；无并发测试／构建／profiler或强制GC。240次实际方法调用输出等价、调用者原引用恢复、前后可见且有焦点，230项JS／CSS与原图SHA不变。插桩每call装卸可能影响IC／JIT，并非无插桩旧构建A/B或跨进程重复。
+- [配对聚合](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/feature-search-summary.json>)：世界grid两臂中位数141.95→124.90ms（12.01%），pack93.75→83.85ms（10.56%），分别11／12与10／12对为正；配对中位差16.10／5.95ms，A／A仍有重叠，不能当生产保证。局部两方法与A／A噪声重叠，不宣称稳定耗时收益；不将任何百分比外推整图载入／首帧。实际搜索区间推导与所有原始样本均另存，非硬件访存证明。
+- 首轮micro虽世界输出等价，却出现[Electron内部preload启动错误](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/feature-search-bench.json>)而严格拒绝；完整新profile重跑通过，不过滤／选部分计时。成功限定于未触发该故障，未定位或修复其发生率。B只读审查证明／源码／测试／helper／证据，不冒称独立执行。原地图／9333不变、私有进程已退出；正式国界／河湖、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线与剩余汉化仍开放。
