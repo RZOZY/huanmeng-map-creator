@@ -38,6 +38,7 @@ import { type MapLoadOutcome, readMapBlob, runMapLoad } from "./load-operation";
 import { preflightMapData, prepareDetachedMapSvg } from "./map-preflight";
 import { getMapModelEpoch, isMapModelStable } from "./model-status";
 import { Save } from "./save";
+import { collectStreamBytes } from "./stream-bytes";
 
 async function quickLoad(): Promise<MapLoadOutcome> {
   return loadMapFromProvider(async () => {
@@ -336,13 +337,7 @@ async function loadMapFromProvider(
 async function uncompress(compressedData: ArrayBuffer): Promise<Uint8Array | null> {
   try {
     const uncompressedStream = new Blob([compressedData]).stream().pipeThrough(new DecompressionStream("gzip"));
-
-    let uncompressedData: number[] = [];
-    for await (const chunk of uncompressedStream) {
-      uncompressedData = uncompressedData.concat(Array.from(chunk));
-    }
-
-    return new Uint8Array(uncompressedData);
+    return await collectStreamBytes(uncompressedStream);
   } catch (error) {
     ERROR && console.error(error);
     return null;

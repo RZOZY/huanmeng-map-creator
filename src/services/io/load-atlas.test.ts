@@ -112,12 +112,14 @@ function manifestData(sha256: string) {
     ]
   };
 }
-function fixture(data = records(), encoding: "plain" | "base64" | "gzip" = "plain") {
+function fixture(data = records(), encoding: "plain" | "base64" | "gzip" | "nested-gzip" = "plain") {
   const text = data.join("\r\n");
   const bytes =
-    encoding === "gzip"
-      ? gzipSync(text)
-      : Buffer.from(encoding === "base64" ? Buffer.from(encodeURIComponent(text)).toString("base64") : text);
+    encoding === "nested-gzip"
+      ? gzipSync(gzipSync(text))
+      : encoding === "gzip"
+        ? gzipSync(text)
+        : Buffer.from(encoding === "base64" ? Buffer.from(encodeURIComponent(text)).toString("base64") : text);
   const manifest = manifestData(createHash("sha256").update(bytes).digest("hex"));
   return { data, bytes, manifest, blob: new Blob([Uint8Array.from(bytes)]) };
 }
@@ -537,11 +539,92 @@ describe("call-bound Atlas receipts and navigation authorization", () => {
   });
 });
 
+describe("gzip loading before real Atlas adoption", () => {
+  it.each(["truncated", "corrupt", "empty", "malformed", "response"])(
+    "rejects %s gzip without replacing the current model or Atlas identity",
+    async kind => {
+      const identity = await adoptFixture();
+      boundary.draw.mockClear();
+      boundary.publish.mockClear();
+      boundary.persist.mockClear();
+      const before = { map: options.map, grid, pack, root: document.getElementById("map"), epoch: getMapModelEpoch() };
+      const item = fixture(records(), "gzip");
+      let bytes = item.bytes;
+      if (kind === "truncated") bytes = bytes.subarray(0, bytes.length - 1);
+      if (kind === "corrupt") bytes[bytes.length - 8] ^= 1;
+      if (kind === "empty") bytes = gzipSync("");
+      if (kind === "malformed") bytes = gzipSync("not a valid map");
+      item.blob = new Blob([Uint8Array.from(bytes)]);
+      item.manifest.maps[0].asset.sha256 = createHash("sha256").update(bytes).digest("hex");
+      vi.stubGlobal("ERROR", true);
+      const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+      const error = new Error("native Response consumption failed");
+      if (kind === "response") vi.spyOn(Response.prototype, "arrayBuffer").mockRejectedValueOnce(error);
+      const { operation, callback } = await begin(item);
+      expect(await operation).toEqual({ type: "rejected" });
+      expect(callback).toHaveBeenCalledOnce();
+      if (kind === "response") expect(logged).toHaveBeenCalledWith(error);
+      expect(options.map).toBe(before.map);
+      expect(grid).toBe(before.grid);
+      expect(pack).toBe(before.pack);
+      expect(document.getElementById("map")).toBe(before.root);
+      expect(getMapModelEpoch()).toBe(before.epoch);
+      expect(getCurrentAtlasIdentity()).toBe(identity);
+      expect(boundary.draw).not.toHaveBeenCalled();
+      expect(boundary.publish).not.toHaveBeenCalled();
+      expect(boundary.persist).not.toHaveBeenCalled();
+      expect(isMapModelStable()).toBe(true);
+      expect(isMapIOBusy()).toBe(false);
+    }
+  );
+
+  it.each(["initial", "final"])("preserves the current model on %s gzip cancellation", async phase => {
+    const identity = await adoptFixture();
+    boundary.draw.mockClear();
+    boundary.publish.mockClear();
+    boundary.persist.mockClear();
+    vi.mocked(readMapBlob).mockClear();
+    const consume = vi.spyOn(Response.prototype, "arrayBuffer");
+    const before = { map: options.map, grid, pack, root: document.getElementById("map"), epoch: getMapModelEpoch() };
+    const item = fixture(records(), "gzip");
+    const callback = vi.fn();
+    const operation = Load.uploadAtlasMap(item.blob, JSON.stringify(item.manifest), WORLD, callback);
+    if (phase === "final") {
+      click("准备读取目标");
+      await vi.waitFor(() =>
+        expect(document.getElementById("mapLoadDepartureTitle")?.textContent).toBe("确认替换当前地图")
+      );
+      expect(consume).toHaveBeenCalledOnce();
+    } else {
+      expect(readMapBlob).not.toHaveBeenCalled();
+      expect(consume).not.toHaveBeenCalled();
+    }
+    click("取消，保留当前地图");
+    expect(await operation).toEqual({ type: "cancelled" });
+    expect(callback).toHaveBeenCalledOnce();
+    expect(options.map).toBe(before.map);
+    expect(grid).toBe(before.grid);
+    expect(pack).toBe(before.pack);
+    expect(document.getElementById("map")).toBe(before.root);
+    expect(getMapModelEpoch()).toBe(before.epoch);
+    expect(getCurrentAtlasIdentity()).toBe(identity);
+    expect(boundary.draw).not.toHaveBeenCalled();
+    expect(boundary.publish).not.toHaveBeenCalled();
+    expect(boundary.persist).not.toHaveBeenCalled();
+    expect(isMapModelStable()).toBe(true);
+    expect(isMapIOBusy()).toBe(false);
+  });
+});
+
 describe("atlas upload with the actual adoption function", () => {
-  it.each(["plain", "base64", "gzip"] as const)(
+  it.each(["plain", "base64", "gzip", "nested-gzip"] as const)(
     "uses original %s asset bytes and the same detached scene through real adoption",
     async encoding => {
-      const item = fixture(records(), encoding);
+      const data = records();
+      const label = "汉字 🗺️ café";
+      data[47] = JSON.stringify([{ i: 0, x: 750, y: 375, label: { text: label, fontSize: 12 } }]);
+      const item = fixture(data, encoding);
+      const consumed = vi.spyOn(Response.prototype, "arrayBuffer");
       const observed = vi.spyOn(observation, "observeAtlasFile");
       const live = vi.spyOn(observation, "observeAtlasModel");
       const digest = vi.spyOn(webcrypto.subtle, "digest");
@@ -560,6 +643,8 @@ describe("atlas upload with the actual adoption function", () => {
         item.manifest.maps[0].asset.sha256
       );
       expect(live.mock.calls.at(-1)?.[0].markers).toBe(pack.markers);
+      expect(pack.addedLabels[0].label.text).toBe(label);
+      expect(consumed).toHaveBeenCalledTimes(encoding === "nested-gzip" ? 2 : encoding === "gzip" ? 1 : 0);
       expect(boundary.publish).toHaveBeenCalledTimes(1);
       expect(boundary.persist).toHaveBeenCalledTimes(1);
       expect(isMapModelStable()).toBe(true);
