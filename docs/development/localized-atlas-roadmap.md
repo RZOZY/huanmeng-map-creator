@@ -248,10 +248,17 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native.json>)未删：helper误把seed当全局变量，另观察到Electron内部`Electron sandboxed_renderer.bundle.js script failed to run`及`TypeError: Cannot destructure property 'preloadScripts' of 'binding.startupData' as it is null.`。v2只纠正为实际options.map.seed并使用新profile，未过滤error；这一次通过不表示已定位／修复该内部启动现象。默认性能v1–v3失败及非唯一遮挡归因也在基线合同保留，未拼部分成功样本。
 - 本轮无内核性能代码更改。独立B只读复核基线和About源／回执，未确认产品阻断；正式国家地缘／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认内存／离线与剩余汉化仍开放，不启用更新、发布或替换用户便携版。
 
-### 8.14 地物 seed 搜索前缀复用（2026-10-27，当前检查点）
+### 8.14 地物 seed 搜索前缀复用（2026-10-27，历史内核检查点）
 
 - [实际两行内核改动](<D:/fmg-cn/dreammap/src/generators/features-generator.ts>)仅把grid／pack的下一未标记seed搜索从零改为**包含当前firstCell**，复用确定非零前缀；不改ID类型、邻接／队列／面积／浮点顺序、顶点追踪、湖岸或格网。复杂度改善仅针对seed搜索。Uint16回绕时必须允许重复同一seed；不声称修复旧有溢出有环不终止问题。完整证明和[测量合同](<D:/fmg-cn/dreammap/docs/development/feature-search-frontier.md>)保留此边界。
 - [差分测试](<D:/fmg-cn/dreammap/src/generators/features-markup-search.test.ts>)用真实两方法与旧搜索控制比较全部输出／feature顺序，覆盖真实Voronoi、water0等距haven、浮点顺序、重复／自邻接／有向图、空输入及两方法各65536孤立分量。旧两行红2例后恢复，25定向全绿；完整[2902通过／13跳过、Electron23、脚本52](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/complete.log>)，TypeScript、576源Biome、diff、构建与5资源戳绿，无自动Playwright。
 - `entry=index-C57QwgTp.js`在原v10／v9各一个新profile／默认flags进程中，首启公告确认后载入真实模型，额外参数正证据、5对热身、12对AB／BA与12对A／A；无并发测试／构建／profiler或强制GC。240次实际方法调用输出等价、调用者原引用恢复、前后可见且有焦点，230项JS／CSS与原图SHA不变。插桩每call装卸可能影响IC／JIT，并非无插桩旧构建A/B或跨进程重复。
 - [配对聚合](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/feature-search-summary.json>)：世界grid两臂中位数141.95→124.90ms（12.01%），pack93.75→83.85ms（10.56%），分别11／12与10／12对为正；配对中位差16.10／5.95ms，A／A仍有重叠，不能当生产保证。局部两方法与A／A噪声重叠，不宣称稳定耗时收益；不将任何百分比外推整图载入／首帧。实际搜索区间推导与所有原始样本均另存，非硬件访存证明。
 - 首轮micro虽世界输出等价，却出现[Electron内部preload启动错误](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase15/feature-search-bench.json>)而严格拒绝；完整新profile重跑通过，不过滤／选部分计时。成功限定于未触发该故障，未定位或修复其发生率。B只读审查证明／源码／测试／helper／证据，不冒称独立执行。原地图／9333不变、私有进程已退出；正式国界／河湖、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线与剩余汉化仍开放。
+
+### 8.15 首启与版本公告源端中文（2026-10-27，当前检查点）
+
+- [拥有者](<D:/fmg-cn/dreammap/src/services/versioning.ts#L108-L156>)仅修改公告标题／正文／按钮／patch提示及一个已核对origin路由。首启说明“当前版本为”；Electron“重新载入”与Web“清理缓存并重新载入”反映原有后端，“关闭公告”仅保原close，不误加永久禁用。VERSION0.7.6、MAP_FORMAT_VERSION1.154.0、6000ms、版本比较、存储键、onclick与clearCache／cleanupData不变，未改用户地图／笔记源。
+- [21项模块回归](<D:/fmg-cn/dreammap/src/services/versioning.ui.test.ts>)核对5999／6000ms、版本各分支、iframe真实inline onclick、实际this关闭、原Web／Electron闭包的deferred屏障／四拒绝。第一次6项总队列计数失败保留，改为拥有者schedule断言；独立B再找到timer spy恢复顺序泄漏，新增身份哨兵先红后只改清理顺序转绿。不是实际Web／PWA或全部模型无写证明。[最终完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/complete-final.log>)普通2923通过／13跳过、Electron23、脚本52、TypeScript、577源Biome、diff、构建及5资源戳绿，无自动Playwright。
+- [当前产物16项真实桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native-v2.json>)在独立新profile／默认引擎参数／`entry=index-CG2BbG5g.js`，验证首启与受控minor／patch、DOM关闭、实际鼠标重载、声明用户源／抽样模型引用和受监测reload0枚举。只读Observer捕捉实际patch DOM，不宣称连续可见／精确时长。最终异常／error console／cleanup均空，原图和renderer目录内全部JS／CSS前后SHA不变，私有候选已退出，9333不动。
+- [首轮桌面失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native.json>)13项通过后瞬时tip查询超时，同时见既有Electron内部startupData null；未证两者因果，v2仅改观测并新profile严格重跑，不能称修复内部故障。[完整合同](<D:/fmg-cn/dreammap/docs/development/version-announcement.md>)保留原清理拒绝／无保存和IO门禁、AppOffer与项目元数据旧路由等边界。正式国界／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线与其余汉化仍开放，不启用更新／发布或替换用户便携版。
