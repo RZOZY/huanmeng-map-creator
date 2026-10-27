@@ -4,8 +4,8 @@
 
 ## 当前变更的验收
 
-- [版本公告当前完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/complete-final.log>)：普通2923通过／13跳过、Electron23、脚本52，TypeScript、577源Biome、diff、Electron构建和5资源戳绿。[21项模块回归](<D:/fmg-cn/dreammap/src/services/versioning.ui.test.ts>)保留原版本比较／6000ms／存储与清理顺序；源码／反馈链接仅修为已核对origin。首启准确说明当前版本，Electron“重新载入”与Web“清理缓存并重新载入”区分原有后端，关闭不添加永久禁用键。
-- [版本公告当前构建16项实际桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native-v2.json>)核对`index-CG2BbG5g.js`的真实首启／旧minor／patch、DOM关闭及实际鼠标重载、声明用户源／抽样引用／受监测reload0枚举；没有实际Web清缓存、精确时长、连续可见性、OS或完整无损声明。[首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native.json>)和既有Electron内部启动错误仍保留，不由重跑通过声称已修；完整边界见[公告合同](<D:/fmg-cn/dreammap/docs/development/version-announcement.md>)。
+- [版本公告阶段完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/complete-final.log>)：普通2923通过／13跳过、Electron23、脚本52，TypeScript、577源Biome、diff、Electron构建和5资源戳绿。[21项模块回归](<D:/fmg-cn/dreammap/src/services/versioning.ui.test.ts>)保留原版本比较／6000ms／存储与清理顺序；源码／反馈链接仅修为已核对origin。首启准确说明当前版本，Electron“重新载入”与Web“清理缓存并重新载入”区分原有后端，关闭不添加永久禁用键。
+- [版本公告阶段构建16项实际桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native-v2.json>)核对`index-CG2BbG5g.js`的真实首启／旧minor／patch、DOM关闭及实际鼠标重载、声明用户源／抽样引用／受监测reload0枚举；没有实际Web清缓存、精确时长、连续可见性、OS或完整无损声明。[首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/version-ui-native.json>)和既有Electron内部启动错误仍保留，不由重跑通过声称已修；完整边界见[公告合同](<D:/fmg-cn/dreammap/docs/development/version-announcement.md>)。
 - [About阶段历史完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/complete.log>)：普通2888通过／13跳过、Electron23、脚本52，TypeScript、575源Biome、diff、桌面构建及5个资源标记绿。About自有正文／资源标签／确认的[23项模块用例](<D:/fmg-cn/dreammap/src/components/app-info.test.ts>)保14个原URL／target／rel、品牌、用户源和实际关闭回调；不是运行时全文替换。
 - [About阶段历史实际24项](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native-v2.json>)在新`entry=index-BkGDhIp8.js`走真实中文Omnibar命令、确认关闭／重开、14链接／声明用户源／抽样模型保持，最终异常及error console数组为空；未访问外链，不冒称OS、任意用户DOM或完整模型无损。[首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native.json>)的helper全局seed假定和Electron内部preload startupData错误仍保留，后者尚未定位，不能由重跑通过声称修好。默认参数[性能基线](<D:/fmg-cn/dreammap/docs/development/default-performance-baseline.md>)另属先前构建，非本次汉化收益。
 - [8.12历史推送后修复完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/complete-river-final.log>)：普通测试2871通过、13跳过；独立Electron mock 23、脚本52；TypeScript、575个源文件Biome、classic脚本语法、差异、桌面构建与5个资源标记通过。没有自动运行Playwright。
@@ -26,7 +26,7 @@
 | SVG源与SVG界面 | 原图、图标定义／symbol及位置预览源保持；普通UI SVG仍翻译 | 不是SVG安全净化，也不验证外部资源 |
 | 图集目录、来源与导航提示 | 原生modal中文、来源／缺失／漂移／取消／隔离反馈 | 精确dirty、无损恢复和持久注册并未实现 |
 | 保存、帮助、导览、About、错误和离线 | 自有保存说明及部分错误；About弹窗自有正文／资源标签／确认源端中文，23项模块及历史24项实际窗口保14个URL／target／rel | 真实OS picker、AboutTab／导览／外部网页、断网／离线、底层全部错误仍待验；既有Electron内部preload错误尚未定位 |
-| 首启／版本公告 | 拥有者标题／正文／按钮／patch提示中文，限定修origin；21项真实模块、当前构建16项实际Electron检查；版本／6000ms／onclick／用户源保留 | 两平台清理后端主要为mock；实际Web清理／离页／恢复、AppOffer下载链未验；无保存确认，原清理拒绝仍阻止reload |
+| 首启／版本公告 | 拥有者标题／正文／按钮／patch提示中文，限定修origin；21项真实模块、该阶段构建16项实际Electron检查；版本／6000ms／onclick／用户源保留 | 两平台清理后端主要为mock；实际Web清理／离页／恢复、AppOffer下载链未验；无保存确认，原清理拒绝仍阻止reload |
 | 高度图选择器 | 自有标题／三按钮／选项／提示和确认源端中文；11项真实模块测试及当前实际窗口取消；用户模板名／配色值／机器ID保留 | 实际擦除确认后的完整编辑、OS焦点／Escape与其余高度图编辑器未据此验收 |
 | 启动缓存清理 | 自有异步诊断中文；22项真实classic脚本VM用例、内容戳与历史app受监测reload的0枚举／0未捕获异常 | 浏览器正常路径／拒绝路径主要为VM；真实浏览器reload抢占、完整离线／PWA升级未验 |
 | CSV与其他输出 | 机器字段和兼容格式保持 | 中文阅读导出方案及全部输出文案未完成 |
