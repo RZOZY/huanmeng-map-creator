@@ -21,16 +21,16 @@ import { Pins } from "@/components/pins";
 import { tip } from "@/components/tooltips";
 import { isElectron } from "./platform";
 
-export const VERSION = "0.7.6";
+export const VERSION = "0.8.0";
 
 /** .map 存档格式版本：与产品版本无关，改动存档结构时才抬（现在是兼容上游 1.154.0 的那一代） */
 export const MAP_FORMAT_VERSION = "1.154.0";
 
 // new changes on top
 const latestPublicChanges = [
-  "地球仪改为矢量球面：极点不再被挤成放射状花瓣，±180° 经线不再有接缝",
-  "地球仪按国家/生物群系逐单元上色，区域地图自动补一张海洋底球",
-  "存档格式保持与上一版兼容，旧地图可直接打开并自动升级"
+  "完善中文界面、命令搜索与地图载入和保存反馈",
+  "优化压缩存档载入与 JSON 导出，保留原有地图格式",
+  "便携版采用发布页手动更新；世界与局部图集仍为实验功能"
 ];
 
 export function parseMapVersion(version: string): string {

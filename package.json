@@ -1,15 +1,15 @@
 {
   "name": "huanmeng-map-creator",
   "productName": "HuanMeng Map Creator",
-  "version": "0.7.6",
+  "version": "0.8.0",
   "description": "HuanMeng Map Creator —— 基于 Azgaar's Fantasy Map Generator (MIT) 二次开发的中文奇幻地图生成器",
-  "homepage": "https://github.com/RZOZY/humeng-map-generator#readme",
+  "homepage": "https://github.com/RZOZY/huanmeng-map-creator#readme",
   "bugs": {
-    "url": "https://github.com/RZOZY/humeng-map-generator/issues"
+    "url": "https://github.com/RZOZY/huanmeng-map-creator/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/RZOZY/humeng-map-generator.git"
+    "url": "git+https://github.com/RZOZY/huanmeng-map-creator.git"
   },
   "license": "MIT",
   "author": "RZOZY",
@@ -24,6 +24,7 @@
     "build": "tsc && vite build && node scripts/pwa-precache.mjs",
     "preview": "vite preview",
     "electron": "node scripts/electron.mjs",
+    "package:portable": "node scripts/electron.mjs dist --win --x64 --dir --publish never",
     "test": "vitest",
     "test:electron": "vitest run --config vitest.electron.config.ts",
     "test:all": "vitest run && npm run test:electron && npm run test:scripts",
@@ -50,7 +51,7 @@
     "@types/three": "^0.184.1",
     "@vitest/browser": "^4.1.11",
     "@vitest/browser-playwright": "^4.1.11",
-    "electron": "^43.5.0",
+    "electron": "43.8.3",
     "electron-builder": "^26.15.3",
     "electron-updater": "^6.8.9",
     "jsdom": "^29.1.1",

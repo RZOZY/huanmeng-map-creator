@@ -8,6 +8,11 @@ files:
   - dist-electron/**/*
   - package.json
   - "!node_modules/**/*" # the renderer is bundled by Vite, the main process only needs Electron itself
+extraFiles:
+  - from: LICENSE
+    to: LICENSE
+  - from: THIRD-PARTY-NOTICES.md
+    to: THIRD-PARTY-NOTICES.md
 asar: true
 afterPack: ./scripts/adhoc-sign.mjs
 artifactName: HuanMengMap-${version}-${os}-${arch}.${ext}
@@ -37,8 +42,5 @@ nsis:
   allowToChangeInstallationDirectory: true
   # otherwise a third installer carrying both architectures is built next to the per-arch ones
   buildUniversalInstaller: false
-# 默认不自动发布：本项目只发便携 ZIP，NSIS 会被 Defender 误报
-# 需要发布时显式传 --publish always
-# 本项目只发布便携 ZIP（NSIS 会被 Defender 误报），发布一律用 gh release create 手工做。
-# 这里刻意不配置 publish provider —— 一旦配置，electron-builder 会在打包时按 GitHub
-# 发布器自动上传当前平台的安装包，实测即便传 --publish never 也可能触发。
+# 本项目仅手动发布已验证的便携 ZIP；使用 npm run package:portable。
+# 不配置 publish provider，不自动上传或生成安装器。

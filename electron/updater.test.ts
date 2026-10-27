@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type { MessageBoxOptions } from "electron";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createUpdateAvailableDialog, createUpdateErrorDialog, createUpdateReadyDialog } from "./native-ui";
@@ -6,6 +7,8 @@ const mocks = vi.hoisted(() => {
   const listeners = new Map<string, (payload: unknown) => void>();
   return {
     listeners,
+    resourcesPath: "/opt/huanmeng/resources",
+    existsSync: vi.fn<(filePath: string) => boolean>(),
     app: { isPackaged: true },
     windows: [] as { isDestroyed: () => boolean }[],
     showMessageBox:
@@ -28,14 +31,16 @@ vi.mock("electron", () => ({
   shell: { openExternal: mocks.openExternal }
 }));
 vi.mock("electron-updater", () => ({ autoUpdater: mocks.updater }));
+vi.mock("node:fs", () => ({ existsSync: mocks.existsSync }));
 
 async function loadUpdater(platform: NodeJS.Platform = "win32", appImage = "") {
-  vi.stubGlobal("process", { ...process, platform, env: { ...process.env, APPIMAGE: appImage } });
-  try {
-    return await import("./updater");
-  } finally {
-    vi.unstubAllGlobals();
-  }
+  vi.stubGlobal("process", {
+    ...process,
+    platform,
+    resourcesPath: mocks.resourcesPath,
+    env: { ...process.env, APPIMAGE: appImage }
+  });
+  return await import("./updater");
 }
 
 async function emit(event: string, payload: Error | { version: string }): Promise<void> {
@@ -53,6 +58,7 @@ beforeEach(() => {
   mocks.listeners.clear();
   mocks.windows = [];
   mocks.app.isPackaged = true;
+  mocks.existsSync.mockReturnValue(true);
   mocks.updater.autoDownload = true;
   mocks.updater.checkForUpdates.mockResolvedValue(null);
   mocks.updater.downloadUpdate.mockResolvedValue([]);
@@ -61,26 +67,57 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  vi.useRealTimers();
-  vi.restoreAllMocks();
   vi.unstubAllGlobals();
+  vi.clearAllTimers();
+  vi.restoreAllMocks();
+  vi.useRealTimers();
 });
 
 describe("native updater dialogs", () => {
   it("does not register updates or timers for development builds", async () => {
     mocks.app.isPackaged = false;
     const { initUpdater } = await loadUpdater();
-    initUpdater(vi.fn());
+    const allowClose = vi.fn();
+    initUpdater(allowClose);
+    expect(mocks.existsSync).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000);
+    expect(mocks.updater.autoDownload).toBe(true);
     expect(mocks.updater.on).not.toHaveBeenCalled();
+    expect(mocks.updater.checkForUpdates).not.toHaveBeenCalled();
+    expect(mocks.updater.downloadUpdate).not.toHaveBeenCalled();
+    expect(mocks.updater.quitAndInstall).not.toHaveBeenCalled();
     expect(mocks.showMessageBox).not.toHaveBeenCalled();
+    expect(mocks.openExternal).not.toHaveBeenCalled();
+    expect(allowClose).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("leaves packaged portable builds inactive without an update configuration", async () => {
+    mocks.existsSync.mockReturnValue(false);
+    const { initUpdater } = await loadUpdater();
+    const allowClose = vi.fn();
+    initUpdater(allowClose);
+    expect(mocks.existsSync).toHaveBeenCalledExactlyOnceWith(join(mocks.resourcesPath, "app-update.yml"));
+    await vi.advanceTimersByTimeAsync(12 * 60 * 60 * 1000);
+    expect(mocks.updater.autoDownload).toBe(true);
+    expect(mocks.updater.on).not.toHaveBeenCalled();
+    expect(mocks.updater.checkForUpdates).not.toHaveBeenCalled();
+    expect(mocks.updater.downloadUpdate).not.toHaveBeenCalled();
+    expect(mocks.updater.quitAndInstall).not.toHaveBeenCalled();
+    expect(mocks.showMessageBox).not.toHaveBeenCalled();
+    expect(mocks.openExternal).not.toHaveBeenCalled();
+    expect(allowClose).not.toHaveBeenCalled();
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it("keeps scheduled background check errors silent", async () => {
     const { initUpdater } = await loadUpdater();
     initUpdater(vi.fn());
+    expect(mocks.existsSync).toHaveBeenCalledExactlyOnceWith(join(mocks.resourcesPath, "app-update.yml"));
     expect(mocks.updater.autoDownload).toBe(false);
+    expect(mocks.updater.on).toHaveBeenCalledTimes(3);
     expect([...mocks.listeners.keys()]).toEqual(["error", "update-available", "update-downloaded"]);
+    expect(vi.getTimerCount()).toBe(2);
     await vi.advanceTimersByTimeAsync(29_999);
     expect(mocks.updater.checkForUpdates).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1);
@@ -116,7 +153,7 @@ describe("native updater dialogs", () => {
     expect(mocks.showMessageBox).toHaveBeenLastCalledWith(createUpdateErrorDialog(error));
     if (response === 0) {
       expect(mocks.openExternal).toHaveBeenCalledExactlyOnceWith(
-        "https://github.com/Azgaar/Fantasy-Map-Generator/releases/latest"
+        "https://github.com/RZOZY/huanmeng-map-creator/releases/latest"
       );
     } else {
       expect(mocks.openExternal).not.toHaveBeenCalled();
@@ -144,7 +181,7 @@ describe("native updater dialogs", () => {
     mocks.showMessageBox.mockResolvedValueOnce({ response: 0 });
     await emit("update-available", { version: "0.8.0" });
     expect(mocks.openExternal).toHaveBeenCalledExactlyOnceWith(
-      "https://github.com/Azgaar/Fantasy-Map-Generator/releases/latest"
+      "https://github.com/RZOZY/huanmeng-map-creator/releases/latest"
     );
     expect(mocks.updater.downloadUpdate).not.toHaveBeenCalled();
   });

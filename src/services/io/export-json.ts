@@ -122,30 +122,7 @@ function getSettings() {
 }
 
 function getPackCellsData() {
-  const data = {
-    v: pack.cells.v,
-    c: pack.cells.c,
-    p: pack.cells.p,
-    g: Array.from(pack.cells.g),
-    h: Array.from(pack.cells.h),
-    area: Array.from(pack.cells.area),
-    f: Array.from(pack.cells.f),
-    t: Array.from(pack.cells.t),
-    haven: Array.from(pack.cells.haven),
-    harbor: Array.from(pack.cells.harbor),
-    fl: Array.from(pack.cells.fl),
-    r: Array.from(pack.cells.r),
-    conf: Array.from(pack.cells.conf),
-    biome: Array.from(pack.cells.biome),
-    s: Array.from(pack.cells.s),
-    pop: Array.from(pack.cells.pop),
-    culture: Array.from(pack.cells.culture),
-    burg: Array.from(pack.cells.burg),
-    routes: pack.cells.routes,
-    state: Array.from(pack.cells.state),
-    religion: Array.from(pack.cells.religion),
-    province: Array.from(pack.cells.province)
-  };
+  const data = pack.cells;
 
   return {
     cells: Array.from(pack.cells.i).map(cellId => ({
@@ -199,16 +176,7 @@ function getPackCellsData() {
 }
 
 function getGridCellsData() {
-  const dataArrays = {
-    v: grid.cells.v,
-    c: grid.cells.c,
-    b: grid.cells.b,
-    f: Array.from(grid.cells.f),
-    t: Array.from(grid.cells.t),
-    h: Array.from(grid.cells.h),
-    temp: Array.from(grid.cells.temp),
-    prec: Array.from(grid.cells.prec)
-  };
+  const dataArrays = grid.cells;
 
   const gridData = {
     cells: (Array.from(grid.cells.i) as number[]).map((cellId: number) => ({

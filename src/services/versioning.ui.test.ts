@@ -168,7 +168,7 @@ describe("version announcement UI", () => {
   it("waits exactly 6000 ms on first launch and states the current version without claiming an update", async () => {
     const versioning = await importVersioning();
 
-    expect(versioning.VERSION).toBe("0.7.6");
+    expect(versioning.VERSION).toBe("0.8.0");
     expect(versioning.MAP_FORMAT_VERSION).toBe("1.154.0");
     expect(window.VERSION).toBe(versioning.VERSION);
     expect(window.cleanupData).toBe(versioning.cleanupData);
@@ -196,7 +196,7 @@ describe("version announcement UI", () => {
   });
 
   // VERSION is still 0.x; the existing validator accepts a synthetic negative major for branch coverage.
-  it.each(["-1.99.99", "0.6.99"])("delays the existing major/minor update window for %s", async storedVersion => {
+  it.each(["-1.99.99", "0.7.6"])("delays the existing major/minor update window for %s", async storedVersion => {
     const { VERSION } = await importVersioning(storedVersion);
 
     await vi.advanceTimersByTimeAsync(5999);
@@ -213,8 +213,9 @@ describe("version announcement UI", () => {
     expectNoDataReset();
   });
 
+  // At patch zero, use the existing validator's synthetic negative patch to retain branch coverage.
   it("only shows the translated patch tip and records the version, without scheduling a window", async () => {
-    const { VERSION } = await importVersioning("0.7.5");
+    const { VERSION } = await importVersioning("0.8.-1");
 
     expect(dependencies.tip).toHaveBeenCalledExactlyOnceWith(
       `已更新至 v${VERSION}。如遇错误，请重新载入页面。`,
@@ -230,7 +231,7 @@ describe("version announcement UI", () => {
     expectUserContentUnchanged();
   });
 
-  it.each(["0.7.6", "0.7.7", "0.8.0", "1.0.0", "not-a-version"])(
+  it.each(["0.8.0", "0.8.1", "0.9.0", "1.0.0", "not-a-version"])(
     "does not announce or overwrite an equal, future or invalid stored version %s",
     async storedVersion => {
       await importVersioning(storedVersion);
@@ -258,9 +259,9 @@ describe("version announcement UI", () => {
     expect(host.alertMessage.querySelector("strong")!.textContent).toBe(VERSION);
     expect(host.alertMessage.querySelector("ul strong")!.textContent).toBe("近期更新：");
     expect(Array.from(host.alertMessage.querySelectorAll("li"), item => item.textContent)).toEqual([
-      "地球仪改为矢量球面：极点不再被挤成放射状花瓣，±180° 经线不再有接缝",
-      "地球仪按国家/生物群系逐单元上色，区域地图自动补一张海洋底球",
-      "存档格式保持与上一版兼容，旧地图可直接打开并自动升级"
+      "完善中文界面、命令搜索与地图载入和保存反馈",
+      "优化压缩存档载入与 JSON 导出，保留原有地图格式",
+      "便携版采用发布页手动更新；世界与局部图集仍为实验功能"
     ]);
     const repository = host.alertMessage.querySelector<HTMLAnchorElement>('a[target="_blank"]')!;
     expect(repository.href).toBe("https://github.com/RZOZY/huanmeng-map-creator");
