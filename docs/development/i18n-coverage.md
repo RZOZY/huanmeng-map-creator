@@ -1,10 +1,11 @@
 # 本地汉化覆盖与用户数据边界
 
-状态：2026-10-27，第12阶段。这里是逐面域台账，不是全应用完成率。源端文案、词典命中、单测、真实桌面、系统窗口、离线与导出分别验收；扫描不到英文不等于语义正确。
+状态：2026-10-27，GitHub推送后问题修复。这里是逐面域台账，不是全应用完成率。源端文案、词典命中、单测、真实桌面、系统窗口、离线与导出分别验收；扫描不到英文不等于语义正确。
 
 ## 当前变更的验收
 
-- [第12阶段完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase12/complete.log>)：普通测试2823通过、13跳过；独立Electron mock 23、脚本52；TypeScript、573个源文件Biome、差异、桌面构建与资源标记通过。没有自动运行Playwright。
+- [当前推送后修复最终完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/complete-river-final.log>)：普通测试2871通过、13跳过；独立Electron mock 23、脚本52；TypeScript、575个源文件Biome、classic脚本语法、差异、桌面构建与5个资源标记通过。没有自动运行Playwright。
+- [当前构建19项实际桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/native-river-smoke.json>)验证高度图窗口标题／三个按钮／破坏性提示和实际取消、机器tool ID保留；另验标签跨图迟到写入、取消重开、Shift，以及手工建河接管退休旧回调且新handler仍能选格／绘polygon。`index-MmxAo0xy.js`的独立app页面受监测reload及其初始化期间未捕获异常／error console均为空，SW与CacheStorage枚举计数均0；bootstrap按`0e54a6ba`内容戳实际加载。只是该构建该场景，不把历史已知异常记录抹掉，也不代表完整浏览器PWA／离线或其他面域均已复验。
 - [第11阶段历史构建十二组真实桌面回执](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase11-native-final-summary.json>)逐组通过：预览／URL／实际Quill保存源39、导航23、来源27、图片108、目录20、位置67、图集17、战斗224、离图20、预检27、保存16、缩放28。最后缩放组首轮仅因前组故意坏档诊断的pre-reload协议回放而拒绝；保留失败后原样复跑通过，未放宽断言或过滤当前异常。启动期既有ServiceWorkerRegistration InvalidStateError仍单列，不宣称零异常。候选有行为测试专用flag，不作为默认生产性能基线；实际命令见[现场记录](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase11-candidate-command.json>)。
 - 第12阶段仅新增About帮助段及三链接源端中文：[6项真实模板测试](<D:/fmg-cn/dreammap/src/components/app-info.test.ts>)和[实际窗口](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase12/native-finalize.json>)验证URL／target／rel保留，未将其余完整About正文或外部网页判完成；[实际双图18项](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase12/atlas-native.json>)另验当前资产，不冒充上述十二面域在新构建全重跑。
 - [实施纲领](<D:/fmg-cn/dreammap/docs/development/localized-atlas-roadmap.md>)保留各阶段数量、原始回执和未验边界。下面只归纳覆盖范围，不把mock与物理操作相加为“完成率”。
@@ -21,6 +22,8 @@
 | SVG源与SVG界面 | 原图、图标定义／symbol及位置预览源保持；普通UI SVG仍翻译 | 不是SVG安全净化，也不验证外部资源 |
 | 图集目录、来源与导航提示 | 原生modal中文、来源／缺失／漂移／取消／隔离反馈 | 精确dirty、无损恢复和持久注册并未实现 |
 | 保存、帮助、导览、About、错误和离线 | 自有保存说明及部分错误；About帮助段／三链接源端中文，6项模板与实际窗口保URL | 真实OS picker、导览、其余About正文／完整流程、断网／离线、底层全部错误仍待验 |
+| 高度图选择器 | 自有标题／三按钮／选项／提示和确认源端中文；11项真实模块测试及当前实际窗口取消；用户模板名／配色值／机器ID保留 | 实际擦除确认后的完整编辑、OS焦点／Escape与其余高度图编辑器未据此验收 |
+| 启动缓存清理 | 自有异步诊断中文；22项真实classic脚本VM用例、内容戳与当前app启动0枚举／0未捕获异常 | 浏览器正常路径／拒绝路径主要为VM；真实浏览器reload抢占、完整离线／PWA升级未验 |
 | CSV与其他输出 | 机器字段和兼容格式保持 | 中文阅读导出方案及全部输出文案未完成 |
 
 ## 必须保护的数据源

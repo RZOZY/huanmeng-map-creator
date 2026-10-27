@@ -209,7 +209,7 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - 同一 `index-BDiNNoeX.js` 顺序复跑 **目录20／位置67／图集17／战斗224／离图20／预检27／保存笔记16**，加新来源／图片共 [九组汇总](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/identity-native-summary.txt>) 全通过。位置组曾因前组成功提示仍活动而安全停止，首次回执保留；只读等待提示自然结束后完整续跑，不改提示或计时器。原图及旧档 fixture 磁盘哈希不变，已知 boot SW InvalidStateError 仍单列，不称零异常；受控 picker／流不证明真实 OS 或写盘。
 - 此历史检查点仅会话来源底座，不是导航授权、项目持久注册、当前地图内容／地理未变、dirty 或保存保证。其后会话导航／返回视野进展见8.10；世界／局部正式资产、精确dirty／无损恢复、剩余汉化和冷暖／内存／离线／旧档完整往返仍待。本地提交、未推送，不覆盖原图或用户便携版。
 
-### 8.10 会话导航、缩放归属与用户源保护（当前检查点）
+### 8.10 第11阶段：会话导航、缩放归属与用户源保护
 
 - [导航合同](<D:/fmg-cn/dreammap/docs/development/atlas-navigation.md>)接入实际File、地点UUID、确定优先目标、双侧活模型观测和本次采用token。最终canAdopt前后重验源，loaded后在无await的同栈完成目标核验／同步视野／再次核验才提交返回记录；优先缺文件不降级、取消不消费历史、采用后失败不冒称回滚。「收起并看地图」允许操作后重开；「关闭并释放」清能力与最多64项primitive历史，不缓存整图。
 - 根归属与frame ticket修复真实d3旧A过期zoom/end写新B的问题。真实动画确已运行后才替换；旧根仍连接时interrupt，B同步2倍并超过旧动画2000ms后仍保持DOM与内部变换一致。普通缩放算法和旧URL语义不全局改写。
@@ -226,4 +226,14 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - 65地点及68个一次性UUID已落独立清单；世界15个显示对象对应6广域名称，局部64对象。长庚河仅坐标、空绑定保留；世界仍保977条河流模型并默认启用河流层，不能称只有6对象。政治／经济／人口虚构断言清空不代表无国家或无人，原生六burg自包含注记／具体类型仍未验。
 - [资产合同及完整限义](<D:/fmg-cn/dreammap/docs/development/atlas-assets.md>)分别索引原生保存42项、独立B文件44项与实际项目18项。当前SHA通过真实目录选择、世界采用、灰角村按经纬居中、收起后wheel、返回同一世界实际D3视野、长庚河坐标导航；坏SHA／错frame／缺绑定均在采用前保旧root/model。最后完整恢复原图，原图及候选字节不变，不冒称未存编辑无损恢复。
 - [全门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase12/complete.log>)：普通2823通过／13跳过、Electron23、脚本52、TypeScript、573源Biome、diff、桌面构建与资源标记绿，无自动Playwright。About仅帮助段和三链接源端中文，6例及实际窗口保URL／target／rel；其余完整面域仍在[汉化台账](<D:/fmg-cn/dreammap/docs/development/i18n-coverage.md>)待验，不称100%。已知boot SW异常仍单列。
-- **未完成**：正式国家地缘、海岸接边与河湖内容、单文件注记、精确dirty／未存编辑无损恢复、持久项目、默认生产冷暖／内存、离线／损坏旧档完整往返与其余汉化。技术候选不替代正式母图；地图包不含启动器，原便携版未替换。本轮仍只本地提交，不推送、不覆盖原图。
+- **未完成**：正式国家地缘、海岸接边与河湖内容、单文件注记、精确dirty／未存编辑无损恢复、持久项目、默认生产冷暖／内存、离线／损坏旧档完整往返与其余汉化。技术候选不替代正式母图；地图包不含启动器，原便携版未替换。此历史检查点只本地提交；随后用户明确要求的正常GitHub推送与新问题修复见8.12，不覆盖原图。
+
+### 8.12 GitHub正常推送后继续修复（2026-10-27，当前检查点）
+
+- 用户要求先推送再优化：fetch核对远端无独有提交，47项已有本地提交以普通`git push origin main:main`推送至既有远端`https://github.com/RZOZY/huanmeng-map-creator`，从`e91e5db6`前进到`df85ee6e`，随后本地／远端一致、树干净。没有force、发布或替换便携版；前面各节的“未推送”描述保留其历史时点。
+- [标签创建器](<D:/fmg-cn/dreammap/src/controllers/label-creator.ts>)在依赖await前捕获replacement epoch和pack；初始不稳定零读取，await后同栈复核active／stable／epoch／pack。复用每次placement局部onStop闭包，所覆盖的共享placement切换、取消／重开及手工建河接管都会退休旧click，不让旧回调在新地图写标签／重绘／停止新工具。B在首轮15项绿后找到手工建河绕过共享停用流程的真实残余：现[RiverCreator](<D:/fmg-cn/dreammap/src/controllers/river-creator.ts#L15-L18>)先过customization拒绝守卫，再stopMapPlacement，之后才接管D3点击。两项真实RiverCreator测试先1失败／16通过，再17全绿，检查旧getter零写入／零重绘／不清新handler、真实选删格与flux／polygon，并保拒绝时原pending Shift。另有34项相关回归；不是全局lazy registry、所有自定义handler owner或全部异步编辑器均已修复。
+- [classic bootstrap](<D:/fmg-cn/dreammap/public/i18n/00-fmgc-bootstrap.js>)原先在app协议调用getRegistrations，外围同步try抓不到Promise拒绝，是早期精确SW InvalidStateError的实际来源。现先判HTTP(S)且非Electron才读取清理API，枚举／注销／缓存键／删除各Promise链真实收敛并保原error中文warn；浏览器已有控制器仍保留同步一次reload。22项真实完整脚本VM覆盖桌面／浏览器正常及拒绝路径；仅[入口一行](<D:/fmg-cn/dreammap/src/index.html#L8>)接入既有8位内容戳`0e54a6ba`，保护回访缓存交付，不声称完整PWA／离线升级已验证。
+- [高度图选择器](<D:/fmg-cn/dreammap/src/controllers/heightmap-selection.ts>)自有标题、三个按钮、提示及清图确认源端中文，11项真实模块用例。原DOM／机器tool ID、模板／用户名字、回调、生成与渲染算法保持；取消不清图。独立B分别反驳标签、中文diff及启动清理边界，未确认阻断问题；VM中同步枚举失败后仍独立清缓存属于明确容错变化，不把mock当实际浏览器证明。
+- [最终完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/complete-river-final.log>)：普通**2871通过／13跳过**、Electron **23**、脚本**52**，TypeScript、575源Biome、classic语法、diff、5个资源内容戳、Electron构建全绿。红灯与首次仅格式失败的日志均保留，没有自动Playwright。
+- 最终`index-MmxAo0xy.js`的[19项独立桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/native-river-smoke.json>)通过：app受监测reload及其初始化的worker与cache枚举均0、实际内容戳、可见真RAF、真实D3点击＋受控公共editor getter迟到后采用新模型、旧回调不终止marker、同图取消重开、正常／Shift落标、手工建河真实接管后释放旧getter仍零标签且handler保留／实际点击选格绘polygon，以及实际高度图窗口和两级取消保模型。首轮15项回执保留，B指出未覆盖手工建河后先红灯补修，再重建完整复跑19项，并未放宽断言。全部未捕获异常／error console／cleanup errors为空，私有候选模型恢复且源SHA不变。getter延迟是显式受控边界，冷／缓存microtask另由真实模块测试覆盖；不声称原生网络冷加载、物理OS输入或实际擦除确认已验。
+- 候选仅9334独立profile，使用[现场启动参数](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/candidate-river-command.json>)中的三个禁后台测试flag；不触碰9333／原地图，不作默认性能基线。本轮没有重跑历史所有面域，历史异常记录不删；新构建有限场景无异常不等于全应用零异常。正式国家地缘／河湖内容、精确dirty／无损恢复、持久项目、默认冷暖／内存／离线及其余汉化仍开放。
