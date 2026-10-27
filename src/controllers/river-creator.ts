@@ -1,6 +1,7 @@
 import { select } from "d3";
 import { closeDialogs, destroyDialog } from "@/components/dialog/dialog-helpers";
 import { Layers } from "@/components/layers";
+import { stopMapPlacement } from "@/components/map-placement";
 import { clearMainTip, tip } from "@/components/tooltips";
 import { applyDefaultViewboxEvents } from "@/components/viewbox-events";
 import { Controllers } from "@/controllers";
@@ -13,6 +14,7 @@ let isCellsLayerForced = false; // the cells layer is turned on for the editing 
 
 function open(): void {
   if (customization) return;
+  stopMapPlacement();
   closeDialogs();
   Layers.show("rivers");
 
