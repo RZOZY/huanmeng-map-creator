@@ -249,6 +249,32 @@
   // ============================================================
   (function swForceCleanup() {
     if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'https:' && location.protocol !== 'http:') return;
+    if (window.electron && window.electron.isElectron) return;
+
+    function cleanupWorkerCaches(force) {
+      try {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          return Promise.all(regs.map(function(r) {
+            if (force || !CACHE_ENABLED) return r.unregister();
+          }));
+        }).catch(function(error) {
+          console.warn('[FMGC] Service Worker 清理失败：', error);
+        });
+      } catch(error) {
+        console.warn('[FMGC] Service Worker 清理失败：', error);
+      }
+      if (!('caches' in window)) return;
+      try {
+        caches.keys().then(function(keys) {
+          return Promise.all(keys.map(function(key) { return caches.delete(key); }));
+        }).catch(function(error) {
+          console.warn('[FMGC] 缓存清理失败：', error);
+        });
+      } catch(error) {
+        console.warn('[FMGC] 缓存清理失败：', error);
+      }
+    }
 
     // sessionStorage flag：防止同一 tab 内无限 reload 循环
     var SESSION_FLAG_KEY = 'fmGC_sw_reloaded_' + CACHE_VERSION;
@@ -259,20 +285,7 @@
 
       // 异步清理：注销所有 SW + 清空 CacheStorage（fire-and-forget）
       // 虽然不 await，但后续 reload 的页面也会再次执行这段逻辑
-      try {
-        navigator.serviceWorker.getRegistrations().then(function(regs) {
-          regs.forEach(function(r) {
-
-            r.unregister();
-          });
-        });
-        caches.keys().then(function(keys) {
-          keys.forEach(function(k) {
-
-            caches.delete(k);
-          });
-        });
-      } catch(e) { /* ignore */ }
+      cleanupWorkerCaches(true);
 
       // 立即 reload —— 必须在任何其他同步脚本执行前完成
       // 注意：FMG iframe 内的 location.href 就是 iframe 自身 URL
@@ -286,24 +299,7 @@
 
     // reload 之后（或首次访问无 SW），异步执行清理（幂等，不会有副作用）
 
-    try {
-      navigator.serviceWorker.getRegistrations().then(function(regs) {
-        regs.forEach(function(r) {
-          // 当 CACHE_ENABLED=false 时主动注销 SW
-          if (!CACHE_ENABLED) {
-
-            r.unregister();
-          }
-        });
-      });
-      if ('caches' in window) {
-        caches.keys().then(function(keys) {
-          keys.forEach(function(k) {
-            caches.delete(k);
-          });
-        });
-      }
-    } catch(e) { /* ignore */ }
+    cleanupWorkerCaches(false);
   })();
 
   // ============================================================
