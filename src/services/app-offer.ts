@@ -1,56 +1,59 @@
 // The Desktop App dialog: what the app is and which file this visitor needs
 import { isMobile } from "./platform";
 
-const RELEASES_API = "https://api.github.com/repos/RZOZY/humeng-map-generator/releases/latest";
-const RELEASES_PAGE = "https://github.com/RZOZY/humeng-map-generator/releases/latest";
+const RELEASES_API = "https://api.github.com/repos/RZOZY/huanmeng-map-creator/releases/latest";
+const RELEASES_PAGE = "https://github.com/RZOZY/huanmeng-map-creator/releases/latest";
 
 type Os = "windows" | "mac" | "linux";
 type Asset = { name: string; browser_download_url: string; size: number };
 type Release = { version: string; assets: Asset[] };
+type NavigatorWithAgentData = Navigator & {
+  userAgentData?: {
+    mobile?: boolean;
+    platform?: string;
+    getHighEntropyValues?: (hints: string[]) => Promise<{ architecture?: string }>;
+  };
+};
 
-/**
- * Suffix of the artifact name each system needs, see electron-builder.yml. Note that electron-builder
- * spells x64 the way each package format does: `x86_64` for AppImage, `amd64` for deb
- */
+/** Recognized installer suffixes; retain each format's architecture spelling. */
 const DOWNLOADS: { os: Os; label: string; suffix: string }[] = [
   { os: "windows", label: "Windows", suffix: "-win-x64.exe" },
-  { os: "windows", label: "Windows on ARM", suffix: "-win-arm64.exe" },
-  { os: "mac", label: "Mac with Apple silicon", suffix: "-mac-arm64.dmg" },
-  { os: "mac", label: "Mac with Intel", suffix: "-mac-x64.dmg" },
+  { os: "windows", label: "Windows（ARM 架构）", suffix: "-win-arm64.exe" },
+  { os: "mac", label: "Mac（Apple silicon 芯片）", suffix: "-mac-arm64.dmg" },
+  { os: "mac", label: "Mac（Intel 芯片）", suffix: "-mac-x64.dmg" },
   { os: "linux", label: "Linux", suffix: "-linux-x86_64.AppImage" },
-  { os: "linux", label: "Debian or Ubuntu", suffix: "-linux-amd64.deb" }
+  { os: "linux", label: "Debian 或 Ubuntu", suffix: "-linux-amd64.deb" }
 ];
 
-const INTRO = /* html */ `<p>The Desktop App is the Generator packaged as a program for your computer. It has the
-  same features as this page, but runs in its own window and works without an internet connection. It checks for new
-  versions on its own and installs them for you, except on macOS and Debian, where it points you at the download.</p>`;
+const INTRO = /* html */ `<p>桌面应用将地图生成器打包为电脑上的独立窗口程序。
+  更新方式和离线可用范围取决于安装包与发布配置，联网功能仍需网络；此处仅提供下载入口，不会启用自动安装。</p>`;
 
 async function open(): Promise<void> {
   $("#alert").dialog({
     resizable: false,
-    title: "Desktop App",
+    title: "桌面应用",
     width: "30em",
     position: { my: "center", at: "center", of: window },
     buttons: {
-      Close: function (this: HTMLElement) {
+      关闭: function (this: HTMLElement) {
         $(this).dialog("close");
       }
     }
   });
 
-  alertMessage.innerHTML = "<p>Checking the latest version…</p>";
+  alertMessage.innerHTML = "<p>正在检查最新版本…</p>";
   alertMessage.innerHTML = await renderOffer();
 }
 
 /** A narrow desktop window is not a phone: ask the device before trusting the viewport width */
 function isHandheld(): boolean {
-  const mobile = (navigator as any).userAgentData?.mobile;
+  const mobile = (navigator as NavigatorWithAgentData).userAgentData?.mobile;
   return mobile ?? (isMobile() && matchMedia("(pointer: coarse)").matches);
 }
 
 /** Which file this visitor needs, so that nobody has to know what an architecture is */
 async function detectTarget(): Promise<string | undefined> {
-  const agent = (navigator as any).userAgentData;
+  const agent = (navigator as NavigatorWithAgentData).userAgentData;
   const signature = `${agent?.platform ?? navigator.platform ?? ""} ${navigator.userAgent}`;
 
   const os: Os | undefined = /win/i.test(signature)
@@ -106,33 +109,31 @@ function renderDownloads(release: Release, target: string | undefined): string {
   if (!primary && !others) return "";
 
   const main = primary
-    ? /* html */ `<p>Your system is ${primaryLabel}:
-        <b><a href="${primary.browser_download_url}" target="_blank">download version ${release.version}</a></b>
-        (${Math.round(primary.size / 1024 / 1024)} MB). The file goes to your Downloads folder, open it to install the app.</p>`
+    ? /* html */ `<p>根据系统信息推荐 ${primaryLabel}，请核对系统与架构：
+        <b><a href="${primary.browser_download_url}" target="_blank">下载版本 ${release.version}</a></b>
+        (${Math.round(primary.size / 1024 / 1024)} MB)。请按浏览器提示保存，并参照发布页说明安装或运行。</p>`
     : "";
 
-  const rest = others ? `<p>${primary ? "Other systems" : "Downloads"}: ${others}.</p>` : "";
+  const rest = others ? `<p>${primary ? "其他系统" : "下载入口"}：${others}。</p>` : "";
   return `${main}${rest}`;
 }
 
 async function renderOffer(): Promise<string> {
-  if (isHandheld()) return "<p>The Desktop App is made for computers, there is no phone or tablet version.</p>";
+  if (isHandheld()) return "<p>桌面应用面向电脑，目前没有手机或平板版本。</p>";
 
   const [release, target] = await Promise.all([loadRelease(), detectTarget()]);
   const downloads = release ? renderDownloads(release, target) : "";
 
   if (!downloads) {
-    const reason = release
-      ? "The Desktop App is not published yet."
-      : "The list of downloads could not be loaded right now.";
-    return `<span>${reason} Everything released so far is on the <a href="${RELEASES_PAGE}" target="_blank">releases page</a> on GitHub.</span>`;
+    const reason = release ? "该版本未提供此处可识别的安装包" : "暂时无法加载下载列表";
+    return `<span>${reason}，请到 <a href="${RELEASES_PAGE}" target="_blank">GitHub 发布页</a> 查看已发布文件。</span>`;
   }
 
   return /* html */ `${INTRO}${downloads}
-    <p>The app and this page keep their maps and settings apart, so what you have here does not appear there.
-    To move a map over, save it as a <i>.map</i> file and load it in the app.</p>
-    <p>Windows and macOS will warn about an unknown developer the first time, because the app is not signed yet:
-    on Windows click "More info" and then "Run anyway", on macOS right-click the app and choose "Open".</p>`;
+    <p>桌面应用与此页面分别保存地图和设置，页面中的内容不会自动出现在应用中。
+    要迁移地图，请先保存为 <i>.map</i> 文件，再在桌面应用中加载。</p>
+    <p>如果 Windows 或 macOS 显示安全提示，请先核验下载来源与发布说明中的签名信息；
+    来源或签名无法确认时，请停止安装或运行。</p>`;
 }
 
 export const AppOffer = { open };
