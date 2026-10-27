@@ -1,6 +1,6 @@
 # 分层地图、加载内核与本地汉化实施纲领
 
-状态：2026-10-27，分阶段实施中。单一世界图实验保留，不再把它当作日常精细制图路线。未稳定验收前不推送，不覆盖用户原图。当前汉化覆盖、用户数据源边界与待验项见[逐面域台账](<D:/fmg-cn/dreammap/docs/development/i18n-coverage.md>)；下文8.1—8.10为各自历史检查点，不应将其旧“尚未实现”状态覆盖8.11的当前进展。
+状态：2026-10-27，分阶段实施中。单一世界图实验保留，不再把它当作日常精细制图路线。未稳定验收前不推送，不覆盖用户原图。当前汉化覆盖、用户数据源边界与待验项见[逐面域台账](<D:/fmg-cn/dreammap/docs/development/i18n-coverage.md>)；下文8.1—8.12为各自历史检查点，不应将其旧“尚未实现”状态覆盖8.13的当前进展。
 
 ## 一、完成目标与边界
 
@@ -99,7 +99,7 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 | 商品/旅程动态提示、徽标 | 正则与现行句式漂移 | 待逐项修复 |
 | 笔记 CSS/占位、图标标题/检索 | 不在普通 Text 翻译范围 | 笔记链接框五种伪元素、占位及自有提示已修，用户英文/URL 不变；图标 picker 的局部界面、228 个标题与混合检索已修；位置调整器中文及真实缩放／Fit／Apply／Cancel 已验证，未验物理拖拽／持久化；图片入口七类自有错误已中文并验证失败按钮／Enter／模拟上传及完整恢复，不改用户 URL／SVG 内容；富文本其余工具栏、emoji 原名／聚落／纹章单图名与其他底层错误仍待审 |
 | 旅程默认名、战斗日志 | 生成内容进入存档与输出仍为英文 | 旅程默认名 10 项往返通过；战斗默认名／新战报、静态控件／增援／毁灭警告共 71 项回归，真实公共入口 UI 的 224 个断言通过，保留机器键、旧记录和用户原文；不代表动画、物理 hover、像素及外链已验 |
-| 导览、About、错误与离线帮助 | 隐藏入口不等于翻译完成 | 待修复与入口/异常/断网测试 |
+| 导览、About、错误与离线帮助 | 隐藏入口不等于翻译完成 | About自有弹窗正文／资源标签／确认已有23项模块与24项实际窗口验证，保留14个URL／target／rel（见8.13）；AboutTab、首启公告、导览、外部网页、其他异常与断网流程仍待审 |
 | CSV/机器格式 | 人类列名与机器契约混用 | 保留兼容格式；先明确中文阅读导出方案 |
 | OS 注入菜单、外部网页、技术错误原文 | 本地不能全控 | 分开说明，不以抹去品牌/错误/署名伪造完成率 |
 
@@ -228,7 +228,7 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [全门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261026/phase12/complete.log>)：普通2823通过／13跳过、Electron23、脚本52、TypeScript、573源Biome、diff、桌面构建与资源标记绿，无自动Playwright。About仅帮助段和三链接源端中文，6例及实际窗口保URL／target／rel；其余完整面域仍在[汉化台账](<D:/fmg-cn/dreammap/docs/development/i18n-coverage.md>)待验，不称100%。已知boot SW异常仍单列。
 - **未完成**：正式国家地缘、海岸接边与河湖内容、单文件注记、精确dirty／未存编辑无损恢复、持久项目、默认生产冷暖／内存、离线／损坏旧档完整往返与其余汉化。技术候选不替代正式母图；地图包不含启动器，原便携版未替换。此历史检查点只本地提交；随后用户明确要求的正常GitHub推送与新问题修复见8.12，不覆盖原图。
 
-### 8.12 GitHub正常推送后继续修复（2026-10-27，当前检查点）
+### 8.12 GitHub正常推送后继续修复（2026-10-27，历史检查点）
 
 - 用户要求先推送再优化：fetch核对远端无独有提交，47项已有本地提交以普通`git push origin main:main`推送至既有远端`https://github.com/RZOZY/huanmeng-map-creator`，从`e91e5db6`前进到`df85ee6e`，随后本地／远端一致、树干净。没有force、发布或替换便携版；前面各节的“未推送”描述保留其历史时点。
 - [标签创建器](<D:/fmg-cn/dreammap/src/controllers/label-creator.ts>)在依赖await前捕获replacement epoch和pack；初始不稳定零读取，await后同栈复核active／stable／epoch／pack。复用每次placement局部onStop闭包，所覆盖的共享placement切换、取消／重开及手工建河接管都会退休旧click，不让旧回调在新地图写标签／重绘／停止新工具。B在首轮15项绿后找到手工建河绕过共享停用流程的真实残余：现[RiverCreator](<D:/fmg-cn/dreammap/src/controllers/river-creator.ts#L15-L18>)先过customization拒绝守卫，再stopMapPlacement，之后才接管D3点击。两项真实RiverCreator测试先1失败／16通过，再17全绿，检查旧getter零写入／零重绘／不清新handler、真实选删格与flux／polygon，并保拒绝时原pending Shift。另有34项相关回归；不是全局lazy registry、所有自定义handler owner或全部异步编辑器均已修复。
@@ -237,3 +237,13 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [最终完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/complete-river-final.log>)：普通**2871通过／13跳过**、Electron **23**、脚本**52**，TypeScript、575源Biome、classic语法、diff、5个资源内容戳、Electron构建全绿。红灯与首次仅格式失败的日志均保留，没有自动Playwright。
 - 最终`index-MmxAo0xy.js`的[19项独立桌面](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/native-river-smoke.json>)通过：app受监测reload及其初始化的worker与cache枚举均0、实际内容戳、可见真RAF、真实D3点击＋受控公共editor getter迟到后采用新模型、旧回调不终止marker、同图取消重开、正常／Shift落标、手工建河真实接管后释放旧getter仍零标签且handler保留／实际点击选格绘polygon，以及实际高度图窗口和两级取消保模型。首轮15项回执保留，B指出未覆盖手工建河后先红灯补修，再重建完整复跑19项，并未放宽断言。全部未捕获异常／error console／cleanup errors为空，私有候选模型恢复且源SHA不变。getter延迟是显式受控边界，冷／缓存microtask另由真实模块测试覆盖；不声称原生网络冷加载、物理OS输入或实际擦除确认已验。
 - 候选仅9334独立profile，使用[现场启动参数](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/push-followup/candidate-river-command.json>)中的三个禁后台测试flag；不触碰9333／原地图，不作默认性能基线。本轮没有重跑历史所有面域，历史异常记录不删；新构建有限场景无异常不等于全应用零异常。正式国家地缘／河湖内容、精确dirty／无损恢复、持久项目、默认冷暖／内存／离线及其余汉化仍开放。
+
+### 8.13 默认引擎参数基线与About自有正文（2026-10-27，当前检查点）
+
+- [基线合同](<D:/fmg-cn/dreammap/docs/development/default-performance-baseline.md>)记录六个默认引擎flags进程／全新profile、各两次原始v10／v9载入。真实6秒首启公告确认后、显式前置窗口开始计时，无并发构建／测试／profiler，重复前无强制GC。整体前后230项JS／CSS逐字节SHA同一；原图SHA及grid／pack数保留，不把私有复制、技术候选或降低模型密度冒称内核优化。
+- 当前旧产物`entry=index-MmxAo0xy.js`的API调用至fulfilled／loaded中位数：世界首次2144.3ms／自然重复2020.5ms；局部1277.8ms／970.7ms，各n=3。API调用至注册后第2次RAF分别2281.1／2098.9和1321.1／994.2ms。包含真实两层确认的自动等待，不是OS冷态、所有资源／像素完成或Atlas导航；公告等待有预热，同进程前置模型／wheel状态不同，不拿行间差异或历史数字称提速。两次结束后才采强制GC JS heap诊断，默认完整内存基线仍未完成。
+- [About拥有者](<D:/fmg-cn/dreammap/src/components/app-info.ts>)的所有权／支持／项目说明、六资源标签和确认按钮源端中文。14个既有链接的URL／target／rel、品牌、标题与原机器调用不变；[23项真实模块测试](<D:/fmg-cn/dreammap/src/components/app-info.test.ts>)、TypeScript通过，首次仅两处测试格式失败后修复，未改产品逻辑规避断言。启动公告与AboutTab／导览／外部网页另属面域，不称全应用或整个About体系完成。
+- [新完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/complete.log>)：普通2888通过／13跳过，Electron23、脚本52，TypeScript、575源Biome、diff、Electron构建和5个资源内容戳绿，无自动Playwright。采样结束后才构建中文产物，不能把上述性能数归给新`entry=index-BkGDhIp8.js`。
+- [当前产物24项实际About](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native-v2.json>)通过公开Omnibar的真实中文命令、实际jQuery窗口／确定／重开验证正文与14链接。最终异常／error console／cleanup数组仍空，声明用户源夹具与抽样模型状态保持、原图SHA不变；不是全部用户DOM、完整模型无损、OS输入或外链可用性证明。仅9334私有默认参数候选，结束后已退出。
+- [首轮失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase13/app-info-native.json>)未删：helper误把seed当全局变量，另观察到Electron内部`Electron sandboxed_renderer.bundle.js script failed to run`及`TypeError: Cannot destructure property 'preloadScripts' of 'binding.startupData' as it is null.`。v2只纠正为实际options.map.seed并使用新profile，未过滤error；这一次通过不表示已定位／修复该内部启动现象。默认性能v1–v3失败及非唯一遮挡归因也在基线合同保留，未拼部分成功样本。
+- 本轮无内核性能代码更改。独立B只读复核基线和About源／回执，未确认产品阻断；正式国家地缘／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认内存／离线与剩余汉化仍开放，不启用更新、发布或替换用户便携版。
