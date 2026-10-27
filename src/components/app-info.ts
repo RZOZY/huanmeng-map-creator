@@ -22,21 +22,21 @@ const GUIDES = {
 };
 
 const LINKS = [
-  link("https://github.com/Azgaar/Fantasy-Map-Generator", "GitHub repository"),
-  link("https://github.com/Azgaar/Fantasy-Map-Generator/blob/master/LICENSE", "License"),
-  link(`${WIKI}/Changelog`, "Changelog"),
-  link(`${WIKI}/Hotkeys`, "Hotkeys"),
-  link("https://trello.com/b/7x832DG4/fantasy-map-generator", "Devboard"),
-  `<a href="mailto:azgaar.fmg@yandex.by" target="_blank">Contact Azgaar</a>`
+  link("https://github.com/Azgaar/Fantasy-Map-Generator", "GitHub 仓库"),
+  link("https://github.com/Azgaar/Fantasy-Map-Generator/blob/master/LICENSE", "许可证"),
+  link(`${WIKI}/Changelog`, "更新日志"),
+  link(`${WIKI}/Hotkeys`, "快捷键"),
+  link("https://trello.com/b/7x832DG4/fantasy-map-generator", "开发看板"),
+  `<a href="mailto:azgaar.fmg@yandex.by" target="_blank">联系 Azgaar</a>`
 ];
 
 function render(): string {
-  return /* html */ `<b>Fantasy Map Generator</b> (FMG) is a free open-source application. It means that you own all created maps and can use them as
-    you wish.
+  return /* html */ `<b>Fantasy Map Generator</b>（FMG）是一款免费开源应用。
+    你拥有使用本应用创建的所有地图，并可按自己的意愿使用。
 
     <p>
-      The development is community-backed, you can donate on ${COMMUNITY.patreon}. You can also help creating overviews, tutorials and spreding the word about the
-      Generator.
+      本项目的开发由社区支持，你可以通过 ${COMMUNITY.patreon} 捐助。
+      你也可以帮助编写介绍、制作教程，或向更多人推荐本生成器。
     </p>
 
     <p>
@@ -46,10 +46,10 @@ function render(): string {
 
     <ul style="columns:2">${LINKS.map(item => `<li>${item}</li>`).join("")}</ul>
 
-    <p>Check out our other projects:
+    <p>查看我们的其他项目：
       <ul>
-        <li>${PROJECTS.armoria}: a tool for creating heraldic coats of arms</li>
-        <li>${PROJECTS.deorum}: a vast gallery of customizable fantasy characters</li>
+        <li>${PROJECTS.armoria}：用于制作纹章的工具</li>
+        <li>${PROJECTS.deorum}：可自定义奇幻角色的大型图库</li>
       </ul>
     </p>
 `;
@@ -64,7 +64,7 @@ export function showInfo(): void {
     title: document.title,
     width: "28em",
     buttons: {
-      OK: function (this: HTMLElement) {
+      确定: function (this: HTMLElement) {
         $(this).dialog("close");
       }
     },
