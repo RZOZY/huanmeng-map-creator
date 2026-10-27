@@ -1,139 +1,56 @@
-name: Build desktop app
+name: Build Windows portable app
 
-# 幻梦地图生成器：本仓库只发布本地构建的便携 ZIP（见 README），
-# 因此这里刻意去掉 push(tag) 与 pull_request 的自动触发 —— 保留原触发时，
-# 每次推 tag 都会在 CI 上构建全平台安装包并用 gh release upload 挂到 release，
-# 那些产物既未测试、又是会被 Defender 误报的 NSIS 安装包。
-# 需要时请从 Actions 页手动 Run workflow。
 on:
   workflow_dispatch:
-    inputs:
-      tag:
-        description: "Existing tag to build and attach the installers to. Leave empty to only build."
-        type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  compile:
-    runs-on: ubuntu-latest
+  portable:
+    runs-on: windows-latest
     env:
-      # Compiling needs no Electron binary, only its type definitions
-      ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.tag || github.ref }}
 
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: "npm"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      # electron-builder stamps package.json's version on the installers and into latest.yml.
-      # If it lags versioning.ts, the release builds fine but no client is ever offered the update
-      - name: Check the version is in sync across versioning.ts and the package files
-        run: node scripts/sync-version.js --check
+      - name: Check product version and asset stamps
+        run: |
+          node scripts/sync-version.js --check
+          node scripts/stamp-assets.js --check
 
-      - name: Compile main process and renderer
-        run: npm run electron build
+      - name: Run unit and script tests
+        run: npm run test:all
 
-  build:
-    needs: compile
-    if: github.event_name != 'pull_request'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: macos-latest
-            platform: macos
-          - os: windows-latest
-            platform: windows
-          - os: ubuntu-latest
-            platform: linux
+      - name: Build portable directory without publishing
+        run: npm run package:portable
 
-    runs-on: ${{ matrix.os }}
+      - name: Archive portable contents and checksum
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          $name = "HuanMengMap-$version-win-x64-portable.zip"
+          $zip = Join-Path 'release' $name
+          if (Test-Path $zip) { throw 'Archive already exists' }
+          Compress-Archive -Path 'release/win-unpacked/*' -DestinationPath $zip
+          $sha = (Get-FileHash -Algorithm SHA256 $zip).Hash.ToLowerInvariant()
+          "$sha  $name" | Set-Content -Encoding ascii (Join-Path 'release' 'SHA256SUMS.txt')
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.tag || github.ref }}
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build and package
-        env:
-          # The builds are unsigned: skip the certificate lookup instead of failing on it
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-        run: npm run electron -- dist --publish never
-
-      - name: Upload installers
+      - name: Upload portable build for manual validation
         uses: actions/upload-artifact@v7
         with:
-          name: fantasy-map-generator-${{ matrix.platform }}
+          name: huanmeng-windows-x64-portable
           if-no-files-found: error
           path: |
-            release/*.dmg
-            release/*.zip
-            release/*.exe
-            release/*.AppImage
-            release/*.deb
-            release/*.blockmap
-            release/latest*.yml
-
-  release:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/') || inputs.tag != ''
-    runs-on: ubuntu-latest
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      TAG: ${{ inputs.tag || github.ref_name }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ env.TAG }}
-
-      - name: Collect the installers
-        uses: actions/download-artifact@v8
-        with:
-          pattern: fantasy-map-generator-*
-          merge-multiple: true
-          path: release
-
-      # A tag push has no release yet: start a draft one to fill in and publish by hand
-      - name: Make sure the release exists
-        run: gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --draft --title "$TAG" --generate-notes
-
-      # latest*.yml and the blockmaps are what the built-in updater reads, so they go up as well
-      - name: Attach the installers
-        run: gh release upload "$TAG" release/* --clobber
-
-      # The downloads go above the changelog: they are what a visitor opening the release came for
-      - name: Add the download instructions
-        run: |
-          MARKER="Which file do I need?"
-          BODY=$(gh release view "$TAG" --json body -q .body)
-
-          if [[ "$BODY" == *"$MARKER"* ]]; then
-            echo "$TAG already explains the downloads, leaving the notes alone"
-          else
-            cp .github/release-notes.md notes.md
-            if [ -n "$BODY" ]; then printf '\n---\n\n%s\n' "$BODY" >> notes.md; fi
-            gh release edit "$TAG" --notes-file notes.md
-            echo "Put the download instructions on top of the $TAG notes"
-          fi
+            release/HuanMengMap-*-win-x64-portable.zip
+            release/SHA256SUMS.txt

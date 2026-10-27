@@ -2,7 +2,9 @@
 
 状态：2026-10-27，桌面下载提示拥有者源端中文及有限回归完成；首启／版本公告等按各阶段记录。这里是逐面域台账，不是全应用完成率。源端文案、词典命中、单测、真实桌面、系统窗口、离线与导出分别验收；扫描不到英文不等于语义正确。
 
-## 当前变更的验收
+## 分阶段的验收
+
+- 0.8.0新便携包的[审计与验收](redundancy-audit-080.md)：普通2992通过／13跳过、Electron mock 24、脚本52、类型／588源Biome／构建／5资源戳通过；6个独立新profile启动与1个集成profile共13项检查通过。以下中文面域数字是各自历史构建的范围，不等于在0.8.0逐面域完整重跑；本次不宣称全量中文化、全部启动条件无异常或完整离线。
 
 - [下载提示阶段完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/complete.log>)：普通2985通过／13跳过、Electron23、脚本52、TypeScript、580源Biome、diff、构建及5资源戳绿。[44项真实模块](<D:/fmg-cn/dreammap/src/services/app-offer.test.ts>)覆盖owned中文、推荐启发式与原六格式／URL／版本／大小／真实this关闭；[开发态实际renderer12项](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/app-offer-native-v2.json>)仅受控fetch／UA及实际服务／按钮。首轮11场景过而严格整体失败仍保留，同断言只完整复跑一次，不是稳定性／真实发布／资产下载／签名／安装／更新／离线或实际机型保证；详见[范围合同](<D:/fmg-cn/dreammap/docs/development/desktop-offer.md>)。
 - [版本公告阶段完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase16/complete-final.log>)：普通2923通过／13跳过、Electron23、脚本52，TypeScript、577源Biome、diff、Electron构建和5资源戳绿。[21项模块回归](<D:/fmg-cn/dreammap/src/services/versioning.ui.test.ts>)保留原版本比较／6000ms／存储与清理顺序；源码／反馈链接仅修为已核对origin。首启准确说明当前版本，Electron“重新载入”与Web“清理缓存并重新载入”区分原有后端，关闭不添加永久禁用键。

@@ -1,112 +1,61 @@
-# HuanMeng Map Creator · 幻梦地图生成器
+# 幻梦地图生成器 · HuanMeng Map Creator
 
-> 以上游 **Azgaar's Fantasy Map Generator v1.154.0** 的引擎为核心的中文奇幻地图生成器。
-> 内置中文语料库，地图内容（国名 / 城名 / 河名 / 文化 / 宗教 / 标记 / 区域……）**由中文语料直接生成**，不经翻译。
+基于 [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator) 的中文奇幻地图生成与编辑工具，面向小说作者、桌游主持人与世界观创作者。
 
-[English upstream README](README-upstream.md)
+[下载最新版](https://github.com/RZOZY/huanmeng-map-creator/releases/latest) · [反馈问题](https://github.com/RZOZY/huanmeng-map-creator/issues) · [上游说明](README-upstream.md)
 
----
+## 可以做什么
 
-## 这是什么
+- 生成并编辑地形、河湖、国家、省份、聚落、文化与宗教。
+- 使用武侠、仙侠、玄幻、神话等中文语料生成名称。
+- 调整图层、标签、标记与样式，添加地点笔记。
+- 保存可继续编辑的 `.map` 地图，导出 SVG、PNG 等图像。
+- 使用中文界面、命令搜索与 Electron 桌面窗口。
 
-上游 FMG 是一套成熟的程序化地图引擎（地形生成、政治模拟、文化命名、贸易网络）。
-本项目保留其引擎，把它**中文化成一台中文地图生成器**：
+## 下载与运行
 
-- **不是**在英文界面上贴一层翻译
-- **而是**让引擎用中文语料去生成
+1. 在 [Releases](https://github.com/RZOZY/huanmeng-map-creator/releases) 下载 `HuanMengMap-<版本>-win-x64-portable.zip`。
+2. 完整解压到可写目录，运行 `HuanMeng Map Creator.exe`，不要直接在压缩包内运行。
+3. 更新前另存自己的 `.map`，将新版解压到新目录；不要覆盖唯一的地图备份。
 
-## 中文化的三层
+目前发布 **Windows x64 便携 ZIP**，无需安装。其他平台与架构以发布页实际文件为准。
+遇到安全提示时请核对来源与发布说明；无法确认来源或签名时不要运行。
 
-### 一、语料层（核心）
+## 基本使用
 
-    public/i18n/wordbanks/<题材>/{state,province,burg,culture,religion,river,lake,marker,zone,mapName,era,engine,manifest}.json
+1. 新建地图并选择地形与生成参数，或加载已有 `.map`。
+2. 显示所需图层，点击地图对象编辑名称、外观和设定。
+3. 定期另存 `.map`；需要分享图片时再导出 SVG 或 PNG。
 
-9 种题材，合计 **18451 条**：
+图片不能代替地图存档。跨浏览器或桌面端迁移时，请使用 `.map`，不要依赖暂存数据。
 
-| 题材 | 条目 | 题材 | 条目 |
-|---|---:|---|---:|
-| 武侠 wuxia | 3945 | 神话 mythology | 1687 |
-| 玄幻 xuanhuan | 3265 | 暗黑 dark-fantasy | 1687 |
-| 共和 republic | 2000 | 高奇幻 high-fantasy | 1588 |
-| 仙侠 xianxia | 1854 | 默认 default | 1302 |
-| | | 现代都市 modern-urban | 1123 |
+## 当前限制
 
-引擎按「读语料 → 提取词根 → 组合」生成，运行时由 `public/i18n/09-<题材>-engine.js` 调度。
-生成词缀遵循中文习惯：朝廷用「朝/国」，行政区用「郡/州/道/路/省/府」，聚落用「城/县/镇/乡/关/堡/寨/驿」。
-
-### 二、生成数据表
-
-上游内嵌的英文词表：
-
-| 文件 | 内容 |
-|---|---|
-| `src/data/markers.ts` | 标记语料整表：客栈 / 怪物 / 遗迹 / 洞穴 / 亡灵 / 遭遇战 |
-| `src/generators/biomes-generator.ts` | 生物群系 13 项 |
-| `src/generators/goods-generator.ts` | 物资 71 项 |
-| `src/generators/religions-generator.ts` | 宗教命名 327 词条 + 中文语序组合规则 |
-| `src/generators/zones-generator.ts` | 区域命名 47 类型词，去掉英文形容词形态学 |
-
-> **注意**：`CULTURE_TYPES`、`religion.type`（Folk/Organized/Heresy）、`zone.type` 是
-> **代码标识符**，不是显示名。改动会破坏逻辑与类型检查 —— 这类词只在显示层处理。
-
-### 三、界面层
-
-- `src/i18n/zh-CN.json` —— 905 条界面英→中对照，整串精确匹配
-- `src/i18n/translator.ts` —— 精确匹配 + 拼接型文案模式层
-- `src/i18n/layer-names.ts` —— 图层名按 `data-layer` 整块替换，保留 `<u>` 快捷键下划线
-- `public/i18n/*.js` —— 补丁层（中文命名引擎 + 主题美化），作为经典脚本由 `src/index.html` 按时序加载
-
-## 版本策略
-
-**一次性本地化，不再跟随上游更新。**
-
-    v1.154.0                354eeaa7   上游 Azgaar v1.154.0 原版
-    v1.154.0-cn.1-baseline  aa9cf6b1   中文化基线（生成物已无英文）
-    v1.154.0-cn.1           378293bc   当前版本
-
-之所以不跟随：上游每次改动都可能引入新的英文语料，而本项目的目标恰恰是让生成物**完全贴合中文语料**。
+- 中文化仍在完善，部分界面、外部网页和系统提示可能保留原文。
+- 外部资源和联网功能需要网络，完整离线流程尚未验收。
+- 便携版使用发布页手动更新，不承诺自动下载或安装更新。
+- 世界／局部图集属于实验功能，不附带已验收的正式图集；精确未保存检测和未保存编辑的无损恢复尚未完成。
+- 大型地图可能消耗较多内存和载入时间。重要修改前请备份。
 
 ## 开发
 
-    npm.cmd install
-    npm.cmd run electron build      # 类型检查 + vite build --mode electron
-    npm.cmd run electron -- dist --win --x64 --dir --publish never
+需要 **Node.js 24 或更新版本**：
 
-### ⚠️ 提交时的两个坑
+```sh
+npm ci
+npm run dev                 # 浏览器开发
+npm run electron            # 桌面开发
+npm run electron build      # 桌面编译与类型检查
+npm run test:all             # 普通、Electron mock 与脚本测试
+npm run package:portable     # Windows x64 便携目录，不发布、不生成安装器
+```
 
-**1. 必须加 `--no-verify`**
-仓库的 pre-commit 钩子会跑 `biome check --write`，它会**重排整个源码树**的格式并阻断提交。
-
-**2. 不要用 `git checkout -- .` 清理"已修改"**
-仓库 `core.autocrlf=true`。biome 改写换行符后 `git status` 会显示数百个"已修改"，
-但 `git diff` 为空（内容并未改变）。此时执行 `git checkout -- .` 会**连未提交的改动一起还原**。
-
-## 发行
-
-发布形态**只做便携 ZIP**。NSIS 安装包会被 Windows Defender 误报为
-`Trojan:Script/Conteban.A!ml`，请勿使用。
-
-    # 打包：镜像必须设，否则 electron-builder 下载二进制会 ETIMEDOUT
-    $env:ELECTRON_MIRROR='https://npmmirror.com/mirrors/electron/'
-    $env:ELECTRON_BUILDER_BINARIES_MIRROR='https://npmmirror.com/mirrors/electron-builder-binaries/'
-    $env:CSC_IDENTITY_AUTO_DISCOVERY='false'
-    node scripts/electron.mjs dist --win --x64 --dir --publish never
-
-    # 产物：release/win-unpacked → 压缩其内容（不要套一层目录），得到
-    HuanMengMap-<版本>-win-x64-portable.zip
-
-发布用 `gh release create` 手工做：electron-builder.yml 刻意不配 publish provider，
-一旦配上，打包时可能自动上传。
+Web 构建使用 `npm run build`。发布步骤见 [便携版发布指南](docs/development/release-guide.md)。
+改动前阅读 [项目约定](AGENTS.md)、[项目上下文](CONTEXT.md) 和 [架构说明](docs/architecture/architecture.md)。
+已验范围与限制见 [开发记录](docs/development/localized-atlas-roadmap.md)，本次清理及新包验收见 [0.8.0 审计记录](docs/development/redundancy-audit-080.md)。Playwright 按需单独运行，不自动执行。
 
 ## 授权与来源
 
-**产品**：HuanMeng Map Creator 0.6.0 · 作者 RZOZY
-
-**开源项目来源**：本项目基于 [Azgaar's Fantasy Map Generator](https://github.com/Azgaar/Fantasy-Map-Generator)（MIT）
-二次开发，上游版权归 Azgaar and contributors 所有，详见 `LICENSE`。
-
-**模板借鉴来源**：中文语料、界面措辞与中文命名模板取自**幻艺地图**（fantcraft.com/fmg/）——
-见 `src/i18n/translator.ts` 与 `src/i18n/layer-names.ts` 的说明。该部分仅供个人学习与研究使用。
-
-**第三方美术素材**：部分图标（Watabou 的城镇图标等）为第三方作品，原始署名保留在各图标文件的
-`<desc>` 元素中，重绘时请保留。
+- **RZOZY** 二次开发；上游引擎与原版权声明遵循 [MIT License](LICENSE)。
+- 中文语料、界面措辞与命名模板取材于 [幻艺地图](https://fantcraft.com/fmg/)，该部分仅供个人学习与研究，不因上游 MIT 自动获得其他用途授权。
+- Watabou 等第三方素材保留各自署名和许可边界。SVG 中原有的 `<desc>` 署名应随修改和分发保留。

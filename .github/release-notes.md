@@ -1,21 +1,10 @@
-## Which file do I need?
+## 下载与运行
 
-| You have                                   | Download                      |
-| ------------------------------------------ | ----------------------------- |
-| Mac with Apple Silicon (M1–MX)             | `fmg-…-mac-arm64.dmg`         |
-| Mac with Intel                             | `fmg-…-mac-x64.dmg`           |
-| Windows                                    | `fmg-…-win-x64.exe`           |
-| Windows on ARM (Snapdragon, Surface Pro X) | `fmg-…-win-arm64.exe`         |
-| Linux                                      | `fmg-…-linux-x86_64.AppImage` |
-| Debian or Ubuntu                           | `fmg-…-linux-amd64.deb`       |
+下载发布页的 `HuanMengMap-<版本>-win-x64-portable.zip`，完整解压到可写目录后运行 `HuanMeng Map Creator.exe`。不要在压缩包内直接运行，也不要只复制 EXE。
 
-The `.zip`, `.blockmap` and `latest*.yml` files are for the built-in updater — you do not need to download them.
+- 当前发布为 Windows x64 便携版，不需要安装；其他系统和架构以实际附件为准。
+- 更新前另存自己的 `.map`，将新版解压到新目录，不要覆盖唯一备份。
+- 可用同页的 SHA-256 清单核对文件。安全提示、来源或签名无法确认时不要运行。
+- 便携版通过本仓库发布页手动更新；不提供 `latest*.yml`，不承诺自动下载或安装。
 
-### First launch
-
-The builds are not code-signed, so the system warns about an unknown developer:
-
-- **macOS**: the first launch is blocked — open **System Settings → Privacy & Security**, scroll down and click **Open Anyway**
-- **Windows**: **More info** → **Run anyway**
-
-Prefer the browser? The generator also runs at [azgaar.github.io/Fantasy-Map-Generator](https://azgaar.github.io/Fantasy-Map-Generator/).
+完整离线流程、实验图集及未保存编辑的无损恢复尚未整体验收，详见 README 和本次发布说明。请保留随包的许可与来源文件。

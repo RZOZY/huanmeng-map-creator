@@ -271,7 +271,7 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [有限方法micro](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-summary.json>)仅最终helper源码纯转译vs旧算法拷贝，非实际bundle方法A/B。2对暖身、8对AB／BA、4对AA和4对NN、默认native流／无强制GC；2MiB派生载荷old／new中位数92.25／13.10ms，配对节省中位数86.15%（IQR85.42–87.68%，非置信区间），8／8为正；64KiB为1.95／0.50ms但6／8快、2／8慢，无平局。AA／NN噪声和所有样本保留，不宣称普适、整图加载／首帧、普通raw或OS内存收益。
 - [首轮整体失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase17/gzip-renderer.json>)前7检查虽过，仍因Electron内部sandbox startupData null两条console error严格拒绝，整轮timings不采信；仅新资源完整复跑一次、错误门禁不变，不能称内部错误无关或已修。B只读交叉，不冒称独立执行；[完整合同](<D:/fmg-cn/dreammap/docs/development/gzip-byte-collection.md>)保留压缩资源风险与测量边界。正式国界／河湖、单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线及其余汉化仍开放。
 
-### 8.17 桌面下载提示源端中文与真实路由（2026-10-27，当前检查点）
+### 8.17 桌面下载提示源端中文与真实路由（2026-10-27，历史检查点）
 
 - [拥有者](<D:/fmg-cn/dreammap/src/services/app-offer.ts>)修owned中文与两条已核对origin的发布查询／页面路由，移除两处any为局部可选UA类型；检测顺序、ARM默认、六格式后缀、URL／版本／大小、Promise流程及关闭this不变。推荐只按启发式，请核对系统／架构；保存位置／安装或运行按浏览器与发布说明，不承诺完整离线或自动安装，不指导绕过未知来源保护。
 - 便携ZIP发布但无可识别安装包，不误称项目未发布；不扩六格式匹配，不启用provider／发布／下载／安装。包metadata及桌面updater其他历史路由、共享alert迟到结果与API字段HTML净化不在本轮修复。
@@ -279,3 +279,12 @@ P1 与 P4 可并行；P2 的坐标约束先于 P3 的任何自动定位。分块
 - [实际开发态renderer12项](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/app-offer-native-v2.json>)为index-bRJHIicL.js／Electron43.5.0，新profile／默认引擎参数；真正服务生成loading／六链接／条件性中文、ZIP无匹配／拒绝／手持零API、实际CDP鼠标关闭及声明用户源保持。只有受测fetch／UA受控，其他应用与主进程网络未全隔离；没有激活任何资产链接，不能证明真实发布／资产可达／机型兼容／下载／签名／安装／更新或离线。最终异常／error console／downloads／cleanup为空，原两图与renderer全部JS／CSS SHA不变、私有进程退出，9333不动。
 - [首轮严格失败](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/phase18/app-offer-native.json>)11场景虽过，最后因两条Electron内部sandbox startupData null console error拒绝；保留原回执，不称错误无关或已修。同源码／断言／门禁仅更换output／新profile完整复跑一次，不再反复刷新。B只读交叉，不冒称独立执行；[范围合同](<D:/fmg-cn/dreammap/docs/development/desktop-offer.md>)保留所有未验边界。
 - 整体目标仍未完成：正式国界／河湖和单文件注记、精确dirty／无损恢复、持久项目、公告前冷启动／默认完整内存／离线、剩余面域汉化和稳定发布仍开放；不替换用户便携版，不将技术候选作正式地图内容。
+
+### 8.18 0.8.0冗余清理与新便携包验收（2026-10-27，当前检查点）
+
+- 本轮按用户续做请求审查冗余：JSON导出去23份中间列副本，保wire字段与源值／引用；无配置便携更新器在事件／计时器前返回；动态服务／全局桥／Cloud兼容出口保留，DevTools可能双dispatch仅列待验证。详见[本次审计](redundancy-audit-080.md)。
+- README改为功能、下载、使用、限制和开发入口；仓库元数据／产品0.8.0统一，地图格式仍1.154.0。发布工作流仅只读Windows x64工件，不写Release；便携固定--dir／--publish never，附根许可与第三方说明，不启用provider。
+- Electron补丁43.8.3保沙箱与context isolation。[完整门禁](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/release-080/complete.log>)普通2992通过／13跳过、Electron mock24、脚本52、TypeScript／588源Biome／版本／差异／构建／5资源戳通过，无自动Playwright。
+- [新便携EXE实际回执](<D:/DSH工作区/小说世界搭建/_run/map-next-20261027/release-080/portable-native.json>)13项全真：6个独立fresh profile较早Runtime.enable启动，另1个集成profile实际载图、四JSON出口细胞数据与旧collector纯转译比对、保存序列化／宿主写私有文件后重载。受控anchor不等于OS下载，宿主写不等于保存窗口，抽样一致不等于全部模型无损；本轮未见renderer异常，不保证所有启动条件或穷尽定位旧错误。
+- ZIP76个文件、169706410字节，逐文件SHA与该新目录一致，根许可完整、无app-update.yml，ASAR与Native守恒；校验值见审计。程序未有效签名，不指导绕过安全保护。[发布指南](release-guide.md)要求新标签、新ZIP+SHA及上传后核对，原图与用户便携目录保持不变。
+- 更大的地图路线图仍开放：正式国界／河湖与单文件注记、精确dirty／无损恢复、持久项目、默认完整内存／离线以及其余面域汉化；本次包不附私有或已验收的正式图集。
