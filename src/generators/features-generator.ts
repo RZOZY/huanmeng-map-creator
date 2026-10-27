@@ -165,7 +165,7 @@ class FeatureModule {
       const type = land ? "island" : border ? "ocean" : "lake";
       features.push({ i: featureId, land, border, type });
 
-      queue[0] = featureIds.indexOf(this.UNMARKED); // find unmarked cell
+      queue[0] = featureIds.indexOf(this.UNMARKED, firstCell); // find unmarked cell
     }
 
     // markup deep ocean cells
@@ -328,7 +328,7 @@ class FeatureModule {
       }
 
       features.push(addFeature({ firstCell, land, border, featureId, totalCells, cellsArea }));
-      queue[0] = featureIds.indexOf(this.UNMARKED); // find unmarked cell
+      queue[0] = featureIds.indexOf(this.UNMARKED, firstCell); // find unmarked cell
     }
 
     this.markup({
